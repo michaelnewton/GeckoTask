@@ -683,7 +683,12 @@ export class TaskWorkPanel extends ItemView {
         recurIcon.style.cursor = "pointer";
         recurIcon.addEventListener("click", async (e) => {
           e.stopPropagation();
-          const modal = new PromptModal(this.app, "Set recurrence (e.g., 'every Tuesday', 'every 10 days', 'every 2 weeks on Tuesday'):", t.recur || "");
+          const modal = new PromptModal(
+            this.app, 
+            "Set recurrence", 
+            t.recur || "",
+            "Examples: 'every Tuesday', 'every 10 days', 'every 2 weeks on Tuesday'"
+          );
           const value = await modal.prompt();
           if (value != null) {
             await this.updateField(t, "recur", value.trim() || undefined);
@@ -752,31 +757,6 @@ export class TaskWorkPanel extends ItemView {
       } else {
         priorityIcon.innerHTML = "!";
       }
-      priorityContainer.style.cursor = "pointer";
-      priorityContainer.addEventListener("click", async (e) => {
-        e.stopPropagation();
-        // Remove any existing select
-        const existing = priorityContainer.querySelector(".task-priority-select");
-        if (existing) existing.remove();
-        
-        const sel = priorityContainer.createEl("select", { cls: "task-priority-select" });
-        // Add "(none)" option first
-        const noneOpt = sel.createEl("option", { text: "(none)" });
-        noneOpt.value = "";
-        if (!t.priority) noneOpt.selected = true;
-        // Add priorities from settings
-        this.settings.allowedPriorities.forEach(p => {
-          const opt = sel.createEl("option", { text: p });
-          opt.value = p;
-          if (p === (t.priority || "")) opt.selected = true;
-        });
-        sel.addEventListener("change", async () => {
-          await this.updateField(t, "priority", sel.value || undefined);
-          sel.remove();
-        });
-        sel.addEventListener("blur", () => sel.remove());
-        sel.focus();
-      });
       
       // Tags/labels (with tag icon) - extract from both tags and description
       const allLabels = this.extractLabels(t);

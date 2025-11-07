@@ -578,12 +578,6 @@ If your plugin does not need CSS, delete this file.
   white-space: nowrap;
   flex-shrink: 0;
   margin-left: 8px;
-  cursor: pointer;
-  transition: opacity 0.2s ease;
-}
-
-.task-priority-container:hover {
-  opacity: 0.8;
 }
 
 .task-priority-icon {
@@ -768,11 +762,16 @@ If your plugin does not need CSS, delete this file.
   display: flex !important;
   align-items: flex-start !important;
   gap: 12px !important;
+  flex-wrap: wrap !important;
+  max-width: 100% !important;
 }
 
 .modal .setting-item-info {
   flex: 0 0 auto !important;
   min-width: 150px !important;
+  max-width: 100% !important;
+  overflow-wrap: break-word !important;
+  word-wrap: break-word !important;
 }
 
 .modal .setting-item-control {
@@ -919,8 +918,19 @@ If your plugin does not need CSS, delete this file.
     font-size: 13px !important;
     line-height: 1.2 !important; /* Tighter line height */
     word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+    white-space: normal !important;
+    max-width: 100% !important;
     font-weight: 500 !important;
     display: block !important;
+  }
+
+  /* Description text wrapping in modals */
+  .modal .setting-item-description {
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+    white-space: normal !important;
+    max-width: 100% !important;
   }
 
 

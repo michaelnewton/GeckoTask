@@ -13,11 +13,13 @@ export class PromptModal extends Modal {
    * @param app - Obsidian app instance
    * @param promptText - Text to display as prompt
    * @param defaultValue - Default input value
+   * @param description - Optional description text to display below the prompt
    */
   constructor(
     app: App,
     private promptText: string,
-    private defaultValue: string = ""
+    private defaultValue: string = "",
+    private description?: string
   ) {
     super(app);
     this.inputValue = defaultValue;
@@ -32,27 +34,32 @@ export class PromptModal extends Modal {
     this.titleEl.setText(this.promptText);
     this.isResolved = false;
 
-    new Setting(contentEl)
-      .setName(this.promptText)
-      .addText((text) => {
-        text.setValue(this.defaultValue);
-        text.inputEl.focus();
-        text.inputEl.select();
-        text.onChange((value) => {
-          this.inputValue = value;
-        });
-        // Handle Enter key
-        text.inputEl.addEventListener("keydown", (evt) => {
-          if (evt.key === "Enter") {
-            evt.preventDefault();
-            this.submit();
-          }
-          if (evt.key === "Escape") {
-            evt.preventDefault();
-            this.cancel();
-          }
-        });
+    const setting = new Setting(contentEl)
+      .setName(this.promptText);
+    
+    if (this.description) {
+      setting.setDesc(this.description);
+    }
+    
+    setting.addText((text) => {
+      text.setValue(this.defaultValue);
+      text.inputEl.focus();
+      text.inputEl.select();
+      text.onChange((value) => {
+        this.inputValue = value;
       });
+      // Handle Enter key
+      text.inputEl.addEventListener("keydown", (evt) => {
+        if (evt.key === "Enter") {
+          evt.preventDefault();
+          this.submit();
+        }
+        if (evt.key === "Escape") {
+          evt.preventDefault();
+          this.cancel();
+        }
+      });
+    });
 
     new Setting(contentEl)
       .addButton((btn) =>
