@@ -456,18 +456,54 @@ export class TaskWorkPanel extends ItemView {
 
   /**
    * Gets the priority color class for styling.
+   * Maps priority position in the user-defined array to escalating color classes.
    * @param priority - Priority value
    * @returns CSS class name for priority color
    */
   private getPriorityColorClass(priority?: string): string {
     if (!priority) return "priority-none";
     const idx = this.settings.allowedPriorities.indexOf(priority);
-    // Map priority index to color classes (0 = highest priority)
-    if (idx === 0) return "priority-urgent"; // First priority = urgent/high
-    if (idx === 1) return "priority-high";
-    if (idx === 2) return "priority-medium";
-    if (idx === 3) return "priority-low";
-    return "priority-none";
+    if (idx < 0) return "priority-none";
+    
+    const totalPriorities = this.settings.allowedPriorities.length;
+    if (totalPriorities === 0) return "priority-none";
+    
+    // Map based on position in array (last = highest priority)
+    // Escalate colors from low → medium → high → urgent as index increases
+    if (totalPriorities === 1) {
+      // Single priority → medium
+      return "priority-medium";
+    } else if (totalPriorities === 2) {
+      // Two priorities: [low, urgent]
+      return idx === 0 ? "priority-low" : "priority-urgent";
+    } else if (totalPriorities === 3) {
+      // Three priorities: [low, medium, urgent]
+      if (idx === 0) return "priority-low";
+      if (idx === 1) return "priority-medium";
+      return "priority-urgent";
+    } else {
+      // Four or more priorities: map proportionally
+      // First → low, Last → urgent, distribute medium/high in between
+      if (idx === 0) return "priority-low";
+      if (idx === totalPriorities - 1) return "priority-urgent";
+      
+      // Map middle priorities proportionally across low → medium → high
+      // Divide the range (excluding first and last) into segments
+      const middleRange = totalPriorities - 2; // Exclude first and last
+      const positionInMiddle = idx - 1; // Position within middle range (0-based)
+      
+      if (middleRange === 1) {
+        // Only one middle priority → medium
+        return "priority-medium";
+      } else if (middleRange === 2) {
+        // Two middle priorities → medium, high
+        return positionInMiddle === 0 ? "priority-medium" : "priority-high";
+      } else {
+        // Three or more middle priorities → distribute across medium and high
+        const mediumEnd = Math.floor(middleRange / 2);
+        return positionInMiddle <= mediumEnd ? "priority-medium" : "priority-high";
+      }
+    }
   }
 
   /**
@@ -663,10 +699,10 @@ export class TaskWorkPanel extends ItemView {
         this.startEditingTitle(title, t);
       });
 
-      // Bottom row: Due date + Tags on left, Project on right
+      // Bottom row: Due date + Priority + Tags on left, Project on right
       const bottomRow = card.createDiv({ cls: "task-card-bottom" });
       
-      // Left side: Due date + Tags
+      // Left side: Due date + Priority + Tags
       const leftSide = bottomRow.createDiv({ cls: "task-card-bottom-left" });
       
       // Due date (with calendar icon)
@@ -702,6 +738,45 @@ export class TaskWorkPanel extends ItemView {
           await this.updateField(t, "due", parsed);
         });
       }
+      
+      // Priority (with priority icon) - styled as pill/badge with color
+      const priorityColorClass = this.getPriorityColorClass(t.priority);
+      const priorityContainer = leftSide.createDiv({ 
+        cls: `task-priority-container ${priorityColorClass}${!t.priority ? " task-priority-empty" : ""}` 
+      });
+      const priorityIcon = priorityContainer.createEl("span", { cls: "task-priority-icon" });
+      // Show exclamation marks based on index (index 0 = !, index 1 = !!, etc.)
+      if (t.priority) {
+        const priorityIdx = this.settings.allowedPriorities.indexOf(t.priority);
+        priorityIcon.innerHTML = "!".repeat(priorityIdx >= 0 ? priorityIdx + 1 : 1);
+      } else {
+        priorityIcon.innerHTML = "!";
+      }
+      priorityContainer.style.cursor = "pointer";
+      priorityContainer.addEventListener("click", async (e) => {
+        e.stopPropagation();
+        // Remove any existing select
+        const existing = priorityContainer.querySelector(".task-priority-select");
+        if (existing) existing.remove();
+        
+        const sel = priorityContainer.createEl("select", { cls: "task-priority-select" });
+        // Add "(none)" option first
+        const noneOpt = sel.createEl("option", { text: "(none)" });
+        noneOpt.value = "";
+        if (!t.priority) noneOpt.selected = true;
+        // Add priorities from settings
+        this.settings.allowedPriorities.forEach(p => {
+          const opt = sel.createEl("option", { text: p });
+          opt.value = p;
+          if (p === (t.priority || "")) opt.selected = true;
+        });
+        sel.addEventListener("change", async () => {
+          await this.updateField(t, "priority", sel.value || undefined);
+          sel.remove();
+        });
+        sel.addEventListener("blur", () => sel.remove());
+        sel.focus();
+      });
       
       // Tags/labels (with tag icon) - extract from both tags and description
       const allLabels = this.extractLabels(t);
@@ -765,37 +840,6 @@ export class TaskWorkPanel extends ItemView {
 
       // Action buttons (shown on hover)
       const actionRow = card.createDiv({ cls: "task-card-actions" });
-      
-      // Priority selector (clickable)
-      const prioContainer = actionRow.createDiv({ cls: "task-priority-container" });
-      const prioBadge = prioContainer.createEl("span", { 
-        text: t.priority ? `! ${t.priority}` : "! Set priority", 
-        cls: `task-badge task-priority ${t.priority ? "" : "task-priority-empty"}` 
-      });
-      prioBadge.addEventListener("click", async (e) => {
-        e.stopPropagation();
-        // Remove any existing select
-        const existing = prioContainer.querySelector(".task-priority-select");
-        if (existing) existing.remove();
-        
-        const sel = prioContainer.createEl("select", { cls: "task-priority-select" });
-        // Add "(none)" option first
-        const noneOpt = sel.createEl("option", { text: "(none)" });
-        noneOpt.value = "";
-        if (!t.priority) noneOpt.selected = true;
-        // Add priorities from settings
-        this.settings.allowedPriorities.forEach(p => {
-          const opt = sel.createEl("option", { text: p });
-          opt.value = p;
-          if (p === (t.priority || "")) opt.selected = true;
-        });
-        sel.addEventListener("change", async () => {
-          await this.updateField(t, "priority", sel.value || undefined);
-          sel.remove();
-        });
-        sel.addEventListener("blur", () => sel.remove());
-        sel.focus();
-      });
       
       // Edit button
       const editBtn = actionRow.createEl("button", { 

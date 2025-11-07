@@ -569,16 +569,69 @@ If your plugin does not need CSS, delete this file.
 
 .task-priority-container {
   position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-left: 8px;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.task-priority-container:hover {
+  opacity: 0.8;
+}
+
+.task-priority-icon {
+  font-size: 12px;
+  opacity: 0.9;
   display: inline-block;
+  line-height: 1;
+}
+
+.task-priority-text {
+  font-size: 12px;
+  font-weight: 500;
+  display: inline-block;
+}
+
+.task-priority-container.task-priority-empty {
+  opacity: 0.6;
+  font-style: italic;
+}
+
+/* Priority color classes for pill/badge styling */
+.task-priority-container.priority-urgent {
+  background-color: #e74c3c;
+  color: white;
+}
+
+.task-priority-container.priority-high {
+  background-color: #f39c12;
+  color: white;
+}
+
+.task-priority-container.priority-medium {
+  background-color: #3498db;
+  color: white;
+}
+
+.task-priority-container.priority-low {
+  background-color: var(--background-modifier-border);
+  color: var(--text-muted);
+}
+
+.task-priority-container.priority-none {
+  background-color: var(--background-modifier-border);
+  color: var(--text-muted);
 }
 
 .task-priority {
   cursor: pointer;
-}
-
-.task-priority-empty {
-  opacity: 0.6;
-  font-style: italic;
 }
 
 .task-priority-select {
