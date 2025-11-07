@@ -66,8 +66,10 @@
 
 * Everything stays on **one line** for easy grep/edit and mobile compatibility.
 * Fields: `due::`, `scheduled::` (optional, not used in UI), `priority:: <string>` (configurable list),
-  `recur:: <pattern>` or `🔁 <pattern>` (recurrence pattern, Tasks plugin compatible), `project:: <string>`, `tags` via `#hashtag`.
+  `recur:: <pattern>` or `🔁 <pattern>` (recurrence pattern, Tasks plugin compatible), `tags` via `#hashtag`.
+* **@ Labels:** Tasks can include @ labels (e.g., `@ppl/Libby`, `@person/Name`) in titles or descriptions. These are automatically styled in markdown preview and extracted for display in the TaskWork Panel.
 * **Area is NOT stored in metadata** — it's derived from folder structure.
+* **Project is NOT stored in metadata for regular project files** — it's derived from the file basename (e.g., `tasks/Work/RouterRevamp.md` → project: `RouterRevamp`). For special files (Inbox, General), project is undefined.
 * On completion, append `completed:: YYYY-MM-DD`.
 * **Recurring tasks:** When a recurring task is completed, the plugin automatically creates the next occurrence with an updated due date.
 * **Multi-line descriptions** are stored as indented lines (2+ spaces) below the task line.
@@ -106,12 +108,13 @@
 * **Archive policy:**
   * **Manual:** "TaskWork: Archive Completed in Current File"
   * **Global:** "TaskWork: Archive All Completed (older than N days)" (configurable)
+* **Archive requirements:** Only tasks that are both checked (`[x]`) and have a `completed::` field are archived.
 * **Archive format:** Move lines to `Archive/Completed-YYYY.md`, append `origin_file::`, `origin_project::`, `origin_area::` if missing.
 
 ### D) Edit Metadata Quickly
 
 * Commands: "Set Due (at cursor)", "Set Priority (at cursor)", "Set Recurrence (at cursor)", "Add/Remove Tags (at cursor)", "Set Project (at cursor)". Operate on the task under cursor.
-* **TaskWork Panel:** Click badges to edit due date, priority, recurrence, title (inline editing).
+* **TaskWork Panel:** Click badges to edit due date, priority, recurrence, title (inline editing). Click description icon to toggle description visibility.
 
 ### E) TaskWork Panel
 
@@ -201,6 +204,7 @@ Hotkeys configurable in Obsidian.
 * **Archive threshold:** `N` days (default 7)
 * **Natural language due parsing:** on/off (default on)
 * **Allowed priorities:** Comma-separated list (default: `low, med, high, urgent`)
+* **Due date ranges:** Comma-separated list of configurable due date ranges for filter dropdown (default: `7d, 14d, 30d, 60d, 90d`)
 
 ---
 
@@ -282,6 +286,7 @@ export interface TaskWorkSettings {
   archiveOlderThanDays: number;        // 7
   allowedPriorities: string[];         // ["low","med","high","urgent"]
   nlDateParsing: boolean;              // true
+  dueDateRanges: string[];             // ["7d", "14d", "30d", "60d", "90d"] - configurable due date ranges for filter dropdown
 }
 ```
 
@@ -327,6 +332,7 @@ created: 2025-11-07
 ## 10) Archiving Details
 
 * Archive file chosen via pattern `Archive/Completed-YYYY.md` (YYYY replaced with current year).
+* **Archive requirements:** Only tasks that are both checked (`[x]`) and have a `completed::` field are archived.
 * When archiving a task, ensure it includes:
   * `completed:: YYYY-MM-DD` (if missing, set now)
   * `origin_file:: <path>`
@@ -400,17 +406,27 @@ created: 2025-11-07
 The TaskWork Panel (`TaskworkPanel.ts`) provides a side view for managing tasks:
 
 * **Indexing:** Scans all markdown files in tasks folder structure, parses tasks with descriptions
-* **Filtering:** By area, project, priority, due date window (any, today, 7d, overdue, none), search query
+* **Tabs:** Two tabs available:
+  * "Today & Overdue" - Shows tasks due today or overdue (due filter hidden)
+  * "All Tasks" - Shows all tasks with full filtering options
+* **Filtering:** By area, project, priority, due date window, search query
+  * **Due date filters:** Fixed options (any, today, overdue, none), configurable day ranges from settings (e.g., 7d, 14d, 30d, 60d, 90d), and relative periods (this-week, next-week, this-month, next-month)
+  * **Search:** Searches task titles and tags
 * **Sorting:** By due date (asc), priority rank (from settings order), area, project, title
 * **Actions:**
   * Checkbox to toggle completion (handles recurring task regeneration)
   * Click title to edit inline
   * Click due badge to set/change due date
-  * Click priority badge to set/change priority
-  * Click recurrence badge to set/change recurrence pattern
+  * Click priority badge to set/change priority (dropdown selector)
+  * Click recurrence badge (🔁) to set/change recurrence pattern
+  * Click description icon (📄) to toggle description visibility
+  * "Edit" button to open full edit modal
   * "Open" button to open task in note (scrolls to line)
   * "Move" button to move task to different project
 * **Recurrence display:** Shows recurrence pattern (🔁) badge for recurring tasks
+* **Description support:** Multi-line descriptions can be toggled visible/hidden via icon
+* **@ Label extraction:** Extracts @ labels from both task tags and descriptions for display
+* **Mobile features:** Touch device detection, tap-to-reveal action buttons on mobile
 * **Auto-refresh:** Debounced refresh on vault changes
 
 ---
@@ -458,13 +474,25 @@ sort completed desc
 * **Dependencies:** keep zero or minimal; no heavy UI libs.
 * **Package manager:** npm (required for this project)
 
+## 20) Markdown Styling
+
+The plugin automatically styles task metadata and @ labels in markdown files:
+
+* **Markdown Preview:** Task metadata fields (e.g., `priority::`, `due::`) and @ labels (e.g., `@ppl/Libby`) are wrapped in styled spans for visual distinction
+* **Source/Editing Mode:** CodeMirror decorations are applied to task metadata fields in source view
+* **Styling class:** Files in the tasks folder structure receive the `mod-taskwork-styled` class for CSS targeting
+* **Styling scope:** Only files within the configured tasks folder structure are styled
+
 ---
 
 ## 19) Notes on Design Decisions
 
 * **Folder-based areas:** Areas are inferred from folder structure rather than stored in metadata. This simplifies organization and avoids metadata duplication.
+* **Folder-based projects:** Projects are inferred from file basename for regular project files, not stored in metadata. This avoids metadata duplication and keeps tasks simple.
 * **Single inbox:** One inbox file for all areas, with optional area selection during capture.
 * **General tasks file:** Special file name for tasks without a project (similar to inbox).
 * **Multi-line descriptions:** Supported via indented lines below task line for richer task context.
+* **@ Labels:** Support for @ labels (e.g., `@ppl/Libby`) in titles and descriptions, styled in markdown preview and extracted for panel display.
 * **No ULID/ID:** Not implemented in v1; tasks are identified by file path and line number.
 * **TaskWork Panel:** Provides rich UI for task management without requiring Dataview knowledge.
+* **Styling:** Task metadata fields and @ labels are automatically styled in both markdown preview and source/editing mode for better visual distinction.

@@ -859,12 +859,28 @@ export class TaskWorkPanel extends ItemView {
     input.focus();
     input.select();
 
+    let isFinishing = false;
     const finishEditing = async () => {
+      // Prevent multiple calls
+      if (isFinishing) return;
+      isFinishing = true;
+
+      // Check if input is still in the DOM
+      if (!input.parentElement) {
+        return;
+      }
+
       const newTitle = input.value.trim();
       if (newTitle && newTitle !== currentText) {
+        // Remove event listeners before rerender removes the element
+        input.removeEventListener("blur", finishEditing);
         await this.updateTitle(t, newTitle);
       } else {
         // Restore original if cancelled or empty
+        // Check again if input is still in the DOM
+        if (!input.parentElement) {
+          return;
+        }
         const newTitleEl = document.createElement("div");
         newTitleEl.className = "task-title";
         newTitleEl.style.cursor = "pointer";
@@ -876,6 +892,21 @@ export class TaskWorkPanel extends ItemView {
       }
     };
 
+    const handleEscape = () => {
+      // Check if input is still in the DOM
+      if (!input.parentElement) {
+        return;
+      }
+      const newTitleEl = document.createElement("div");
+      newTitleEl.className = "task-title";
+      newTitleEl.style.cursor = "pointer";
+      this.renderDescriptionLine(newTitleEl, currentText);
+      newTitleEl.addEventListener("click", () => {
+        this.startEditingTitle(newTitleEl, t);
+      });
+      input.replaceWith(newTitleEl);
+    };
+
     input.addEventListener("blur", finishEditing);
     input.addEventListener("keydown", async (e) => {
       if (e.key === "Enter") {
@@ -883,14 +914,7 @@ export class TaskWorkPanel extends ItemView {
         await finishEditing();
       } else if (e.key === "Escape") {
         e.preventDefault();
-        const newTitleEl = document.createElement("div");
-        newTitleEl.className = "task-title";
-        newTitleEl.style.cursor = "pointer";
-        this.renderDescriptionLine(newTitleEl, currentText);
-        newTitleEl.addEventListener("click", () => {
-          this.startEditingTitle(newTitleEl, t);
-        });
-        input.replaceWith(newTitleEl);
+        handleEscape();
       }
     });
   }

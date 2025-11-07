@@ -17,6 +17,7 @@ A complete task line can include:
 - **Checkbox**: `[ ]` (incomplete) or `[x]` (complete)
 - **Title**: Free text describing the task
 - **Tags**: Hashtags like `#work`, `#personal`, `#urgent`
+- **Labels**: @ labels like `@ppl/Libby`, `@person/Name`, `@label` (styled in markdown preview)
 - **Fields**: Key-value pairs in the format `key:: value`
 
 ### Field Types
@@ -54,6 +55,17 @@ The following fields are supported:
 ```markdown
 - [ ] Review pull request #work #code-review
 ```
+
+### Task with Labels
+
+Tasks can include @ labels in the title or description:
+
+```markdown
+- [ ] Follow up with @ppl/Libby about the design
+- [ ] Schedule meeting with @person/John and @person/Sarah
+```
+
+**Note:** @ labels are automatically styled in markdown preview and can be extracted from task descriptions for display in the TaskWork Panel.
 
 ### Task with Due Date
 
@@ -199,11 +211,16 @@ Tasks in certain special files behave differently:
 
 ## Archive Format
 
-When tasks are archived, they include origin metadata:
+When tasks are archived, they include origin metadata. **Note:** Only tasks that are both checked (`[x]`) and have a `completed::` field are archived.
 
 ```markdown
 - [x] Completed task #work priority:: high due:: 2025-11-15 completed:: 2025-11-14 origin_file:: tasks/Work/RouterRevamp.md origin_project:: RouterRevamp origin_area:: Work
 ```
+
+**Archive Requirements:**
+- Task must be checked: `[x]`
+- Task must have a `completed::` field with a date
+- The `origin_*` fields are automatically added during archiving if not already present
 
 ## Best Practices
 

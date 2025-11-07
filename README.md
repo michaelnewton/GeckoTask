@@ -11,9 +11,11 @@
 - **Folder-Based Organization**: Organize tasks by areas (Work, Personal) and projects using folder structure
 - **Recurring Tasks**: Support for recurring tasks with automatic next occurrence generation (Tasks plugin compatible)
 - **Multi-line Descriptions**: Support for task descriptions stored as indented lines below task lines
+- **@ Labels**: Support for @ labels (e.g., `@ppl/Libby`) in task titles and descriptions, styled in markdown preview
 - **Natural Language Dates**: Parse dates like "today", "tomorrow", "next monday", "in 3 days"
 - **Task Movement**: Easily move tasks between projects while preserving metadata
 - **Archiving**: Archive completed tasks with origin context preserved
+- **Markdown Styling**: Automatic styling of task metadata fields and @ labels in markdown preview and source view
 - **Dataview Integration**: Tasks use consistent inline metadata that works perfectly with Dataview queries
 
 ### Task Format
@@ -21,8 +23,10 @@
 Tasks use standard Markdown checkboxes with inline metadata:
 
 ```markdown
-- [ ] Write agent router tests  #work #router priority:: high  due:: 2025-11-15  project:: RouterRevamp
+- [ ] Write agent router tests  #work #router priority:: high  due:: 2025-11-15
 ```
+
+**Note:** The `project::` field is not stored in metadata for regular project files. Projects are derived from the file basename (e.g., `tasks/Work/RouterRevamp.md` → project: `RouterRevamp`). For special files (Inbox, General), project is undefined.
 
 Tasks can include recurrence patterns (Tasks plugin compatible):
 
@@ -37,10 +41,19 @@ When a recurring task is completed, the plugin automatically creates the next oc
 Tasks can also include multi-line descriptions:
 
 ```markdown
-- [ ] Write agent router tests  #work #router priority:: high  due:: 2025-11-15  project:: RouterRevamp
+- [ ] Write agent router tests  #work #router priority:: high  due:: 2025-11-15
   This is a multi-line description.
   It can span multiple lines.
 ```
+
+Tasks can include @ labels in titles or descriptions:
+
+```markdown
+- [ ] Follow up with @ppl/Libby about the design
+- [ ] Schedule meeting with @person/John and @person/Sarah
+```
+
+**Note:** @ labels are automatically styled in markdown preview and can be extracted from task descriptions for display in the TaskWork Panel.
 
 ### Commands
 
@@ -86,6 +99,7 @@ Open **Settings → TaskWork** to configure:
 - **Archive older than (days)**: Days before archiving completed tasks (default: 7)
 - **Natural language due parsing**: Enable parsing of dates like "today", "tomorrow" (default: on)
 - **Allowed priorities**: Comma-separated list of priority values (default: `low, med, high, urgent`)
+- **Due date ranges**: Comma-separated list of configurable due date ranges for filter dropdown (default: `7d, 14d, 30d, 60d, 90d`)
 
 ## Usage
 
@@ -121,11 +135,19 @@ TaskWork organizes tasks in a folder structure:
 
 The TaskWork Panel provides a rich interface for managing tasks:
 
-- **Filtering**: Filter by area, project, priority, due date (today, 7d, overdue, none), or search query
+- **Tabs**: Two tabs available:
+  - "Today & Overdue" - Shows tasks due today or overdue (due filter hidden)
+  - "All Tasks" - Shows all tasks with full filtering options
+- **Filtering**: Filter by area, project, priority, due date, or search query
+  - **Due date filters**: Fixed options (any, today, overdue, none), configurable day ranges from settings (e.g., 7d, 14d, 30d, 60d, 90d), and relative periods (this-week, next-week, this-month, next-month)
+  - **Search**: Searches task titles and tags
 - **Sorting**: Tasks are sorted by due date, priority, area, project, and title
 - **Inline Editing**: Click title to edit, click badges to change due date, priority, or recurrence pattern
-- **Recurrence Display**: Shows recurrence pattern (🔁) badge for recurring tasks
-- **Quick Actions**: Toggle completion (handles recurring task regeneration), open task in note, or move to different project
+- **Recurrence Display**: Shows recurrence pattern (🔁) badge for recurring tasks (click to edit)
+- **Description Support**: Multi-line descriptions can be toggled visible/hidden via icon (📄)
+- **@ Label Extraction**: Extracts @ labels from both task tags and descriptions for display
+- **Quick Actions**: Toggle completion (handles recurring task regeneration), edit task, open task in note (scrolls to line), or move to different project
+- **Mobile Features**: Touch device detection, tap-to-reveal action buttons on mobile
 - **Auto-refresh**: Panel automatically updates when vault changes
 
 ### Dataview Integration
@@ -211,10 +233,11 @@ src/
 ## Design Philosophy
 
 - **Markdown-first**: Tasks are plain Markdown that can be edited anywhere
-- **Folder-based organization**: Areas are inferred from folder structure, not stored in metadata
+- **Folder-based organization**: Areas and projects are inferred from folder structure, not stored in metadata
 - **Dataview-friendly**: Consistent inline metadata works with Dataview queries
-- **Mobile-compatible**: Works on iOS, Android, and desktop
+- **Mobile-compatible**: Works on iOS, Android, and desktop with touch-optimized UI
 - **Sync-friendly**: Compatible with Obsidian Sync, Syncthing, and Git
+- **Visual distinction**: Task metadata fields and @ labels are automatically styled in markdown preview and source view for better readability
 
 ## Contributing
 

@@ -41,6 +41,24 @@ export async function captureQuickTask(app: App, settings: TaskWorkSettings, exi
         tags: existingTask?.tags || [],
         recur: existingTask?.recur
       };
+      
+      /**
+       * Handles saving the task when Enter is pressed.
+       */
+      private async handleSave() {
+        if (!this.draft.title.trim()) { 
+          new Notice("Title required."); 
+          return; 
+        }
+        if (isEditMode && existingTask) {
+          await updateTask(app, existingTask, this.draft, settings);
+        } else {
+          await appendTask(app, this.draft, settings);
+        }
+        this.close();
+        resolve();
+      }
+      
       onOpen() {
         const { contentEl } = this;
         contentEl.empty();
@@ -50,6 +68,13 @@ export async function captureQuickTask(app: App, settings: TaskWorkSettings, exi
           t.setValue(this.draft.title);
           t.inputEl.style.width = "100%";
           t.onChange(v => this.draft.title = v);
+          // Handle Enter key to save
+          t.inputEl.addEventListener("keydown", (evt) => {
+            if (evt.key === "Enter") {
+              evt.preventDefault();
+              this.handleSave();
+            }
+          });
         });
 
         // Description field (textarea for multi-line)
@@ -62,6 +87,13 @@ export async function captureQuickTask(app: App, settings: TaskWorkSettings, exi
           t.inputEl.rows = isMobile ? 2 : 4; // Reduced rows on mobile
           t.inputEl.style.width = "100%";
           t.onChange(v => this.draft.description = v.trim() || undefined);
+          // Handle Ctrl+Enter (or Cmd+Enter on Mac) to save, Enter alone creates new line
+          t.inputEl.addEventListener("keydown", (evt) => {
+            if (evt.key === "Enter" && (evt.ctrlKey || evt.metaKey)) {
+              evt.preventDefault();
+              this.handleSave();
+            }
+          });
         });
 
         // Get all files in tasks folder structure
@@ -99,6 +131,13 @@ export async function captureQuickTask(app: App, settings: TaskWorkSettings, exi
               this.draft.due = v;
             }
           });
+          // Handle Enter key to save
+          t.inputEl.addEventListener("keydown", (evt) => {
+            if (evt.key === "Enter") {
+              evt.preventDefault();
+              this.handleSave();
+            }
+          });
         });
 
         new Setting(contentEl).setName("Priority").addDropdown(d => {
@@ -115,6 +154,13 @@ export async function captureQuickTask(app: App, settings: TaskWorkSettings, exi
           t.setValue(this.draft.recur || "");
           t.inputEl.style.width = "100%";
           t.onChange(v => this.draft.recur = v.trim() || undefined);
+          // Handle Enter key to save
+          t.inputEl.addEventListener("keydown", (evt) => {
+            if (evt.key === "Enter") {
+              evt.preventDefault();
+              this.handleSave();
+            }
+          });
         });
 
         new Setting(contentEl).setName("Tags (space-separated)").addText(t => {
@@ -122,18 +168,18 @@ export async function captureQuickTask(app: App, settings: TaskWorkSettings, exi
           t.setValue((this.draft.tags || []).join(" "));
           t.inputEl.style.width = "100%";
           t.onChange(v => this.draft.tags = v.split(/\s+/).filter(Boolean));
+          // Handle Enter key to save
+          t.inputEl.addEventListener("keydown", (evt) => {
+            if (evt.key === "Enter") {
+              evt.preventDefault();
+              this.handleSave();
+            }
+          });
         });
 
         new Setting(contentEl)
           .addButton(b => b.setButtonText(isEditMode ? "Save" : "Add").setCta().onClick(async () => {
-            if (!this.draft.title.trim()) { new Notice("Title required."); return; }
-            if (isEditMode && existingTask) {
-              await updateTask(app, existingTask, this.draft, settings);
-            } else {
-              await appendTask(app, this.draft, settings);
-            }
-            this.close();
-            resolve();
+            await this.handleSave();
           }))
           .addButton(b => b.setButtonText("Cancel").onClick(() => { this.close(); resolve(); }));
       }
