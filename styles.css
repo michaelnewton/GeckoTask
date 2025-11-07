@@ -1366,15 +1366,6 @@ If your plugin does not need CSS, delete this file.
     font-size: 12px;
   }
 
-  .weekly-review-navigation {
-    flex-direction: column;
-  }
-
-  .weekly-review-btn-next {
-    margin-left: 0;
-    width: 100%;
-  }
-
   .weekly-review-task-actions {
     flex-direction: column;
   }
