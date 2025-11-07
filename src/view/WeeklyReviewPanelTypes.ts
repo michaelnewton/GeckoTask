@@ -27,11 +27,44 @@ export interface WizardState {
   showReviewedProjects: boolean; // Whether to show reviewed projects in step 2D
   reviewedSomedayMaybeProjects: Set<string>; // Someday Maybe project paths that have been reviewed
   showReviewedSomedayMaybeProjects: boolean; // Whether to show reviewed Someday Maybe projects in step 2F
+  isCompleted: boolean; // Whether the review has been completed
+  dateStarted?: string; // ISO date string when the review was started
   notes: {
     looseEnds: {
       physicalItems: string;
       emailMessages: string;
       custom: Record<string, string>; // Custom collection points: { "Facebook": "...", "Slack": "..." }
+    };
+    emptyHead: {
+      worries: string;
+      postponements: string;
+      smallWins: string;
+    };
+    calendarPast: string;
+    calendarFuture: string;
+    brainstorm: string;
+  };
+}
+
+/**
+ * Serialized wizard state for persistence (Sets converted to arrays).
+ */
+export interface SerializedWizardState {
+  currentStep: ReviewStep;
+  completedSteps: ReviewStep[];
+  reviewedTasks: string[];
+  showReviewedTasks: boolean;
+  reviewedProjects: string[];
+  showReviewedProjects: boolean;
+  reviewedSomedayMaybeProjects: string[];
+  showReviewedSomedayMaybeProjects: boolean;
+  isCompleted: boolean;
+  dateStarted?: string;
+  notes: {
+    looseEnds: {
+      physicalItems: string;
+      emailMessages: string;
+      custom: Record<string, string>;
     };
     emptyHead: {
       worries: string;

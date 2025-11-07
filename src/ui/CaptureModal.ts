@@ -24,9 +24,10 @@ interface Draft {
  * @param app - Obsidian app instance
  * @param settings - Plugin settings
  * @param existingTask - Optional existing task to edit
+ * @param projectPath - Optional project path to pre-fill
  * @returns Promise that resolves when modal is closed
  */
-export async function captureQuickTask(app: App, settings: TaskWorkSettings, existingTask?: IndexedTask) {
+export async function captureQuickTask(app: App, settings: TaskWorkSettings, existingTask?: IndexedTask, projectPath?: string) {
   const mdFiles = app.vault.getMarkdownFiles();
   const isEditMode = !!existingTask;
 
@@ -35,7 +36,7 @@ export async function captureQuickTask(app: App, settings: TaskWorkSettings, exi
       draft: Draft = {
         title: existingTask?.title || "",
         description: existingTask?.description,
-        projectPath: existingTask?.path || normalizeInboxPath(settings.inboxPath),
+        projectPath: existingTask?.path || projectPath || normalizeInboxPath(settings.inboxPath),
         due: existingTask?.due,
         priority: existingTask?.priority,
         tags: existingTask?.tags || [],

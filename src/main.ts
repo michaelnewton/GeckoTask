@@ -27,7 +27,7 @@ export default class TaskWorkPlugin extends Plugin {
 
     // Register the side panel views
     this.registerView(VIEW_TYPE_TASKWORK, (leaf: WorkspaceLeaf) => new TaskWorkPanel(leaf, this.settings));
-    this.registerView(VIEW_TYPE_WEEKLY_REVIEW, (leaf: WorkspaceLeaf) => new WeeklyReviewPanel(leaf, this.settings));
+    this.registerView(VIEW_TYPE_WEEKLY_REVIEW, (leaf: WorkspaceLeaf) => new WeeklyReviewPanel(leaf, this.settings, this));
 
     /**
      * Opens the TaskWork side panel for task management.

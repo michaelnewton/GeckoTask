@@ -1,6 +1,6 @@
-import { App, ItemView, WorkspaceLeaf, TFile, Notice, setIcon } from "obsidian";
+import { App, ItemView, WorkspaceLeaf, TFile, Notice, setIcon, MarkdownView, Plugin } from "obsidian";
 import { TaskWorkSettings } from "../settings";
-import { ReviewStep, WizardState, TaskReviewItem, ProjectReviewInfo } from "./WeeklyReviewPanelTypes";
+import { ReviewStep, WizardState, TaskReviewItem, ProjectReviewInfo, SerializedWizardState } from "./WeeklyReviewPanelTypes";
 import { IndexedTask } from "./TaskworkPanelTypes";
 import { captureQuickTask } from "../ui/CaptureModal";
 import { FilePickerModal } from "../ui/FilePickerModal";
@@ -55,6 +55,7 @@ const ALL_STEPS: ReviewStep[] = [
  */
 export class WeeklyReviewPanel extends ItemView {
   settings: TaskWorkSettings;
+  plugin: Plugin;
   container!: HTMLElement;
   wizardState: WizardState;
   currentStepIndex: number = 0;
@@ -64,40 +65,20 @@ export class WeeklyReviewPanel extends ItemView {
   somedayMaybeTasks: IndexedTask[] = [];
   projects: ProjectReviewInfo[] = [];
   somedayMaybeProjects: ProjectReviewInfo[] = [];
+  private readonly STATE_STORAGE_KEY = "weekly-review-state";
+  private saveStateTimeout: number | null = null;
 
   /**
    * Creates a new Weekly Review panel.
    * @param leaf - Workspace leaf to attach to
    * @param settings - Plugin settings
+   * @param plugin - Plugin instance for data persistence
    */
-  constructor(leaf: WorkspaceLeaf, settings: TaskWorkSettings) {
+  constructor(leaf: WorkspaceLeaf, settings: TaskWorkSettings, plugin: Plugin) {
     super(leaf);
     this.settings = settings;
-    this.wizardState = {
-      currentStep: ALL_STEPS[0],
-      completedSteps: new Set(),
-      reviewedTasks: new Set(),
-      showReviewedTasks: false,
-      reviewedProjects: new Set(),
-      showReviewedProjects: false,
-      reviewedSomedayMaybeProjects: new Set(),
-      showReviewedSomedayMaybeProjects: false,
-      notes: {
-        looseEnds: {
-          physicalItems: "",
-          emailMessages: "",
-          custom: {}
-        },
-        emptyHead: {
-          worries: "",
-          postponements: "",
-          smallWins: ""
-        },
-        calendarPast: "",
-        calendarFuture: "",
-        brainstorm: ""
-      }
-    };
+    this.plugin = plugin;
+    this.wizardState = this.createDefaultState();
   }
 
   /**
@@ -125,13 +106,173 @@ export class WeeklyReviewPanel extends ItemView {
     this.container = this.contentEl;
     this.container.empty();
     this.container.addClass("weekly-review-panel");
+    await this.loadState();
     await this.renderCurrentStep();
   }
 
   /**
    * Called when the view is closed. Cleans up resources.
    */
-  async onClose() {}
+  async onClose() {
+    // Save state when closing
+    await this.saveState();
+  }
+
+  /**
+   * Creates a default wizard state.
+   * @returns Default wizard state
+   */
+  private createDefaultState(): WizardState {
+    return {
+      currentStep: ALL_STEPS[0],
+      completedSteps: new Set(),
+      reviewedTasks: new Set(),
+      showReviewedTasks: false,
+      reviewedProjects: new Set(),
+      showReviewedProjects: false,
+      reviewedSomedayMaybeProjects: new Set(),
+      showReviewedSomedayMaybeProjects: false,
+      isCompleted: false,
+      dateStarted: undefined, // Only set when user first interacts
+      notes: {
+        looseEnds: {
+          physicalItems: "",
+          emailMessages: "",
+          custom: {}
+        },
+        emptyHead: {
+          worries: "",
+          postponements: "",
+          smallWins: ""
+        },
+        calendarPast: "",
+        calendarFuture: "",
+        brainstorm: ""
+      }
+    };
+  }
+
+  /**
+   * Serializes wizard state for persistence (converts Sets to arrays).
+   * @param state - Wizard state to serialize
+   * @returns Serialized state
+   */
+  private serializeState(state: WizardState): SerializedWizardState {
+    return {
+      currentStep: state.currentStep,
+      completedSteps: Array.from(state.completedSteps),
+      reviewedTasks: Array.from(state.reviewedTasks),
+      showReviewedTasks: state.showReviewedTasks,
+      reviewedProjects: Array.from(state.reviewedProjects),
+      showReviewedProjects: state.showReviewedProjects,
+      reviewedSomedayMaybeProjects: Array.from(state.reviewedSomedayMaybeProjects),
+      showReviewedSomedayMaybeProjects: state.showReviewedSomedayMaybeProjects,
+      isCompleted: state.isCompleted,
+      dateStarted: state.dateStarted,
+      notes: state.notes
+    };
+  }
+
+  /**
+   * Deserializes wizard state from persistence (converts arrays to Sets).
+   * @param serialized - Serialized state
+   * @returns Wizard state
+   */
+  private deserializeState(serialized: SerializedWizardState): WizardState {
+    return {
+      currentStep: serialized.currentStep,
+      completedSteps: new Set(serialized.completedSteps),
+      reviewedTasks: new Set(serialized.reviewedTasks),
+      showReviewedTasks: serialized.showReviewedTasks,
+      reviewedProjects: new Set(serialized.reviewedProjects),
+      showReviewedProjects: serialized.showReviewedProjects,
+      reviewedSomedayMaybeProjects: new Set(serialized.reviewedSomedayMaybeProjects),
+      showReviewedSomedayMaybeProjects: serialized.showReviewedSomedayMaybeProjects,
+      isCompleted: serialized.isCompleted,
+      dateStarted: serialized.dateStarted,
+      notes: serialized.notes
+    };
+  }
+
+  /**
+   * Loads wizard state from storage.
+   */
+  private async loadState() {
+    try {
+      const data = await this.plugin.loadData();
+      const serialized = data?.[this.STATE_STORAGE_KEY] as SerializedWizardState | undefined;
+      
+      if (serialized) {
+        this.wizardState = this.deserializeState(serialized);
+        // Find the current step index
+        this.currentStepIndex = ALL_STEPS.indexOf(this.wizardState.currentStep);
+        if (this.currentStepIndex === -1) {
+          // If step not found, reset to first step
+          this.currentStepIndex = 0;
+          this.wizardState.currentStep = ALL_STEPS[0];
+        }
+      } else {
+        // No saved state, use default
+        this.wizardState = this.createDefaultState();
+        this.currentStepIndex = 0;
+      }
+    } catch (error) {
+      console.error("Error loading weekly review state:", error);
+      // On error, use default state
+      this.wizardState = this.createDefaultState();
+      this.currentStepIndex = 0;
+    }
+  }
+
+  /**
+   * Saves wizard state to storage.
+   */
+  private async saveState() {
+    try {
+      const data = await this.plugin.loadData() || {};
+      data[this.STATE_STORAGE_KEY] = this.serializeState(this.wizardState);
+      await this.plugin.saveData(data);
+    } catch (error) {
+      console.error("Error saving weekly review state:", error);
+    }
+  }
+
+  /**
+   * Debounced save state for text input changes.
+   */
+  private debouncedSaveState() {
+    if (this.saveStateTimeout !== null) {
+      clearTimeout(this.saveStateTimeout);
+    }
+    this.saveStateTimeout = window.setTimeout(() => {
+      this.saveState();
+      this.saveStateTimeout = null;
+    }, 1000); // Save 1 second after user stops typing
+  }
+
+  /**
+   * Clears the saved state from storage.
+   */
+  private async clearState() {
+    try {
+      const data = await this.plugin.loadData() || {};
+      delete data[this.STATE_STORAGE_KEY];
+      await this.plugin.saveData(data);
+    } catch (error) {
+      console.error("Error clearing weekly review state:", error);
+    }
+  }
+
+  /**
+   * Ensures state is initialized and saved when user first interacts.
+   * Sets dateStarted if not already set.
+   */
+  private async ensureStateInitialized() {
+    if (!this.wizardState.dateStarted) {
+      this.wizardState.dateStarted = new Date().toISOString();
+      await this.saveState();
+    }
+  }
 
   /**
    * Renders the current step of the wizard.
@@ -140,9 +281,49 @@ export class WeeklyReviewPanel extends ItemView {
     this.container.empty();
     this.container.addClass("weekly-review-panel");
 
-    // Header with title and progress
+    // Check if review is completed - show congratulations screen
+    if (this.wizardState.isCompleted) {
+      this.renderCompletionScreen();
+      return;
+    }
+
+    // Header with title, progress, date started, and restart button
     const header = this.container.createDiv({ cls: "weekly-review-header" });
-    header.createEl("h2", { text: "Weekly Review" });
+    const headerTop = header.createDiv({ cls: "weekly-review-header-top" });
+    headerTop.style.display = "flex";
+    headerTop.style.justifyContent = "space-between";
+    headerTop.style.alignItems = "center";
+    headerTop.style.marginBottom = "8px";
+    
+    const titleContainer = headerTop.createDiv();
+    titleContainer.createEl("h2", { text: "Weekly Review" });
+    
+    const headerActions = headerTop.createDiv({ cls: "weekly-review-header-actions" });
+    headerActions.style.display = "flex";
+    headerActions.style.gap = "8px";
+    headerActions.style.alignItems = "center";
+    
+    // Date started display - only show if state exists
+    if (this.wizardState.dateStarted) {
+      const dateStarted = headerActions.createDiv({ cls: "weekly-review-date-started" });
+      dateStarted.style.fontSize = "12px";
+      dateStarted.style.color = "var(--text-muted)";
+      const date = new Date(this.wizardState.dateStarted);
+      const formattedDate = date.toLocaleDateString(undefined, { 
+        month: "short", 
+        day: "numeric", 
+        year: "numeric" 
+      });
+      dateStarted.textContent = `Started: ${formattedDate}`;
+    }
+    
+    // Restart button - always visible but disabled when no state exists
+    const restartBtn = headerActions.createEl("button", {
+      text: "Restart",
+      cls: "weekly-review-btn weekly-review-btn-small weekly-review-btn-restart"
+    });
+    restartBtn.disabled = !this.wizardState.dateStarted;
+    restartBtn.addEventListener("click", () => this.restartReview());
     
     const progress = header.createDiv({ cls: "weekly-review-progress" });
     progress.createSpan({ text: `Step ${this.currentStepIndex + 1} of ${ALL_STEPS.length}` });
@@ -282,19 +463,24 @@ export class WeeklyReviewPanel extends ItemView {
     });
     physicalInput.placeholder = "Enter notes or tasks here...";
     physicalInput.value = this.wizardState.notes.looseEnds.physicalItems;
-    physicalInput.addEventListener("input", (e) => {
+    physicalInput.addEventListener("input", async (e) => {
+      await this.ensureStateInitialized();
       this.wizardState.notes.looseEnds.physicalItems = (e.target as HTMLTextAreaElement).value;
+      // Debounce save - save after user stops typing
+      this.debouncedSaveState();
     });
     const physicalBtn = physicalDiv.createEl("button", { 
       text: "Add to Inbox", 
       cls: "weekly-review-btn weekly-review-btn-action" 
     });
     physicalBtn.addEventListener("click", async () => {
+      await this.ensureStateInitialized();
       const text = physicalInput.value.trim();
       if (text) {
         await this.addTasksToInbox(text);
         physicalInput.value = "";
         this.wizardState.notes.looseEnds.physicalItems = "";
+        await this.saveState();
       }
     });
 
@@ -309,19 +495,23 @@ export class WeeklyReviewPanel extends ItemView {
     });
     emailInput.placeholder = "Enter notes or tasks here...";
     emailInput.value = this.wizardState.notes.looseEnds.emailMessages;
-    emailInput.addEventListener("input", (e) => {
+    emailInput.addEventListener("input", async (e) => {
+      await this.ensureStateInitialized();
       this.wizardState.notes.looseEnds.emailMessages = (e.target as HTMLTextAreaElement).value;
+      this.debouncedSaveState();
     });
     const emailBtn = emailDiv.createEl("button", { 
       text: "Add to Inbox", 
       cls: "weekly-review-btn weekly-review-btn-action" 
     });
     emailBtn.addEventListener("click", async () => {
+      await this.ensureStateInitialized();
       const text = emailInput.value.trim();
       if (text) {
         await this.addTasksToInbox(text);
         emailInput.value = "";
         this.wizardState.notes.looseEnds.emailMessages = "";
+        await this.saveState();
       }
     });
 
@@ -340,19 +530,23 @@ export class WeeklyReviewPanel extends ItemView {
         });
         customInput.placeholder = "Enter notes or tasks here...";
         customInput.value = this.wizardState.notes.looseEnds.custom[point] || "";
-        customInput.addEventListener("input", (e) => {
+        customInput.addEventListener("input", async (e) => {
+          await this.ensureStateInitialized();
           this.wizardState.notes.looseEnds.custom[point] = (e.target as HTMLTextAreaElement).value;
+          this.debouncedSaveState();
         });
         const customBtn = customDiv.createEl("button", { 
           text: "Add to Inbox", 
           cls: "weekly-review-btn weekly-review-btn-action" 
         });
         customBtn.addEventListener("click", async () => {
+          await this.ensureStateInitialized();
           const text = customInput.value.trim();
           if (text) {
             await this.addTasksToInbox(text);
             customInput.value = "";
             this.wizardState.notes.looseEnds.custom[point] = "";
+            await this.saveState();
           }
         });
         customIndex++;
@@ -387,6 +581,7 @@ export class WeeklyReviewPanel extends ItemView {
     worriesInput.value = this.wizardState.notes.emptyHead.worries;
     worriesInput.addEventListener("input", (e) => {
       this.wizardState.notes.emptyHead.worries = (e.target as HTMLTextAreaElement).value;
+      this.debouncedSaveState();
     });
     const worriesBtn = worriesDiv.createEl("button", { 
       text: "Add to Inbox", 
@@ -411,6 +606,7 @@ export class WeeklyReviewPanel extends ItemView {
     postponeInput.value = this.wizardState.notes.emptyHead.postponements;
     postponeInput.addEventListener("input", (e) => {
       this.wizardState.notes.emptyHead.postponements = (e.target as HTMLTextAreaElement).value;
+      this.debouncedSaveState();
     });
     const postponeBtn = postponeDiv.createEl("button", { 
       text: "Add to Inbox", 
@@ -435,6 +631,7 @@ export class WeeklyReviewPanel extends ItemView {
     winsInput.value = this.wizardState.notes.emptyHead.smallWins;
     winsInput.addEventListener("input", (e) => {
       this.wizardState.notes.emptyHead.smallWins = (e.target as HTMLTextAreaElement).value;
+      this.debouncedSaveState();
     });
     const winsBtn = winsDiv.createEl("button", { 
       text: "Add to Inbox", 
@@ -548,8 +745,9 @@ export class WeeklyReviewPanel extends ItemView {
           : `Show ${reviewedTasks.length} Reviewed Task(s)`,
         cls: "weekly-review-btn weekly-review-btn-small"
       });
-      showReviewedBtn.addEventListener("click", () => {
+      showReviewedBtn.addEventListener("click", async () => {
         this.wizardState.showReviewedTasks = !this.wizardState.showReviewedTasks;
+        await this.saveState();
         this.renderCurrentStep();
       });
     }
@@ -559,9 +757,10 @@ export class WeeklyReviewPanel extends ItemView {
         text: "Reset Review",
         cls: "weekly-review-btn weekly-review-btn-small"
       });
-      resetBtn.addEventListener("click", () => {
+      resetBtn.addEventListener("click", async () => {
         this.wizardState.reviewedTasks.clear();
         this.wizardState.showReviewedTasks = false;
+        await this.saveState();
         this.renderCurrentStep();
       });
     }
@@ -629,6 +828,7 @@ export class WeeklyReviewPanel extends ItemView {
     input.value = this.wizardState.notes.calendarPast;
     input.addEventListener("input", (e) => {
       this.wizardState.notes.calendarPast = (e.target as HTMLTextAreaElement).value;
+      this.debouncedSaveState();
     });
 
     const addBtn = inputDiv.createEl("button", { 
@@ -670,6 +870,7 @@ export class WeeklyReviewPanel extends ItemView {
     input.value = this.wizardState.notes.calendarFuture;
     input.addEventListener("input", (e) => {
       this.wizardState.notes.calendarFuture = (e.target as HTMLTextAreaElement).value;
+      this.debouncedSaveState();
     });
 
     const addBtn = inputDiv.createEl("button", { 
@@ -734,8 +935,9 @@ export class WeeklyReviewPanel extends ItemView {
           : `Show ${reviewedProjects.length} Reviewed Project(s)`,
         cls: "weekly-review-btn weekly-review-btn-small"
       });
-      showReviewedBtn.addEventListener("click", () => {
+      showReviewedBtn.addEventListener("click", async () => {
         this.wizardState.showReviewedProjects = !this.wizardState.showReviewedProjects;
+        await this.saveState();
         this.renderCurrentStep();
       });
     }
@@ -745,9 +947,10 @@ export class WeeklyReviewPanel extends ItemView {
         text: "Reset Review",
         cls: "weekly-review-btn weekly-review-btn-small"
       });
-      resetBtn.addEventListener("click", () => {
+      resetBtn.addEventListener("click", async () => {
         this.wizardState.reviewedProjects.clear();
         this.wizardState.showReviewedProjects = false;
+        await this.saveState();
         this.renderCurrentStep();
       });
     }
@@ -796,9 +999,12 @@ export class WeeklyReviewPanel extends ItemView {
   private async renderProjectCard(host: HTMLElement, project: ProjectReviewInfo) {
     const projectDiv = host.createDiv({ cls: "weekly-review-project" });
     const projectHeader = projectDiv.createDiv({ cls: "weekly-review-project-header" });
-    projectHeader.createEl("h4", { 
+    const projectName = projectHeader.createEl("h4", { 
       text: `${project.name}${project.area ? ` (${project.area})` : ""}` 
     });
+    projectName.style.cursor = "pointer";
+    projectName.style.textDecoration = "underline";
+    projectName.addEventListener("click", () => this.openProjectFile(project.path));
     
     if (!project.hasNextAction) {
       const warning = projectHeader.createEl("span", { 
@@ -807,10 +1013,22 @@ export class WeeklyReviewPanel extends ItemView {
       });
     }
 
-    const addTaskBtn = projectHeader.createEl("button", { 
-      text: "Add Task", 
-      cls: "weekly-review-btn weekly-review-btn-small" 
+    // Button container for step 2D to group Add Task and Reviewed buttons
+    const buttonContainer = projectHeader.createDiv({ cls: "weekly-review-project-buttons" });
+    buttonContainer.style.display = "flex";
+    buttonContainer.style.gap = "6px";
+    buttonContainer.style.alignItems = "center";
+
+    // Add Task button (always visible)
+    const addTaskBtn = buttonContainer.createEl("button", { 
+      cls: "weekly-review-btn weekly-review-btn-small weekly-review-btn-icon" 
     });
+    setIcon(addTaskBtn, "plus");
+    const addTaskText = addTaskBtn.createEl("span", { 
+      text: "Add Task", 
+      cls: "weekly-review-btn-text" 
+    });
+    addTaskBtn.setAttribute("aria-label", "Add Task");
     addTaskBtn.addEventListener("click", async () => {
       await this.addTaskToProject(project.path);
       await this.renderCurrentStep(); // Refresh
@@ -818,7 +1036,7 @@ export class WeeklyReviewPanel extends ItemView {
 
     // Reviewed button (only for step 2D)
     if (this.wizardState.currentStep === "2D-review-projects") {
-      const reviewedBtn = projectHeader.createEl("button", { 
+      const reviewedBtn = buttonContainer.createEl("button", { 
         cls: "weekly-review-btn weekly-review-btn-small weekly-review-btn-icon" 
       });
       setIcon(reviewedBtn, "badge-check");
@@ -829,6 +1047,7 @@ export class WeeklyReviewPanel extends ItemView {
       reviewedBtn.setAttribute("aria-label", "Reviewed");
       reviewedBtn.addEventListener("click", async () => {
         this.wizardState.reviewedProjects.add(project.path);
+        await this.saveState();
         await this.renderCurrentStep(); // Re-render to hide the project
       });
     }
@@ -929,8 +1148,9 @@ export class WeeklyReviewPanel extends ItemView {
           : `Show ${reviewedProjects.length} Reviewed Project(s)`,
         cls: "weekly-review-btn weekly-review-btn-small"
       });
-      showReviewedBtn.addEventListener("click", () => {
+      showReviewedBtn.addEventListener("click", async () => {
         this.wizardState.showReviewedSomedayMaybeProjects = !this.wizardState.showReviewedSomedayMaybeProjects;
+        await this.saveState();
         this.renderCurrentStep();
       });
     }
@@ -940,9 +1160,10 @@ export class WeeklyReviewPanel extends ItemView {
         text: "Reset Review",
         cls: "weekly-review-btn weekly-review-btn-small"
       });
-      resetBtn.addEventListener("click", () => {
+      resetBtn.addEventListener("click", async () => {
         this.wizardState.reviewedSomedayMaybeProjects.clear();
         this.wizardState.showReviewedSomedayMaybeProjects = false;
+        await this.saveState();
         this.renderCurrentStep();
       });
     }
@@ -991,12 +1212,21 @@ export class WeeklyReviewPanel extends ItemView {
   private async renderSomedayMaybeProjectCard(host: HTMLElement, project: ProjectReviewInfo) {
     const projectDiv = host.createDiv({ cls: "weekly-review-project" });
     const projectHeader = projectDiv.createDiv({ cls: "weekly-review-project-header" });
-    projectHeader.createEl("h4", { 
+    const projectName = projectHeader.createEl("h4", { 
       text: `${project.name}${project.area ? ` (${project.area})` : ""}` 
     });
+    projectName.style.cursor = "pointer";
+    projectName.style.textDecoration = "underline";
+    projectName.addEventListener("click", () => this.openProjectFile(project.path));
+
+    // Button container for step 2F to group Activate and Reviewed buttons
+    const buttonContainer = projectHeader.createDiv({ cls: "weekly-review-project-buttons" });
+    buttonContainer.style.display = "flex";
+    buttonContainer.style.gap = "6px";
+    buttonContainer.style.alignItems = "center";
 
     // Activate button
-    const activateBtn = projectHeader.createEl("button", { 
+    const activateBtn = buttonContainer.createEl("button", { 
       cls: "weekly-review-btn weekly-review-btn-small weekly-review-btn-icon" 
     });
     setIcon(activateBtn, "activity");
@@ -1012,7 +1242,7 @@ export class WeeklyReviewPanel extends ItemView {
 
     // Reviewed button (only for step 2F)
     if (this.wizardState.currentStep === "2F-review-someday-maybe") {
-      const reviewedBtn = projectHeader.createEl("button", { 
+      const reviewedBtn = buttonContainer.createEl("button", { 
         cls: "weekly-review-btn weekly-review-btn-small weekly-review-btn-icon" 
       });
       setIcon(reviewedBtn, "badge-check");
@@ -1023,6 +1253,7 @@ export class WeeklyReviewPanel extends ItemView {
       reviewedBtn.setAttribute("aria-label", "Reviewed");
       reviewedBtn.addEventListener("click", async () => {
         this.wizardState.reviewedSomedayMaybeProjects.add(project.path);
+        await this.saveState();
         await this.renderCurrentStep(); // Re-render to hide the project
       });
     }
@@ -1053,10 +1284,13 @@ export class WeeklyReviewPanel extends ItemView {
     
     // Task title and metadata
     const taskInfo = card.createDiv({ cls: "weekly-review-task-info" });
-    taskInfo.createEl("div", { 
+    const taskTitle = taskInfo.createEl("div", { 
       text: task.title, 
       cls: "weekly-review-task-title" 
     });
+    taskTitle.style.cursor = "pointer";
+    taskTitle.style.textDecoration = "underline";
+    taskTitle.addEventListener("click", () => this.openTaskInNote(task));
     
     if (task.description) {
       taskInfo.createEl("div", { 
@@ -1067,9 +1301,15 @@ export class WeeklyReviewPanel extends ItemView {
 
     const metadata = taskInfo.createDiv({ cls: "weekly-review-task-metadata" });
     if (task.due) {
-      metadata.createEl("span", { 
+      const dueSpan = metadata.createEl("span", { 
         text: `Due: ${task.due}`, 
         cls: "weekly-review-task-due" 
+      });
+      dueSpan.style.cursor = "pointer";
+      dueSpan.style.textDecoration = "underline";
+      dueSpan.addEventListener("click", async () => {
+        await this.updateTaskDueDate(task);
+        await this.renderCurrentStep();
       });
     }
     if (task.priority) {
@@ -1079,10 +1319,15 @@ export class WeeklyReviewPanel extends ItemView {
       });
     }
     if (task.project) {
-      metadata.createEl("span", { 
+      const projectSpan = metadata.createEl("span", { 
         text: `Project: ${task.project}`, 
         cls: "weekly-review-task-project" 
       });
+      projectSpan.style.cursor = "pointer";
+      projectSpan.style.textDecoration = "underline";
+      // Find the project file path
+      const projectPath = task.path; // The task is already in the project file
+      projectSpan.addEventListener("click", () => this.openProjectFile(projectPath));
     }
 
     // Action buttons
@@ -1255,6 +1500,7 @@ export class WeeklyReviewPanel extends ItemView {
         reviewedBtn.addEventListener("click", async () => {
           const taskId = this.getTaskId(task);
           this.wizardState.reviewedTasks.add(taskId);
+          await this.saveState();
           await this.renderCurrentStep(); // Re-render to hide the task
         });
       }
@@ -1581,12 +1827,14 @@ export class WeeklyReviewPanel extends ItemView {
 
     // Get all project files in the same area (excluding Someday Maybe folder)
     const somedayMaybeFolderName = this.settings.somedayMaybeFolderName;
+    const normalizedInboxPath = normalizeInboxPath(this.settings.inboxPath);
     const files = this.app.vault.getMarkdownFiles()
       .filter(f => {
         if (!isInTasksFolder(f.path, this.settings)) return false;
         const fileArea = inferAreaFromPath(f.path, this.app, this.settings);
         if (fileArea !== area) return false;
-        if (isSpecialFile(f.path, this.settings)) return false;
+        // Exclude Inbox (but allow General tasks file for this area)
+        if (f.path === normalizedInboxPath) return false;
         // Exclude Someday Maybe folder
         const somedayMaybePath = `${getAreaPath(area, this.settings)}/${somedayMaybeFolderName}`;
         if (f.path.startsWith(somedayMaybePath + "/") || f.path === somedayMaybePath + ".md") {
@@ -1619,12 +1867,14 @@ export class WeeklyReviewPanel extends ItemView {
 
     // Get all project files in the same area (excluding Someday Maybe folder)
     const somedayMaybeFolderName = this.settings.somedayMaybeFolderName;
+    const normalizedInboxPath = normalizeInboxPath(this.settings.inboxPath);
     const files = this.app.vault.getMarkdownFiles()
       .filter(f => {
         if (!isInTasksFolder(f.path, this.settings)) return false;
         const fileArea = inferAreaFromPath(f.path, this.app, this.settings);
         if (fileArea !== area) return false;
-        if (isSpecialFile(f.path, this.settings)) return false;
+        // Exclude Inbox (but allow General tasks file for this area)
+        if (f.path === normalizedInboxPath) return false;
         // Exclude Someday Maybe folder
         const somedayMaybePath = `${getAreaPath(area, this.settings)}/${somedayMaybeFolderName}`;
         if (f.path.startsWith(somedayMaybePath + "/") || f.path === somedayMaybePath + ".md") {
@@ -1709,26 +1959,120 @@ export class WeeklyReviewPanel extends ItemView {
    * Adds a task to a project.
    */
   private async addTaskToProject(projectPath: string) {
-    await captureQuickTask(this.app, this.settings);
+    await captureQuickTask(this.app, this.settings, undefined, projectPath);
+  }
+
+  /**
+   * Opens the note containing a task and scrolls to it.
+   * @param task - The indexed task to open
+   */
+  private async openTaskInNote(task: IndexedTask) {
+    const file = this.app.vault.getAbstractFileByPath(task.path);
+    if (!(file instanceof TFile)) return;
+
+    const leaf = this.app.workspace.getLeaf(false);
+    await leaf.openFile(file);
+    
+    // Scroll to the line
+    const view = leaf.view;
+    if (view instanceof MarkdownView && view.editor) {
+      const editor = view.editor;
+      const line = Math.max(0, task.line - 1); // 0-based
+      editor.setCursor(line, 0);
+      editor.scrollIntoView({ from: { line, ch: 0 }, to: { line, ch: 0 } }, true);
+    }
+  }
+
+  /**
+   * Opens a project file.
+   * @param projectPath - The path to the project file
+   */
+  private async openProjectFile(projectPath: string) {
+    const file = this.app.vault.getAbstractFileByPath(projectPath);
+    if (!(file instanceof TFile)) return;
+
+    const leaf = this.app.workspace.getLeaf(false);
+    await leaf.openFile(file);
   }
 
   /**
    * Goes to the next step.
    */
-  private goToNextStep() {
+  private async goToNextStep() {
+    await this.ensureStateInitialized();
     if (this.currentStepIndex < ALL_STEPS.length - 1) {
       this.wizardState.completedSteps.add(this.wizardState.currentStep);
       this.currentStepIndex++;
       this.wizardState.currentStep = ALL_STEPS[this.currentStepIndex];
+      await this.saveState();
       this.renderCurrentStep();
     } else {
-      // Finish review
-      new Notice("Weekly Review completed!");
-      this.currentStepIndex = 0;
-      this.wizardState.currentStep = ALL_STEPS[0];
-      this.wizardState.completedSteps.clear();
+      // Finish review - show completion screen and clear state
+      this.wizardState.isCompleted = true;
+      // Render completion screen first, then clear state
       this.renderCurrentStep();
+      await this.clearState();
     }
+  }
+
+  /**
+   * Renders the completion screen with congratulations message and restart button.
+   */
+  private renderCompletionScreen() {
+    // Header
+    const header = this.container.createDiv({ cls: "weekly-review-header" });
+    header.createEl("h2", { text: "Weekly Review" });
+
+    // Completion content - centered
+    const completionContent = this.container.createDiv({ cls: "weekly-review-completion" });
+    completionContent.style.textAlign = "center";
+    completionContent.style.padding = "40px 20px";
+    completionContent.style.display = "flex";
+    completionContent.style.flexDirection = "column";
+    completionContent.style.alignItems = "center";
+    completionContent.style.gap = "24px";
+
+    // Congratulations message
+    const congratsTitle = completionContent.createEl("h2", { 
+      text: "🎉 Congratulations! 🎉",
+      cls: "weekly-review-completion-title"
+    });
+    congratsTitle.style.margin = "0";
+    congratsTitle.style.fontSize = "2em";
+    congratsTitle.style.color = "var(--text-normal)";
+
+    const congratsMessage = completionContent.createEl("p", {
+      text: "You finished your weekly review!",
+      cls: "weekly-review-completion-message"
+    });
+    congratsMessage.style.fontSize = "1.2em";
+    congratsMessage.style.color = "var(--text-muted)";
+    congratsMessage.style.margin = "0";
+
+    // Restart button - positioned differently from Back/Next buttons
+    const restartBtn = completionContent.createEl("button", {
+      text: "Start New Review",
+      cls: "weekly-review-btn weekly-review-btn-primary"
+    });
+    restartBtn.style.marginTop = "20px";
+    restartBtn.style.padding = "12px 24px";
+    restartBtn.style.fontSize = "1.1em";
+    restartBtn.addEventListener("click", async () => {
+      // Clear state when starting new review from completion screen
+      await this.clearState();
+      this.restartReview();
+    });
+  }
+
+  /**
+   * Restarts the weekly review from the beginning.
+   */
+  private async restartReview() {
+    this.currentStepIndex = 0;
+    this.wizardState = this.createDefaultState();
+    // Clear saved state when restarting
+    await this.clearState();
+    this.renderCurrentStep();
   }
 
   /**
@@ -1764,6 +2108,7 @@ export class WeeklyReviewPanel extends ItemView {
     input.value = this.wizardState.notes.brainstorm;
     input.addEventListener("input", (e) => {
       this.wizardState.notes.brainstorm = (e.target as HTMLTextAreaElement).value;
+      this.debouncedSaveState();
     });
 
     const addBtn = inputDiv.createEl("button", { 
@@ -1783,10 +2128,11 @@ export class WeeklyReviewPanel extends ItemView {
   /**
    * Goes to the previous step.
    */
-  private goToPreviousStep() {
+  private async goToPreviousStep() {
     if (this.currentStepIndex > 0) {
       this.currentStepIndex--;
       this.wizardState.currentStep = ALL_STEPS[this.currentStepIndex];
+      await this.saveState();
       this.renderCurrentStep();
     }
   }

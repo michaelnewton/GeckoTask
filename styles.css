@@ -1396,3 +1396,64 @@ If your plugin does not need CSS, delete this file.
     width: 100%;
   }
 }
+
+/* Weekly Review Completion Screen */
+.weekly-review-completion {
+  text-align: center;
+  padding: 40px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+}
+
+.weekly-review-completion-title {
+  margin: 0;
+  font-size: 2em;
+  color: var(--text-normal);
+  font-weight: 600;
+}
+
+.weekly-review-completion-message {
+  font-size: 1.2em;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.weekly-review-btn-primary {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border-color: var(--interactive-accent);
+  padding: 12px 24px;
+  font-size: 1.1em;
+  font-weight: 500;
+  margin-top: 20px;
+}
+
+.weekly-review-btn-primary:hover {
+  background: var(--interactive-accent-hover);
+  border-color: var(--interactive-accent-hover);
+}
+
+/* Mobile optimizations for completion screen */
+@media (max-width: 768px), (hover: none) and (pointer: coarse) {
+  .weekly-review-completion {
+    padding: 30px 15px;
+    gap: 20px;
+  }
+
+  .weekly-review-completion-title {
+    font-size: 1.5em;
+  }
+
+  .weekly-review-completion-message {
+    font-size: 1em;
+  }
+
+  .weekly-review-btn-primary {
+    padding: 10px 20px;
+    font-size: 1em;
+    width: 100%;
+    max-width: 300px;
+  }
+}
