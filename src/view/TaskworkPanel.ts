@@ -514,6 +514,14 @@ export class TaskWorkPanel extends ItemView {
 
     // list (card-based layout)
     const list = host.createDiv({ cls: "taskwork-rows" });
+    
+    // Show empty state message for "Today" tab when no tasks
+    if (rows.length === 0 && this.currentTab === "today-overdue") {
+      const emptyMsg = list.createDiv({ cls: "taskwork-empty-message" });
+      emptyMsg.setText("No tasks due today or overdue");
+      return;
+    }
+    
     for (const t of rows) {
       const card = list.createDiv({ cls: "taskwork-card" });
       
