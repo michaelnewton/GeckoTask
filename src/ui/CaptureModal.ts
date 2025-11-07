@@ -2,7 +2,7 @@ import { App, Modal, Setting, Notice } from "obsidian";
 import { TaskWorkSettings } from "../settings";
 import { parseNLDate } from "../services/NLDate";
 import { formatTask, formatTaskWithDescription, Task } from "../models/TaskModel";
-import { isInTasksFolder, getAreaPath, normalizeInboxPath, isSpecialFile } from "../utils/areaUtils";
+import { isInTasksFolder, normalizeInboxPath, isSpecialFile } from "../utils/areaUtils";
 
 
 /**
@@ -11,7 +11,6 @@ import { isInTasksFolder, getAreaPath, normalizeInboxPath, isSpecialFile } from 
 interface Draft {
   title: string;
   description?: string; // Multi-line description
-  area: string;
   projectPath: string;
   due?: string;
   priority?: string;
@@ -25,17 +24,14 @@ interface Draft {
  * @returns Promise that resolves when modal is closed
  */
 export async function captureQuickTask(app: App, settings: TaskWorkSettings) {
-  const areas = settings.areas;
   const mdFiles = app.vault.getMarkdownFiles();
 
   return new Promise<void>((resolve) => {
     const modal = new (class extends Modal {
       draft: Draft = {
         title: "",
-        area: "", // No area by default - will go to inbox
         projectPath: normalizeInboxPath(settings.inboxPath)
       };
-      updateProjectPaths: () => void = () => {}; // Placeholder, will be set in onOpen
       onOpen() {
         const { contentEl } = this;
         contentEl.empty();
@@ -52,89 +48,27 @@ export async function captureQuickTask(app: App, settings: TaskWorkSettings) {
           t.onChange(v => this.draft.description = v.trim() || undefined);
         });
 
-        // Only show area dropdown if there are areas configured
-        // If no area is selected, task will go to inbox
-        if (areas.length > 0) {
-          new Setting(contentEl).setName("Area (optional)").addDropdown(d => {
-            // Add "(none)" option for inbox
-            d.addOption("", "(none - goes to inbox)");
-            areas.forEach(a => d.addOption(a, a));
-            d.setValue(this.draft.area);
-            d.onChange(v => {
-              this.draft.area = v;
-              // If no area selected, ensure inbox is selected
-              if (!v) {
-                this.draft.projectPath = normalizeInboxPath(settings.inboxPath);
-              }
-              // Update project path to show files in selected area
-              this.updateProjectPaths();
-            });
-          });
-        }
-
         // Get all files in tasks folder structure
         const projectPaths = mdFiles
           .map(f => f.path)
           .filter(p => isInTasksFolder(p, settings));
 
-        const projectSelect = new Setting(contentEl).setName("Project file");
         const normalizedInboxPath = normalizeInboxPath(settings.inboxPath);
-        const projectDropdown = projectSelect.addDropdown(d => {
+        new Setting(contentEl).setName("Project").addDropdown(d => {
+          // Helper to remove .md extension for display
+          const displayPath = (path: string) => path.endsWith(".md") ? path.slice(0, -3) : path;
+          
           // Add inbox as default option
-          d.addOption(normalizedInboxPath, normalizedInboxPath);
+          d.addOption(normalizedInboxPath, displayPath(normalizedInboxPath));
           // Add other project files
           for (const p of projectPaths) {
             if (p !== normalizedInboxPath) {
-              d.addOption(p, p);
+              d.addOption(p, displayPath(p));
             }
           }
           d.setValue(this.draft.projectPath);
           d.onChange(v => this.draft.projectPath = v);
         });
-
-        // Method to update project paths based on selected area
-        this.updateProjectPaths = () => {
-          const normalizedInboxPath = normalizeInboxPath(settings.inboxPath);
-          const filteredPaths = projectPaths.filter(p => {
-            if (p === normalizedInboxPath) return true; // Always include inbox
-            if (this.draft.area) {
-              const areaPath = getAreaPath(this.draft.area, settings);
-              return p.startsWith(areaPath + "/");
-            }
-            // If no area selected, only show inbox (tasks without area go to inbox)
-            return false;
-          });
-          
-          // Rebuild dropdown
-          const dropdown = projectSelect.controlEl.querySelector("select") as HTMLSelectElement;
-          if (dropdown) {
-            // Clear existing options
-            while (dropdown.firstChild) {
-              dropdown.removeChild(dropdown.firstChild);
-            }
-            // Add inbox option
-            const inboxOpt = document.createElement("option");
-            inboxOpt.value = normalizedInboxPath;
-            inboxOpt.text = normalizedInboxPath;
-            dropdown.appendChild(inboxOpt);
-            // Add filtered project files
-            for (const p of filteredPaths) {
-              if (p !== normalizedInboxPath) {
-                const opt = document.createElement("option");
-                opt.value = p;
-                opt.text = p;
-                dropdown.appendChild(opt);
-              }
-            }
-            // Set value
-            if (filteredPaths.includes(this.draft.projectPath) || this.draft.projectPath === normalizedInboxPath) {
-              dropdown.value = this.draft.projectPath;
-            } else {
-              dropdown.value = normalizedInboxPath;
-              this.draft.projectPath = normalizedInboxPath;
-            }
-          }
-        };
 
         new Setting(contentEl).setName("Due").addText(t =>
           t.setPlaceholder("today / 2025-11-15").onChange(v => {
