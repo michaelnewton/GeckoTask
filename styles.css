@@ -1207,6 +1207,7 @@ If your plugin does not need CSS, delete this file.
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 6px;
   min-width: 24px;
   height: 24px;
 }
@@ -1214,6 +1215,27 @@ If your plugin does not need CSS, delete this file.
 .weekly-review-btn-icon svg {
   width: 14px;
   height: 14px;
+  flex-shrink: 0;
+}
+
+.weekly-review-btn-text {
+  display: inline;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+/* Desktop: show text with more padding */
+@media (hover: hover) and (pointer: fine) {
+  .weekly-review-btn-icon {
+    padding: 4px 8px;
+  }
+}
+
+/* Mobile: show text with less padding */
+@media (max-width: 768px), (hover: none) and (pointer: coarse) {
+  .weekly-review-btn-icon {
+    padding: 4px 6px;
+  }
 }
 
 .weekly-review-btn-danger {

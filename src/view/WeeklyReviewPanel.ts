@@ -819,9 +819,14 @@ export class WeeklyReviewPanel extends ItemView {
     // Reviewed button (only for step 2D)
     if (this.wizardState.currentStep === "2D-review-projects") {
       const reviewedBtn = projectHeader.createEl("button", { 
-        text: "Reviewed", 
-        cls: "weekly-review-btn weekly-review-btn-small" 
+        cls: "weekly-review-btn weekly-review-btn-small weekly-review-btn-icon" 
       });
+      setIcon(reviewedBtn, "badge-check");
+      const reviewedText = reviewedBtn.createEl("span", { 
+        text: "Reviewed", 
+        cls: "weekly-review-btn-text" 
+      });
+      reviewedBtn.setAttribute("aria-label", "Reviewed");
       reviewedBtn.addEventListener("click", async () => {
         this.wizardState.reviewedProjects.add(project.path);
         await this.renderCurrentStep(); // Re-render to hide the project
@@ -992,9 +997,14 @@ export class WeeklyReviewPanel extends ItemView {
 
     // Activate button
     const activateBtn = projectHeader.createEl("button", { 
-      text: "Activate", 
-      cls: "weekly-review-btn weekly-review-btn-small" 
+      cls: "weekly-review-btn weekly-review-btn-small weekly-review-btn-icon" 
     });
+    setIcon(activateBtn, "activity");
+    const activateText = activateBtn.createEl("span", { 
+      text: "Activate", 
+      cls: "weekly-review-btn-text" 
+    });
+    activateBtn.setAttribute("aria-label", "Activate");
     activateBtn.addEventListener("click", async () => {
       await this.activateSomedayMaybeProject(project);
       await this.renderCurrentStep(); // Refresh
@@ -1003,9 +1013,14 @@ export class WeeklyReviewPanel extends ItemView {
     // Reviewed button (only for step 2F)
     if (this.wizardState.currentStep === "2F-review-someday-maybe") {
       const reviewedBtn = projectHeader.createEl("button", { 
-        text: "Reviewed", 
-        cls: "weekly-review-btn weekly-review-btn-small" 
+        cls: "weekly-review-btn weekly-review-btn-small weekly-review-btn-icon" 
       });
+      setIcon(reviewedBtn, "badge-check");
+      const reviewedText = reviewedBtn.createEl("span", { 
+        text: "Reviewed", 
+        cls: "weekly-review-btn-text" 
+      });
+      reviewedBtn.setAttribute("aria-label", "Reviewed");
       reviewedBtn.addEventListener("click", async () => {
         this.wizardState.reviewedSomedayMaybeProjects.add(project.path);
         await this.renderCurrentStep(); // Re-render to hide the project
@@ -1074,11 +1089,15 @@ export class WeeklyReviewPanel extends ItemView {
     const actions = card.createDiv({ cls: "weekly-review-task-actions" });
 
     if (isInbox) {
-      // Mark complete (2-minute rule) - icon only for inbox
+      // Mark complete (2-minute rule) - icon with text on desktop
       const completeBtn = actions.createEl("button", { 
         cls: "weekly-review-btn weekly-review-btn-small weekly-review-btn-icon" 
       });
-      setIcon(completeBtn, "check");
+      setIcon(completeBtn, "square-check");
+      const completeText = completeBtn.createEl("span", { 
+        text: "Complete", 
+        cls: "weekly-review-btn-text" 
+      });
       completeBtn.setAttribute("aria-label", "Complete");
       completeBtn.addEventListener("click", async () => {
         await this.completeTask(task);
@@ -1087,9 +1106,14 @@ export class WeeklyReviewPanel extends ItemView {
 
       // Move to Someday/Maybe
       const somedayBtn = actions.createEl("button", { 
-        text: "Someday/Maybe", 
-        cls: "weekly-review-btn weekly-review-btn-small" 
+        cls: "weekly-review-btn weekly-review-btn-small weekly-review-btn-icon" 
       });
+      setIcon(somedayBtn, "moon");
+      const somedayText = somedayBtn.createEl("span", { 
+        text: "Someday", 
+        cls: "weekly-review-btn-text" 
+      });
+      somedayBtn.setAttribute("aria-label", "Someday/Maybe");
       somedayBtn.addEventListener("click", async () => {
         await this.moveTaskToSomedayMaybe(task);
         await this.renderCurrentStep();
@@ -1097,41 +1121,59 @@ export class WeeklyReviewPanel extends ItemView {
 
       // Assign to project
       const projectBtn = actions.createEl("button", { 
-        text: "Move", 
-        cls: "weekly-review-btn weekly-review-btn-small" 
+        cls: "weekly-review-btn weekly-review-btn-small weekly-review-btn-icon" 
       });
+      setIcon(projectBtn, "folder");
+      const projectText = projectBtn.createEl("span", { 
+        text: "Move", 
+        cls: "weekly-review-btn-text" 
+      });
+      projectBtn.setAttribute("aria-label", "Move");
       projectBtn.addEventListener("click", async () => {
         await this.moveTaskToProject(task);
         await this.renderCurrentStep();
       });
 
-      // Edit button (icon only for inbox)
+      // Edit button (icon with text on desktop)
       const editBtn = actions.createEl("button", { 
         cls: "weekly-review-btn weekly-review-btn-small weekly-review-btn-icon" 
       });
       setIcon(editBtn, "pencil");
+      const editText = editBtn.createEl("span", { 
+        text: "Edit", 
+        cls: "weekly-review-btn-text" 
+      });
       editBtn.setAttribute("aria-label", "Edit");
       editBtn.addEventListener("click", async () => {
         await captureQuickTask(this.app, this.settings, task);
         await this.renderCurrentStep();
       });
 
-      // Delete (icon only for inbox)
+      // Delete (icon with text on desktop)
       const deleteBtn = actions.createEl("button", { 
         cls: "weekly-review-btn weekly-review-btn-small weekly-review-btn-danger weekly-review-btn-icon" 
       });
       setIcon(deleteBtn, "trash-2");
+      const deleteText = deleteBtn.createEl("span", { 
+        text: "Delete", 
+        cls: "weekly-review-btn-text" 
+      });
       deleteBtn.setAttribute("aria-label", "Delete");
       deleteBtn.addEventListener("click", async () => {
         await this.deleteTask(task);
         await this.renderCurrentStep();
       });
     } else {
-      // Edit button (text for non-inbox)
+      // Edit button (icon with text on desktop)
       const editBtn = actions.createEl("button", { 
-        text: "Edit", 
-        cls: "weekly-review-btn weekly-review-btn-small" 
+        cls: "weekly-review-btn weekly-review-btn-small weekly-review-btn-icon" 
       });
+      setIcon(editBtn, "pencil");
+      const editText = editBtn.createEl("span", { 
+        text: "Edit", 
+        cls: "weekly-review-btn-text" 
+      });
+      editBtn.setAttribute("aria-label", "Edit");
       editBtn.addEventListener("click", async () => {
         await captureQuickTask(this.app, this.settings, task);
         await this.renderCurrentStep();
@@ -1141,9 +1183,14 @@ export class WeeklyReviewPanel extends ItemView {
     if (!isInbox) {
       // Complete button
       const completeBtn = actions.createEl("button", { 
-        text: "Complete", 
-        cls: "weekly-review-btn weekly-review-btn-small" 
+        cls: "weekly-review-btn weekly-review-btn-small weekly-review-btn-icon" 
       });
+      setIcon(completeBtn, "square-check");
+      const completeText = completeBtn.createEl("span", { 
+        text: "Complete", 
+        cls: "weekly-review-btn-text" 
+      });
+      completeBtn.setAttribute("aria-label", "Complete");
       completeBtn.addEventListener("click", async () => {
         await this.completeTask(task);
         await this.renderCurrentStep();
@@ -1151,9 +1198,14 @@ export class WeeklyReviewPanel extends ItemView {
 
       // Move button
       const moveBtn = actions.createEl("button", { 
-        text: "Move", 
-        cls: "weekly-review-btn weekly-review-btn-small" 
+        cls: "weekly-review-btn weekly-review-btn-small weekly-review-btn-icon" 
       });
+      setIcon(moveBtn, "folder");
+      const moveText = moveBtn.createEl("span", { 
+        text: "Move", 
+        cls: "weekly-review-btn-text" 
+      });
+      moveBtn.setAttribute("aria-label", "Move");
       moveBtn.addEventListener("click", async () => {
         await this.moveTaskToProject(task);
         await this.renderCurrentStep();
@@ -1161,9 +1213,14 @@ export class WeeklyReviewPanel extends ItemView {
 
       // Delete button
       const deleteBtn = actions.createEl("button", { 
-        text: "Delete", 
-        cls: "weekly-review-btn weekly-review-btn-small weekly-review-btn-danger" 
+        cls: "weekly-review-btn weekly-review-btn-small weekly-review-btn-danger weekly-review-btn-icon" 
       });
+      setIcon(deleteBtn, "trash-2");
+      const deleteText = deleteBtn.createEl("span", { 
+        text: "Delete", 
+        cls: "weekly-review-btn-text" 
+      });
+      deleteBtn.setAttribute("aria-label", "Delete");
       deleteBtn.addEventListener("click", async () => {
         await this.deleteTask(task);
         await this.renderCurrentStep();
@@ -1187,9 +1244,14 @@ export class WeeklyReviewPanel extends ItemView {
       // Reviewed button (only for step 2A - Review Next Actions)
       if (!isWaitingFor && !isSomedayMaybe && this.wizardState.currentStep === "2A-review-next-actions") {
         const reviewedBtn = actions.createEl("button", { 
-          text: "Reviewed", 
-          cls: "weekly-review-btn weekly-review-btn-small" 
+          cls: "weekly-review-btn weekly-review-btn-small weekly-review-btn-icon" 
         });
+        setIcon(reviewedBtn, "badge-check");
+        const reviewedText = reviewedBtn.createEl("span", { 
+          text: "Reviewed", 
+          cls: "weekly-review-btn-text" 
+        });
+        reviewedBtn.setAttribute("aria-label", "Reviewed");
         reviewedBtn.addEventListener("click", async () => {
           const taskId = this.getTaskId(task);
           this.wizardState.reviewedTasks.add(taskId);
@@ -1201,9 +1263,14 @@ export class WeeklyReviewPanel extends ItemView {
     if (isWaitingFor) {
       // Remove Waiting For tag
       const removeTagBtn = actions.createEl("button", { 
-        text: "Remove #WaitingFor", 
-        cls: "weekly-review-btn weekly-review-btn-small" 
+        cls: "weekly-review-btn weekly-review-btn-small weekly-review-btn-icon" 
       });
+      setIcon(removeTagBtn, "x-circle");
+      const removeTagText = removeTagBtn.createEl("span", { 
+        text: "Not Waiting", 
+        cls: "weekly-review-btn-text" 
+      });
+      removeTagBtn.setAttribute("aria-label", "Remove #WaitingFor");
       removeTagBtn.addEventListener("click", async () => {
         await this.removeTag(task, "#WaitingFor");
         await this.renderCurrentStep();
@@ -1213,9 +1280,14 @@ export class WeeklyReviewPanel extends ItemView {
     if (isSomedayMaybe) {
       // Activate button
       const activateBtn = actions.createEl("button", { 
-        text: "Activate", 
-        cls: "weekly-review-btn weekly-review-btn-small" 
+        cls: "weekly-review-btn weekly-review-btn-small weekly-review-btn-icon" 
       });
+      setIcon(activateBtn, "activity");
+      const activateText = activateBtn.createEl("span", { 
+        text: "Activate", 
+        cls: "weekly-review-btn-text" 
+      });
+      activateBtn.setAttribute("aria-label", "Activate");
       activateBtn.addEventListener("click", async () => {
         await this.activateSomedayMaybeTask(task);
         await this.renderCurrentStep();
