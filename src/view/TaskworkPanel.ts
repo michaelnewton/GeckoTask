@@ -123,6 +123,15 @@ export class TaskWorkPanel extends ItemView {
       this.rerender();
     });
 
+    const inboxTab = host.createDiv({ 
+      cls: `taskwork-tab ${this.currentTab === "inbox" ? "taskwork-tab-active" : ""}`
+    });
+    inboxTab.setText("Inbox");
+    inboxTab.addEventListener("click", () => {
+      this.currentTab = "inbox";
+      this.rerender();
+    });
+
     const allTab = host.createDiv({ 
       cls: `taskwork-tab ${this.currentTab === "all" ? "taskwork-tab-active" : ""}`
     });
@@ -440,11 +449,15 @@ export class TaskWorkPanel extends ItemView {
     let rows = this.tasks.filter(t => !t.checked); // open only
     const f = this.filters;
     const today = (window as any).moment().format("YYYY-MM-DD");
+    const normalizedInboxPath = normalizeInboxPath(this.settings.inboxPath);
     
     // Apply tab-specific filtering
     if (this.currentTab === "today-overdue") {
       // Show tasks due today or overdue
       rows = rows.filter(t => t.due && (t.due === today || t.due < today));
+    } else if (this.currentTab === "inbox") {
+      // Show only tasks from the inbox file
+      rows = rows.filter(t => t.path === normalizedInboxPath);
     } else {
       // Apply due filter only for "All Tasks" tab
       const moment = (window as any).moment;
@@ -516,10 +529,14 @@ export class TaskWorkPanel extends ItemView {
     // list (card-based layout)
     const list = host.createDiv({ cls: "taskwork-rows" });
     
-    // Show empty state message for "Today" tab when no tasks
-    if (rows.length === 0 && this.currentTab === "today-overdue") {
+    // Show empty state messages for tabs when no tasks
+    if (rows.length === 0) {
       const emptyMsg = list.createDiv({ cls: "taskwork-empty-message" });
-      emptyMsg.setText("No tasks due today or overdue");
+      if (this.currentTab === "today-overdue") {
+        emptyMsg.setText("No tasks due today or overdue");
+      } else if (this.currentTab === "inbox") {
+        emptyMsg.setText("No tasks in inbox");
+      }
       return;
     }
     
