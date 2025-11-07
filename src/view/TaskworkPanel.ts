@@ -69,7 +69,7 @@ export class TaskWorkPanel extends ItemView {
       text: this.isTouchDevice() ? "➕" : "Quick Add", 
       cls: "taskwork-quick-add-btn" 
     });
-    quickAddBtn.addEventListener("click", async () => {
+    this.registerDomEvent(quickAddBtn, "click", async () => {
       await captureQuickTask(this.app, this.settings);
       // Refresh the panel after adding a task
       await this.reindex();

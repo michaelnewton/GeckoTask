@@ -152,9 +152,9 @@ export default class TaskWorkPlugin extends Plugin {
         this.styleLabelsInMarkdown(element);
         // Style task metadata fields (priority::, due::, etc.)
         // Use a small delay to ensure DOM is fully rendered
-        setTimeout(() => {
+        this.registerInterval(window.setTimeout(() => {
           this.styleTaskFieldsInMarkdown(element);
-        }, 0);
+        }, 0));
       }
     });
 
@@ -176,7 +176,7 @@ export default class TaskWorkPlugin extends Plugin {
         if (leaf?.view instanceof MarkdownView) {
           this.updateMarkdownViewStyling(leaf.view.file);
           // Also update after a short delay to ensure content is rendered
-          setTimeout(() => this.updateMarkdownViewStyling(leaf.view.file), 100);
+          this.registerInterval(window.setTimeout(() => this.updateMarkdownViewStyling(leaf.view.file), 100));
         }
       })
     );
@@ -200,13 +200,13 @@ export default class TaskWorkPlugin extends Plugin {
     });
 
     // Also update after a delay to catch any views that load later
-    setTimeout(() => {
+    this.registerInterval(window.setTimeout(() => {
       this.app.workspace.iterateAllLeaves((leaf) => {
         if (leaf.view instanceof MarkdownView) {
           this.updateMarkdownViewStyling(leaf.view.file);
         }
       });
-    }, 500);
+    }, 500));
   }
 
   /**
