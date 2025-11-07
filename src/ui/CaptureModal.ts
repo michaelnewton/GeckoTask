@@ -44,7 +44,7 @@ export async function captureQuickTask(app: App, settings: TaskWorkSettings, exi
       onOpen() {
         const { contentEl } = this;
         contentEl.empty();
-        this.titleEl.setText(isEditMode ? "TaskWork — Edit Task" : "TaskWork — Quick Add");
+        this.titleEl.setText(isEditMode ? "TaskWork — Quick Edit" : "TaskWork — Quick Add");
 
         new Setting(contentEl).setName("Title").addText(t => {
           t.setValue(this.draft.title);
