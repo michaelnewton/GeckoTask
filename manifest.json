@@ -5,7 +5,8 @@
 	"minAppVersion": "1.5.0",
 	"description": "Markdown-first task manager with inline metadata and Dataview-friendly fields.",
 	"author": "Geckom",
+	"authorUrl": "https://github.com/geckom",
 	"isDesktopOnly": false,
 	"main": "main.js"
-  }
+}
   

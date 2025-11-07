@@ -151,15 +151,14 @@ export async function captureQuickTask(app: App, settings: TaskWorkSettings, exi
  */
 async function appendTask(app: App, d: Draft, settings: TaskWorkSettings) {
   const file = app.vault.getAbstractFileByPath(d.projectPath);
-  if (!file || !(file as any).stat) {
+  if (!file || !(file instanceof TFile)) {
     new Notice(`TaskWork: File not found ${d.projectPath}`);
     return;
   }
-  const tfile = file as any;
-  const prev = await app.vault.read(tfile);
+  const prev = await app.vault.read(file);
 
   // Infer project name from file path (basename, unless it's a special file like Inbox or General)
-  const projectName = isSpecialFile(d.projectPath, settings) ? undefined : tfile.basename;
+  const projectName = isSpecialFile(d.projectPath, settings) ? undefined : file.basename;
   
   // Normalize tags (ensure they start with #)
   const tags = (d.tags ?? []).map(t => t.startsWith("#") ? t : "#" + t);
@@ -184,7 +183,7 @@ async function appendTask(app: App, d: Draft, settings: TaskWorkSettings) {
   const next = prev.trim().length 
     ? prev + "\n" + taskLines.join("\n") + "\n" 
     : taskLines.join("\n") + "\n";
-  await app.vault.modify(tfile, next);
+  await app.vault.modify(file, next);
 }
 
 /**

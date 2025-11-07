@@ -110,6 +110,8 @@ export async function setFieldAtCursor(app: App, editor: Editor, key: "due"|"pri
   }
 
   const updated = { ...ctx.task } as Task;
+  // TypeScript doesn't support dynamic property assignment on typed objects,
+  // but we know the key is valid (enforced by the function signature)
   (updated as any)[key] = v;
   editor.setLine(ctx.lineNo!, formatTask(updated));
 }

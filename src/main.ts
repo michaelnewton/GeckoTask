@@ -27,7 +27,10 @@ export default class TaskWorkPlugin extends Plugin {
     // Register the side panel view
     this.registerView(VIEW_TYPE_TASKWORK, (leaf: WorkspaceLeaf) => new TaskWorkPanel(leaf, this.settings));
 
-    // Command: open the side panel
+    /**
+     * Opens the TaskWork side panel for task management.
+     * Unregistered automatically on plugin unload.
+     */
     this.addCommand({
       id: "taskwork-open-panel",
       name: "Open TaskWork Panel",
@@ -37,14 +40,21 @@ export default class TaskWorkPlugin extends Plugin {
     // Optional ribbon icon
     this.addRibbonIcon("check-circle", "TaskWork Panel", () => this.activateView());
 
-    // Quick Add
+    /**
+     * Opens a modal to quickly capture a new task with metadata.
+     * Unregistered automatically on plugin unload.
+     */
     this.addCommand({
       id: "taskwork-quick-add",
       name: "Quick Add Task",
       callback: () => captureQuickTask(this.app, this.settings)
     });
 
-    // Toggle Complete — new signature: (editor, ctx)
+    /**
+     * Toggles the completion status of the task at the cursor position.
+     * Handles recurring tasks by creating the next occurrence when completed.
+     * Unregistered automatically on plugin unload.
+     */
     this.addCommand({
       id: "taskwork-toggle-complete",
       name: "Complete/Uncomplete Task at Cursor",
@@ -55,7 +65,11 @@ export default class TaskWorkPlugin extends Plugin {
       }
     });
 
-    // Move Task — same approach as above
+    /**
+     * Moves the task at the cursor to a different project file.
+     * Prompts user to select the target project.
+     * Unregistered automatically on plugin unload.
+     */
     this.addCommand({
       id: "taskwork-move-task",
       name: "Move Task (pick project)",
@@ -64,6 +78,11 @@ export default class TaskWorkPlugin extends Plugin {
       }
     });
 
+    /**
+     * Sets or updates the due date field for the task at the cursor.
+     * Supports natural language date parsing if enabled.
+     * Unregistered automatically on plugin unload.
+     */
     this.addCommand({
       id: "taskwork-set-due",
       name: "Set Due (at cursor)",
@@ -72,6 +91,10 @@ export default class TaskWorkPlugin extends Plugin {
       }
     });
 
+    /**
+     * Sets or updates the priority field for the task at the cursor.
+     * Unregistered automatically on plugin unload.
+     */
     this.addCommand({
       id: "taskwork-set-priority",
       name: "Set Priority (at cursor)",
@@ -80,6 +103,10 @@ export default class TaskWorkPlugin extends Plugin {
       }
     });
 
+    /**
+     * Sets or updates the project field for the task at the cursor.
+     * Unregistered automatically on plugin unload.
+     */
     this.addCommand({
       id: "taskwork-set-project",
       name: "Set Project (at cursor)",
@@ -88,6 +115,10 @@ export default class TaskWorkPlugin extends Plugin {
       }
     });
 
+    /**
+     * Sets or updates the recurrence pattern for the task at the cursor.
+     * Unregistered automatically on plugin unload.
+     */
     this.addCommand({
       id: "taskwork-set-recur",
       name: "Set Recurrence (at cursor)",
@@ -99,6 +130,10 @@ export default class TaskWorkPlugin extends Plugin {
     // Note: Area command removed - areas are now folder-based only
     // Users should move tasks to different folders to change areas
 
+    /**
+     * Adds or removes tags from the task at the cursor.
+     * Unregistered automatically on plugin unload.
+     */
     this.addCommand({
       id: "taskwork-add-remove-tags",
       name: "Add/Remove Tags (at cursor)",
@@ -107,6 +142,10 @@ export default class TaskWorkPlugin extends Plugin {
       }
     });
 
+    /**
+     * Creates a new project file for organizing tasks.
+     * Unregistered automatically on plugin unload.
+     */
     this.addCommand({
       id: "taskwork-create-project",
       name: "Create Project File",
@@ -115,6 +154,10 @@ export default class TaskWorkPlugin extends Plugin {
       }
     });
 
+    /**
+     * Normalizes the task line at the cursor to standard format.
+     * Unregistered automatically on plugin unload.
+     */
     this.addCommand({
       id: "taskwork-normalize-task",
       name: "Normalize Task Line (at cursor)",
@@ -123,7 +166,10 @@ export default class TaskWorkPlugin extends Plugin {
       }
     });
 
-    // Archive in current file — use ctx union type
+    /**
+     * Archives all completed tasks in the current file.
+     * Unregistered automatically on plugin unload.
+     */
     this.addCommand({
       id: "taskwork-archive-file",
       name: "Archive Completed in Current File",
@@ -135,6 +181,10 @@ export default class TaskWorkPlugin extends Plugin {
       }
     });
 
+    /**
+     * Archives all completed tasks across the vault that are older than the configured threshold.
+     * Unregistered automatically on plugin unload.
+     */
     this.addCommand({
       id: "taskwork-archive-global",
       name: "Archive All Completed (older than N days)",
@@ -211,8 +261,13 @@ export default class TaskWorkPlugin extends Plugin {
 
   /**
    * Called when the plugin is unloaded. Cleans up resources.
+   * Note: Obsidian automatically unregisters all commands, events, intervals, views,
+   * and other registered resources when the plugin is unloaded. No explicit cleanup needed.
    */
-  onunload() {}
+  onunload() {
+    // All registered resources (commands, events, intervals, views, etc.) are automatically
+    // cleaned up by Obsidian's Plugin base class when the plugin is unloaded.
+  }
 
   /**
    * Loads settings from storage, merging with defaults.
