@@ -407,7 +407,7 @@ The TaskWork Panel (`TaskworkPanel.ts`) provides a side view for managing tasks:
 
 * **Indexing:** Scans all markdown files in tasks folder structure, parses tasks with descriptions
 * **Tabs:** Two tabs available:
-  * "Today & Overdue" - Shows tasks due today or overdue (due filter hidden)
+  * "Today" - Shows tasks due today or overdue (due filter hidden)
   * "All Tasks" - Shows all tasks with full filtering options
 * **Filtering:** By area, project, priority, due date window, search query
   * **Due date filters:** Fixed options (any, today, overdue, none), configurable day ranges from settings (e.g., 7d, 14d, 30d, 60d, 90d), and relative periods (this-week, next-week, this-month, next-month)

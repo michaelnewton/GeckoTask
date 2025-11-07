@@ -3,7 +3,7 @@ import { parseTaskWithDescription, formatTaskWithDescription, Task } from "../mo
 import { TaskWorkSettings } from "../settings";
 import { parseNLDate } from "../services/NLDate";
 import { calculateNextOccurrence } from "../services/Recurrence";
-import { inferAreaFromPath, isInTasksFolder, isSpecialFile } from "../utils/areaUtils";
+import { inferAreaFromPath, isInTasksFolder, isSpecialFile, normalizeInboxPath } from "../utils/areaUtils";
 import { PromptModal } from "../ui/PromptModal";
 import { FilePickerModal } from "../ui/FilePickerModal";
 import { captureQuickTask } from "../ui/CaptureModal";
@@ -23,7 +23,7 @@ export class TaskWorkPanel extends ItemView {
   currentTab: TabType = "today-overdue";
   filters: FilterState = { area: "All", project: "Any", priority: "Any", due: "any", query: "" };
   tasks: IndexedTask[] = [];
-  projects: string[] = []; // for filter dropdown
+  projectPaths: string[] = []; // for filter dropdown (file paths)
 
   /**
    * Creates a new TaskWork panel.
@@ -117,7 +117,7 @@ export class TaskWorkPanel extends ItemView {
     const todayTab = host.createDiv({ 
       cls: `taskwork-tab ${this.currentTab === "today-overdue" ? "taskwork-tab-active" : ""}`
     });
-    todayTab.setText("Today & Overdue");
+    todayTab.setText("Today");
     todayTab.addEventListener("click", () => {
       this.currentTab = "today-overdue";
       this.rerender();
@@ -141,7 +141,7 @@ export class TaskWorkPanel extends ItemView {
     host.empty();
     host.addClass("taskwork-filters-compact");
 
-    // For "Today & Overdue" tab, hide the due filter since it's implicit
+    // For "Today" tab, hide the due filter since it's implicit
     const showDueFilter = this.currentTab === "all";
 
     // First row: Search (full width)
@@ -242,20 +242,33 @@ export class TaskWorkPanel extends ItemView {
       });
     }
 
-    // Project dropdown
+    // Project dropdown (similar to modal - shows file paths)
     const projContainer = filterRow.createDiv({ cls: "filter-item" });
     projContainer.createEl("label", { text: "Project:", cls: "filter-label" });
     const projSelect = projContainer.createEl("select", { cls: "filter-select" });
-    const projOpt = projSelect.createEl("option", { text: "Any" });
-    projOpt.value = "Any";
-    if (this.filters.project === "Any") projOpt.selected = true;
-    this.projects.forEach(p => {
-      const opt = projSelect.createEl("option", { text: p });
-      opt.value = p;
-      if (p === this.filters.project) opt.selected = true;
+    
+    // Helper to remove .md extension for display (like modal)
+    const displayPath = (path: string) => path.endsWith(".md") ? path.slice(0, -3) : path;
+    
+    // Add "Any" option first
+    const anyProjOpt = projSelect.createEl("option", { text: "Any" });
+    anyProjOpt.value = "Any";
+    if (this.filters.project === "Any") anyProjOpt.selected = true;
+    
+    // Add project files (inbox first, then others)
+    this.projectPaths.forEach(path => {
+      const opt = projSelect.createEl("option", { text: displayPath(path) });
+      opt.value = path;
+      // Match by path
+      if (path === this.filters.project) {
+        opt.selected = true;
+      }
     });
+    
     projSelect.addEventListener("change", (e) => {
-      this.filters.project = (e.target as HTMLSelectElement).value;
+      const selectedValue = (e.target as HTMLSelectElement).value;
+      // Store the file path in the filter
+      this.filters.project = selectedValue;
       this.rerender();
     });
   }
@@ -266,13 +279,16 @@ export class TaskWorkPanel extends ItemView {
   private async reindex() {
     const files = this.app.vault.getMarkdownFiles();
     const tasks: IndexedTask[] = [];
-    const projects = new Set<string>();
+    const projectPathsSet = new Set<string>();
 
     for (const file of files) {
       const path = file.path;
       
       // Only index files in tasks folder structure
       if (!isInTasksFolder(path, this.settings)) continue;
+      
+      // Add all project files to the set (not just those with tasks)
+      projectPathsSet.add(path);
       
       const cache = this.app.metadataCache.getCache(path);
       const lists = cache?.listItems;         // works for checkboxes
@@ -306,7 +322,6 @@ export class TaskWorkPanel extends ItemView {
         // Infer area from folder path (not from metadata)
         const area = inferAreaFromPath(path, this.settings);
         const project = parsed.project || (isSpecialFile(path, this.settings) ? undefined : file.basename);
-        if (project) projects.add(project);
 
         tasks.push({
           path,
@@ -326,8 +341,17 @@ export class TaskWorkPanel extends ItemView {
       }
     }
 
-    // sort projects
-    this.projects = Array.from(projects).sort();
+    // Sort project paths (inbox first, then alphabetically)
+    const normalizedInboxPath = normalizeInboxPath(this.settings.inboxPath);
+    const projectPathsList = Array.from(projectPathsSet);
+    projectPathsList.sort((a, b) => {
+      // Put inbox first
+      if (a === normalizedInboxPath) return -1;
+      if (b === normalizedInboxPath) return 1;
+      // Then sort alphabetically
+      return a.localeCompare(b);
+    });
+    this.projectPaths = projectPathsList;
     this.tasks = tasks;
     // re-render filters project dropdown
     const filtersHost = this.container.find(".taskwork-filters") as HTMLElement;
@@ -458,7 +482,10 @@ export class TaskWorkPanel extends ItemView {
     
     // Apply other filters (common to both tabs)
     if (f.area !== "All") rows = rows.filter(t => (t.area || "") === f.area);
-    if (f.project !== "Any") rows = rows.filter(t => (t.project || "") === f.project);
+    if (f.project !== "Any") {
+      // Filter by file path
+      rows = rows.filter(t => t.path === f.project);
+    }
     if (f.priority !== "Any") {
       rows = rows.filter(t => t.priority === f.priority);
     }

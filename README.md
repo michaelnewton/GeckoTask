@@ -136,7 +136,7 @@ TaskWork organizes tasks in a folder structure:
 The TaskWork Panel provides a rich interface for managing tasks:
 
 - **Tabs**: Two tabs available:
-  - "Today & Overdue" - Shows tasks due today or overdue (due filter hidden)
+  - "Today" - Shows tasks due today or overdue (due filter hidden)
   - "All Tasks" - Shows all tasks with full filtering options
 - **Filtering**: Filter by area, project, priority, due date, or search query
   - **Due date filters**: Fixed options (any, today, overdue, none), configurable day ranges from settings (e.g., 7d, 14d, 30d, 60d, 90d), and relative periods (this-week, next-week, this-month, next-month)
