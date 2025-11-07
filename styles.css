@@ -25,6 +25,40 @@ If your plugin does not need CSS, delete this file.
   font-weight: 600;
 }
 
+/* Tabs */
+.taskwork-tabs-container {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.taskwork-tab {
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  color: var(--text-muted);
+  background: transparent;
+  transition: all 0.2s ease;
+  user-select: none;
+  border: 1px solid transparent;
+}
+
+.taskwork-tab:hover {
+  color: var(--text-normal);
+  background: var(--background-modifier-hover);
+}
+
+.taskwork-tab-active {
+  color: var(--text-normal);
+  background: var(--background-modifier-active);
+  border-color: var(--background-modifier-border);
+  font-weight: 600;
+}
+
 /* Compact filters */
 .taskwork-filters-compact {
   margin-bottom: 12px;
@@ -84,62 +118,162 @@ If your plugin does not need CSS, delete this file.
 .taskwork-rows {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px; /* Increased spacing for better visual separation */
   overflow-y: auto;
   flex: 1;
 }
 
 .taskwork-card {
-  background: var(--background-secondary);
+  background: var(--background-primary);
   border: 1px solid var(--background-modifier-border);
-  border-radius: 6px;
-  padding: 10px;
+  border-radius: 8px; /* Slightly larger radius for modern look */
+  padding: 12px 14px 8px 14px; /* Reduced bottom padding to remove extra white space */
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px; /* Reduced gap for more compact layout */
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.taskwork-card:hover {
+  border-color: var(--background-modifier-border-hover);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .task-card-top {
   display: flex;
   align-items: flex-start;
-  gap: 8px;
+  gap: 12px; /* Increased gap */
+  position: relative;
 }
 
+/* Circular checkbox styling */
 .task-checkbox {
-  margin-top: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--text-muted);
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
   flex-shrink: 0;
+  margin-top: 2px;
+  position: relative;
+  transition: all 0.2s ease;
+  background: transparent;
+}
+
+.task-checkbox:hover {
+  border-color: var(--interactive-accent);
+}
+
+.task-checkbox:checked {
+  background: var(--interactive-accent);
+  border-color: var(--interactive-accent);
+}
+
+.task-checkbox:checked::after {
+  content: '✓';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: var(--text-on-accent);
+  font-size: 12px;
+  font-weight: bold;
+}
+
+/* Priority color classes for checkbox border */
+.task-checkbox.priority-urgent {
+  border-color: #e74c3c; /* Red for urgent */
+}
+
+.task-checkbox.priority-high {
+  border-color: #f39c12; /* Orange for high */
+}
+
+.task-checkbox.priority-medium {
+  border-color: #3498db; /* Blue for medium */
+}
+
+.task-checkbox.priority-low {
+  border-color: var(--text-muted); /* Grey for low */
+}
+
+.task-checkbox.priority-none {
+  border-color: var(--text-muted); /* Default grey */
+}
+
+/* Recurring task icon */
+.task-recur-icon {
+  font-size: 16px;
+  color: #27ae60; /* Green for recurring */
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-top: 2px;
+  transition: opacity 0.2s ease;
+  user-select: none;
+}
+
+.task-recur-icon:hover {
+  opacity: 0.8;
+}
+
+.task-title-container {
+  flex: 1;
+  min-width: 0; /* Allow shrinking */
 }
 
 .task-title {
-  flex: 1;
-  font-size: 14px;
-  line-height: 1.4;
+  font-size: 15px; /* Slightly larger for better hierarchy */
+  font-weight: 500; /* Medium weight */
+  line-height: 1.5;
   word-wrap: break-word;
+  color: var(--text-normal);
 }
 
 .task-title:hover {
-  background: var(--background-modifier-hover);
-  border-radius: 3px;
-  padding: 2px 4px;
-  margin: -2px -4px;
+  color: var(--text-normal);
+  /* Remove background hover effect - cleaner look */
 }
 
 .task-title-edit {
-  flex: 1;
-  font-size: 14px;
-  line-height: 1.4;
+  width: 100%;
+  font-size: 15px; /* Match task-title size */
+  font-weight: 500; /* Match task-title weight */
+  line-height: 1.5;
   border: 1px solid var(--interactive-accent);
   border-radius: 4px;
   background: var(--background-primary);
   color: var(--text-normal);
   outline: none;
   box-shadow: 0 0 0 2px var(--interactive-accent-hover);
+  padding: 2px 4px;
+}
+
+.task-description-icon {
+  cursor: pointer;
+  font-size: 14px;
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+  user-select: none;
+  display: inline-block;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+.task-description-icon:hover {
+  opacity: 1;
 }
 
 .task-card-description {
   margin-top: 4px;
   padding-top: 8px;
   border-top: 1px solid var(--background-modifier-border);
+  transition: all 0.2s ease;
+}
+
+.task-description-hidden {
+  display: none;
 }
 
 .task-description {
@@ -149,14 +283,127 @@ If your plugin does not need CSS, delete this file.
 }
 
 .task-description-line {
-  font-size: 12px;
+  font-size: 13px; /* Slightly larger for better readability */
   color: var(--text-muted);
   line-height: 1.6;
   word-wrap: break-word;
 }
 
+.task-description-label {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  background: var(--background-modifier-border);
+  color: var(--text-normal);
+  margin: 0 2px;
+  vertical-align: baseline;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* Labels in titles should be slightly larger */
+.task-title .task-description-label {
+  font-size: 12px;
+  padding: 3px 8px;
+}
+
 .task-description-empty {
   height: 0.5em;
+}
+
+/* Bottom row: Due date + Tags on left, Project on right */
+.task-card-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--background-modifier-border);
+  gap: 12px;
+}
+
+.task-card-bottom-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.task-card-bottom-right {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* Due date container */
+.task-due-container {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-muted);
+  transition: color 0.2s ease;
+}
+
+.task-due-container:hover {
+  color: var(--text-normal);
+}
+
+.task-due-icon {
+  font-size: 14px;
+  opacity: 0.8;
+}
+
+.task-due-text {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.task-due-container.task-due-empty {
+  opacity: 0.6;
+  font-style: italic;
+}
+
+/* Tag container */
+.task-tag-container {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-muted);
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: var(--background-modifier-border);
+  white-space: nowrap;
+  margin-left: 0;
+}
+
+.task-tag-icon {
+  font-size: 12px;
+  opacity: 0.9;
+  display: inline-block;
+  line-height: 1;
+}
+
+.task-tag-text {
+  font-size: 12px;
+  font-weight: 500;
+  display: inline-block;
+}
+
+/* Project container */
+.task-project-container {
+  display: flex;
+  align-items: center;
+}
+
+.task-project-text {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
 }
 
 .task-card-meta {
@@ -164,15 +411,21 @@ If your plugin does not need CSS, delete this file.
   flex-wrap: wrap;
   gap: 6px;
   align-items: center;
+  margin-top: 4px; /* Space below title */
+  width: 100%; /* Full width */
+  margin-left: 0; /* Remove any left margin */
+  padding-left: 0; /* Remove padding to use full width */
 }
 
 .task-badge {
-  display: inline-block;
-  padding: 3px 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
   border-radius: 12px;
   font-size: 11px;
   background: var(--background-modifier-border);
-  color: var(--text-normal);
+  color: var(--text-muted);
   white-space: nowrap;
 }
 
@@ -231,26 +484,56 @@ If your plugin does not need CSS, delete this file.
   color: var(--tag-color);
 }
 
+/* Hide action buttons by default, show on hover */
 .task-card-actions {
   display: flex;
   gap: 6px;
   justify-content: flex-end;
-  padding-top: 4px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  border-top: none; /* Remove border when hidden */
+  padding-top: 0;
+  margin-top: 0;
+  height: 0; /* Collapse when hidden to remove extra space */
+  overflow: hidden;
+}
+
+.taskwork-card:hover .task-card-actions {
+  opacity: 1;
   border-top: 1px solid var(--background-modifier-border);
+  padding-top: 8px;
+  margin-top: 6px; /* Reduced margin */
+  height: auto; /* Expand when visible */
 }
 
 .taskwork-action-btn {
   background: var(--interactive-normal);
   border: 1px solid var(--background-modifier-border);
   border-radius: 4px;
-  padding: 6px 12px;
+  padding: 4px 8px; /* More compact */
   cursor: pointer;
-  font-size: 12px;
+  font-size: 11px; /* Slightly smaller */
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: background 0.2s ease;
 }
 
 .taskwork-action-btn:hover {
   background: var(--interactive-hover);
+}
+
+/* Edit button icon */
+.taskwork-action-btn-edit::before {
+  content: '✎';
+  font-size: 12px;
+}
+
+/* Move button icon */
+.taskwork-action-btn-move::before {
+  content: '↔';
+  font-size: 12px;
 }
 
 .taskwork-action-btn-primary {

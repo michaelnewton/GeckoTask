@@ -1,10 +1,12 @@
-import { App, ItemView, WorkspaceLeaf, TFile, Notice, Setting, SuggestModal, MarkdownView } from "obsidian";
-import { parseTask, parseTaskWithDescription, formatTask, formatTaskWithDescription, Task } from "../models/TaskModel";
+import { App, ItemView, WorkspaceLeaf, TFile, Notice, MarkdownView } from "obsidian";
+import { parseTaskWithDescription, formatTaskWithDescription, Task } from "../models/TaskModel";
 import { TaskWorkSettings } from "../settings";
 import { parseNLDate } from "../services/NLDate";
 import { calculateNextOccurrence } from "../services/Recurrence";
 import { inferAreaFromPath, isInTasksFolder, isSpecialFile } from "../utils/areaUtils";
 import { PromptModal } from "../ui/PromptModal";
+import { FilePickerModal } from "../ui/FilePickerModal";
+import { DueWindow, TabType, FilterState, IndexedTask } from "./TaskworkPanelTypes";
 
 /**
  * View type identifier for the TaskWork panel.
@@ -12,46 +14,12 @@ import { PromptModal } from "../ui/PromptModal";
 export const VIEW_TYPE_TASKWORK = "taskwork-tasks-view";
 
 /**
- * Due date filter window options.
- */
-type DueWindow = "any" | "today" | "7d" | "overdue" | "nodue";
-
-/**
- * Filter state for task filtering in the panel.
- */
-interface FilterState {
-  area: "All" | string; // "All" or one of settings.areas
-  project: "Any" | string;
-  priority: "Any" | string; // Dynamic from settings.allowedPriorities
-  due: DueWindow;
-  query: string;
-}
-
-/**
- * Task with indexing information for display in the panel.
- */
-interface IndexedTask {
-  path: string;
-  line: number;        // 1-based task line
-  raw: string;         // task line only (first line)
-  title: string;
-  description?: string; // Multi-line description
-  tags: string[];
-  area?: string;
-  project?: string;
-  priority?: string;
-  due?: string;        // YYYY-MM-DD
-  recur?: string;      // Recurrence pattern (e.g., "every Tuesday", "every 10 days")
-  checked: boolean;
-  descriptionEndLine?: number; // Last line of description (1-based, inclusive)
-}
-
-/**
  * Side panel view for displaying and managing tasks.
  */
 export class TaskWorkPanel extends ItemView {
   settings: TaskWorkSettings;
   container!: HTMLElement;
+  currentTab: TabType = "today-overdue";
   filters: FilterState = { area: "All", project: "Any", priority: "Any", due: "any", query: "" };
   tasks: IndexedTask[] = [];
   projects: string[] = []; // for filter dropdown
@@ -96,6 +64,10 @@ export class TaskWorkPanel extends ItemView {
     const titleEl = this.container.createDiv({ cls: "taskwork-title" });
     titleEl.createEl("h2", { text: "TaskWork: Tasks" });
 
+    // Tabs
+    const tabsEl = this.container.createDiv({ cls: "taskwork-tabs" });
+    this.renderTabs(tabsEl);
+
     // Filters UI
     const filtersEl = this.container.createDiv({ cls: "taskwork-filters" });
     this.renderFilters(filtersEl);
@@ -110,7 +82,7 @@ export class TaskWorkPanel extends ItemView {
     // Refresh on changes
     const debouncedRefresh = this.debounce(async () => {
       await this.reindex();
-      this.renderList(listEl);
+      this.rerender();
     }, 200);
 
     this.registerEvent(this.app.vault.on("modify", debouncedRefresh));
@@ -123,12 +95,42 @@ export class TaskWorkPanel extends ItemView {
   async onClose() {}
 
   /**
+   * Renders the tab navigation UI.
+   * @param host - Container element to render into
+   */
+  private renderTabs(host: HTMLElement) {
+    host.empty();
+    host.addClass("taskwork-tabs-container");
+
+    const todayTab = host.createDiv({ 
+      cls: `taskwork-tab ${this.currentTab === "today-overdue" ? "taskwork-tab-active" : ""}`
+    });
+    todayTab.setText("Today & Overdue");
+    todayTab.addEventListener("click", () => {
+      this.currentTab = "today-overdue";
+      this.rerender();
+    });
+
+    const allTab = host.createDiv({ 
+      cls: `taskwork-tab ${this.currentTab === "all" ? "taskwork-tab-active" : ""}`
+    });
+    allTab.setText("All Tasks");
+    allTab.addEventListener("click", () => {
+      this.currentTab = "all";
+      this.rerender();
+    });
+  }
+
+  /**
    * Renders the filter UI controls.
    * @param host - Container element to render into
    */
   private renderFilters(host: HTMLElement) {
     host.empty();
     host.addClass("taskwork-filters-compact");
+
+    // For "Today & Overdue" tab, hide the due filter since it's implicit
+    const showDueFilter = this.currentTab === "all";
 
     // First row: Search (full width)
     const searchRow = host.createDiv({ cls: "filter-row" });
@@ -186,20 +188,22 @@ export class TaskWorkPanel extends ItemView {
       this.rerender();
     });
 
-    // Due dropdown
-    const dueContainer = filterRow.createDiv({ cls: "filter-item" });
-    dueContainer.createEl("label", { text: "Due:", cls: "filter-label" });
-    const dueSelect = dueContainer.createEl("select", { cls: "filter-select" });
-    const dueOpts: [string, DueWindow][] = [["Any","any"],["Today","today"],["7d","7d"],["Overdue","overdue"],["None","nodue"]];
-    dueOpts.forEach(([label,val]) => {
-      const opt = dueSelect.createEl("option", { text: label });
-      opt.value = val;
-      if (val === this.filters.due) opt.selected = true;
-    });
-    dueSelect.addEventListener("change", (e) => {
-      this.filters.due = (e.target as HTMLSelectElement).value as DueWindow;
-      this.rerender();
-    });
+    // Due dropdown (only show for "All Tasks" tab)
+    if (showDueFilter) {
+      const dueContainer = filterRow.createDiv({ cls: "filter-item" });
+      dueContainer.createEl("label", { text: "Due:", cls: "filter-label" });
+      const dueSelect = dueContainer.createEl("select", { cls: "filter-select" });
+      const dueOpts: [string, DueWindow][] = [["Any","any"],["Today","today"],["7d","7d"],["Overdue","overdue"],["None","nodue"]];
+      dueOpts.forEach(([label,val]) => {
+        const opt = dueSelect.createEl("option", { text: label });
+        opt.value = val;
+        if (val === this.filters.due) opt.selected = true;
+      });
+      dueSelect.addEventListener("change", (e) => {
+        this.filters.due = (e.target as HTMLSelectElement).value as DueWindow;
+        this.rerender();
+      });
+    }
 
     // Project dropdown
     const projContainer = filterRow.createDiv({ cls: "filter-item" });
@@ -294,6 +298,76 @@ export class TaskWorkPanel extends ItemView {
   }
 
   /**
+   * Formats a due date for display.
+   * Shows day name if within next 7 days, otherwise shortened format like "7th Nov".
+   * @param dueDate - ISO date string (YYYY-MM-DD)
+   * @returns Formatted date string
+   */
+  private formatDueDate(dueDate: string): string {
+    const moment = (window as any).moment;
+    const due = moment(dueDate);
+    const today = moment().startOf("day");
+    const daysDiff = due.diff(today, "days");
+    
+    if (daysDiff < 0) {
+      // Overdue - show shortened format
+      return due.format("Do MMM");
+    } else if (daysDiff === 0) {
+      return "Today";
+    } else if (daysDiff <= 7) {
+      // Within next 7 days - show day name
+      return due.format("dddd");
+    } else {
+      // Beyond 7 days - show shortened format
+      return due.format("Do MMM");
+    }
+  }
+
+  /**
+   * Gets the priority color class for styling.
+   * @param priority - Priority value
+   * @returns CSS class name for priority color
+   */
+  private getPriorityColorClass(priority?: string): string {
+    if (!priority) return "priority-none";
+    const idx = this.settings.allowedPriorities.indexOf(priority);
+    // Map priority index to color classes (0 = highest priority)
+    if (idx === 0) return "priority-urgent"; // First priority = urgent/high
+    if (idx === 1) return "priority-high";
+    if (idx === 2) return "priority-medium";
+    if (idx === 3) return "priority-low";
+    return "priority-none";
+  }
+
+  /**
+   * Extracts all labels from a task (hashtags and @ labels from description).
+   * @param task - The indexed task
+   * @returns Array of label strings
+   */
+  private extractLabels(task: IndexedTask): string[] {
+    const labels: string[] = [];
+    
+    // Add hashtags from task tags
+    labels.push(...task.tags);
+    
+    // Extract @ labels from description
+    if (task.description) {
+      const labelPattern = /@[\w/-]+/g;
+      const descLabels = task.description.match(labelPattern);
+      if (descLabels) {
+        // Add unique labels only
+        descLabels.forEach(label => {
+          if (!labels.includes(label)) {
+            labels.push(label);
+          }
+        });
+      }
+    }
+    
+    return labels;
+  }
+
+  /**
    * Renders the filtered task list.
    * @param host - Container element to render into
    */
@@ -303,19 +377,29 @@ export class TaskWorkPanel extends ItemView {
     // filter
     let rows = this.tasks.filter(t => !t.checked); // open only
     const f = this.filters;
+    const today = (window as any).moment().format("YYYY-MM-DD");
+    
+    // Apply tab-specific filtering
+    if (this.currentTab === "today-overdue") {
+      // Show tasks due today or overdue
+      rows = rows.filter(t => t.due && (t.due === today || t.due < today));
+    } else {
+      // Apply due filter only for "All Tasks" tab
+      if (f.due === "today") rows = rows.filter(t => t.due === today);
+      if (f.due === "7d") {
+        const next7 = (window as any).moment(today).add(7, "days").format("YYYY-MM-DD");
+        rows = rows.filter(t => t.due && t.due >= today && t.due <= next7);
+      }
+      if (f.due === "overdue") rows = rows.filter(t => t.due && t.due < today);
+      if (f.due === "nodue") rows = rows.filter(t => !t.due);
+    }
+    
+    // Apply other filters (common to both tabs)
     if (f.area !== "All") rows = rows.filter(t => (t.area || "") === f.area);
     if (f.project !== "Any") rows = rows.filter(t => (t.project || "") === f.project);
     if (f.priority !== "Any") {
       rows = rows.filter(t => t.priority === f.priority);
     }
-    const today = (window as any).moment().format("YYYY-MM-DD");
-    if (f.due === "today") rows = rows.filter(t => t.due === today);
-    if (f.due === "7d") {
-      const next7 = (window as any).moment(today).add(7, "days").format("YYYY-MM-DD");
-      rows = rows.filter(t => t.due && t.due >= today && t.due <= next7);
-    }
-    if (f.due === "overdue") rows = rows.filter(t => t.due && t.due < today);
-    if (f.due === "nodue") rows = rows.filter(t => !t.due);
     if (f.query.trim()) {
       const q = f.query.toLowerCase();
       rows = rows.filter(t => `${t.title} ${t.tags.join(" ")}`.toLowerCase().includes(q));
@@ -344,45 +428,58 @@ export class TaskWorkPanel extends ItemView {
     for (const t of rows) {
       const card = list.createDiv({ cls: "taskwork-card" });
 
-      // Top row: Checkbox + Title
+      // Top row: Checkbox + Recurring icon + Title
       const topRow = card.createDiv({ cls: "task-card-top" });
       const cb = topRow.createEl("input", { type: "checkbox", cls: "task-checkbox" });
       cb.checked = false;
+      
+      // Add priority color class to checkbox
+      const priorityClass = this.getPriorityColorClass(t.priority);
+      cb.classList.add(priorityClass);
+      
       cb.addEventListener("change", async () => {
         await this.toggleTask(t, cb.checked);
       });
-      const title = topRow.createEl("div", { text: t.title, cls: "task-title" });
+      
+      // Recurring task icon (icon only, no text)
+      if (t.recur) {
+        const recurIcon = topRow.createDiv({ cls: "task-recur-icon" });
+        recurIcon.innerHTML = "🔁";
+        recurIcon.title = `Recurring: ${t.recur}`;
+        recurIcon.style.cursor = "pointer";
+        recurIcon.addEventListener("click", async (e) => {
+          e.stopPropagation();
+          const modal = new PromptModal(this.app, "Set recurrence (e.g., 'every Tuesday', 'every 10 days', 'every 2 weeks on Tuesday'):", t.recur || "");
+          const value = await modal.prompt();
+          if (value != null) {
+            await this.updateField(t, "recur", value.trim() || undefined);
+          }
+        });
+      }
+      
+      const titleContainer = topRow.createDiv({ cls: "task-title-container" });
+      const title = titleContainer.createEl("div", { cls: "task-title" });
       title.style.cursor = "pointer";
+      this.renderDescriptionLine(title, t.title);
       title.addEventListener("click", () => {
         this.startEditingTitle(title, t);
       });
 
-      // Description row (if exists)
-      if (t.description) {
-        const descRow = card.createDiv({ cls: "task-card-description" });
-        const descEl = descRow.createEl("div", { cls: "task-description" });
-        // Preserve line breaks - split by newlines and render each line
-        const descLines = t.description.split("\n");
-        descLines.forEach((line, idx) => {
-          if (line.trim().length > 0) {
-            descEl.createEl("div", { text: line, cls: "task-description-line" });
-          } else if (idx < descLines.length - 1) {
-            // Empty line for spacing
-            descEl.createEl("div", { cls: "task-description-empty" });
-          }
-        });
-      }
-
-      // Middle row: Metadata badges
-      const metaRow = card.createDiv({ cls: "task-card-meta" });
+      // Bottom row: Due date + Tags on left, Project on right
+      const bottomRow = card.createDiv({ cls: "task-card-bottom" });
       
-      // Due badge (clickable)
+      // Left side: Due date + Tags
+      const leftSide = bottomRow.createDiv({ cls: "task-card-bottom-left" });
+      
+      // Due date (with calendar icon)
       if (t.due) {
-        const dueBadge = metaRow.createEl("span", { 
-          text: `📅 ${t.due}`, 
-          cls: "task-badge task-due" 
-        });
-        dueBadge.addEventListener("click", async () => {
+        const dueContainer = leftSide.createDiv({ cls: "task-due-container" });
+        const dueIcon = dueContainer.createEl("span", { cls: "task-due-icon" });
+        dueIcon.innerHTML = "📅";
+        const dueText = dueContainer.createEl("span", { cls: "task-due-text" });
+        dueText.textContent = this.formatDueDate(t.due);
+        dueContainer.style.cursor = "pointer";
+        dueContainer.addEventListener("click", async () => {
           const defaultValue = t.due ?? (this.settings.nlDateParsing ? "today" : "");
           const modal = new PromptModal(this.app, "Set due date (today / 2025-11-10)", defaultValue);
           const next = await modal.prompt();
@@ -391,11 +488,14 @@ export class TaskWorkPanel extends ItemView {
           await this.updateField(t, "due", parsed);
         });
       } else {
-        const dueBadge = metaRow.createEl("span", { 
-          text: "📅 Set due", 
-          cls: "task-badge task-due task-due-empty" 
-        });
-        dueBadge.addEventListener("click", async () => {
+        const dueContainer = leftSide.createDiv({ cls: "task-due-container task-due-empty" });
+        const dueIcon = dueContainer.createEl("span", { cls: "task-due-icon" });
+        dueIcon.innerHTML = "📅";
+        const dueText = dueContainer.createEl("span", { cls: "task-due-text" });
+        dueText.textContent = "Set due";
+        dueContainer.style.cursor = "pointer";
+        dueContainer.style.opacity = "0.6";
+        dueContainer.addEventListener("click", async () => {
           const defaultValue = this.settings.nlDateParsing ? "today" : "";
           const modal = new PromptModal(this.app, "Set due date (today / 2025-11-10)", defaultValue);
           const next = await modal.prompt();
@@ -404,9 +504,72 @@ export class TaskWorkPanel extends ItemView {
           await this.updateField(t, "due", parsed);
         });
       }
+      
+      // Tags/labels (with tag icon) - extract from both tags and description
+      const allLabels = this.extractLabels(t);
+      if (allLabels.length > 0) {
+        allLabels.forEach(label => {
+          const tagContainer = leftSide.createEl("span", { cls: "task-tag-container" });
+          const tagIcon = tagContainer.createEl("span", { cls: "task-tag-icon" });
+          tagIcon.textContent = "🏷️";
+          const tagText = tagContainer.createEl("span", { cls: "task-tag-text" });
+          tagText.textContent = label;
+        });
+      }
+      
+      // Description icon (if description exists) - on same line as labels/tags
+      if (t.description) {
+        const descIcon = leftSide.createEl("span", { 
+          text: "📄", 
+          cls: "task-description-icon" 
+        });
+        descIcon.title = "Show description";
+        descIcon.style.cursor = "pointer";
+      }
+      
+      // Right side: Project
+      const rightSide = bottomRow.createDiv({ cls: "task-card-bottom-right" });
+      if (t.project) {
+        const projectContainer = rightSide.createDiv({ cls: "task-project-container" });
+        const projectText = projectContainer.createEl("span", { cls: "task-project-text" });
+        projectText.textContent = `# ${t.project}`;
+      }
 
-      // Priority badge (clickable dropdown)
-      const prioContainer = metaRow.createDiv({ cls: "task-priority-container" });
+      // Description row (if exists) - hidden by default
+      if (t.description) {
+        const descRow = card.createDiv({ cls: "task-card-description task-description-hidden" });
+        const descEl = descRow.createDiv({ cls: "task-description" });
+        // Preserve line breaks - split by newlines and render each line
+        // Don't render labels as badges in description (they're shown in bottom left)
+        const descLines = t.description.split("\n");
+        descLines.forEach((line, idx) => {
+          if (line.trim().length > 0) {
+            const lineEl = descEl.createDiv({ cls: "task-description-line" });
+            this.renderDescriptionLine(lineEl, line, false); // false = don't render labels as badges
+          } else if (idx < descLines.length - 1) {
+            // Empty line for spacing
+            descEl.createEl("div", { cls: "task-description-empty" });
+          }
+        });
+        
+        // Find the description icon we created earlier and add click handler
+        const descIcon = leftSide.querySelector(".task-description-icon") as HTMLElement;
+        if (descIcon) {
+          // Toggle description visibility on icon click
+          descIcon.addEventListener("click", (e) => {
+            e.stopPropagation();
+            descRow.classList.toggle("task-description-hidden");
+            descIcon.textContent = descRow.classList.contains("task-description-hidden") ? "📄" : "📄▼";
+            descIcon.title = descRow.classList.contains("task-description-hidden") ? "Show description" : "Hide description";
+          });
+        }
+      }
+
+      // Action buttons (shown on hover)
+      const actionRow = card.createDiv({ cls: "task-card-actions" });
+      
+      // Priority selector (clickable)
+      const prioContainer = actionRow.createDiv({ cls: "task-priority-container" });
       const prioBadge = prioContainer.createEl("span", { 
         text: t.priority ? `! ${t.priority}` : "! Set priority", 
         cls: `task-badge task-priority ${t.priority ? "" : "task-priority-empty"}` 
@@ -435,70 +598,35 @@ export class TaskWorkPanel extends ItemView {
         sel.addEventListener("blur", () => sel.remove());
         sel.focus();
       });
-
-      // Recurrence badge (clickable to set/edit)
-      if (t.recur) {
-        const recurBadge = metaRow.createEl("span", { 
-          text: `🔁 ${t.recur}`, 
-          cls: "task-badge task-recur" 
-        });
-        recurBadge.addEventListener("click", async (e) => {
-          e.stopPropagation();
-          const modal = new PromptModal(this.app, "Set recurrence (e.g., 'every Tuesday', 'every 10 days', 'every 2 weeks on Tuesday'):", t.recur || "");
-          const value = await modal.prompt();
-          if (value != null) {
-            await this.updateField(t, "recur", value.trim() || undefined);
-          }
-        });
-      } else {
-        const recurBadge = metaRow.createEl("span", { 
-          text: "🔁 Set recurrence", 
-          cls: "task-badge task-recur task-recur-empty" 
-        });
-        recurBadge.addEventListener("click", async (e) => {
-          e.stopPropagation();
-          const modal = new PromptModal(this.app, "Set recurrence (e.g., 'every Tuesday', 'every 10 days', 'every 2 weeks on Tuesday'):", "");
-          const value = await modal.prompt();
-          if (value != null) {
-            await this.updateField(t, "recur", value.trim() || undefined);
-          }
-        });
-      }
-
-      // Area badge
-      if (t.area) {
-        metaRow.createEl("span", { text: t.area, cls: "task-badge task-area" });
-      }
-
-      // Project badge
-      if (t.project) {
-        metaRow.createEl("span", { text: t.project, cls: "task-badge task-project" });
-      }
-
-      // Tags
-      t.tags.forEach(tag => {
-        metaRow.createEl("span", { text: tag, cls: "task-badge task-tag" });
-      });
-
-      // Bottom row: Actions
-      const actionRow = card.createDiv({ cls: "task-card-actions" });
       
-      // Open Note button
-      const openBtn = actionRow.createEl("button", { 
-        text: "Open", 
-        cls: "taskwork-action-btn taskwork-action-btn-primary"
+      // Edit button
+      const editBtn = actionRow.createEl("button", { 
+        text: "Edit", 
+        cls: "taskwork-action-btn taskwork-action-btn-edit"
       });
-      openBtn.addEventListener("click", async () => {
-        await this.openTaskInNote(t);
+      editBtn.addEventListener("click", async (e) => {
+        e.stopPropagation();
+        this.startEditingTitle(title, t);
       });
 
       // Move button
       const moveBtn = actionRow.createEl("button", { 
         text: "Move", 
-        cls: "taskwork-action-btn"
+        cls: "taskwork-action-btn taskwork-action-btn-move"
       });
-      moveBtn.addEventListener("click", async () => {
+      moveBtn.addEventListener("click", async (e) => {
+        e.stopPropagation();
         await this.moveTask(t);
+      });
+
+      // Open Note button
+      const openBtn = actionRow.createEl("button", { 
+        text: "Open", 
+        cls: "taskwork-action-btn taskwork-action-btn-primary"
+      });
+      openBtn.addEventListener("click", async (e) => {
+        e.stopPropagation();
+        await this.openTaskInNote(t);
       });
     }
   }
@@ -629,7 +757,8 @@ export class TaskWorkPanel extends ItemView {
    * @param t - The indexed task being edited
    */
   private startEditingTitle(titleEl: HTMLElement, t: IndexedTask) {
-    const currentText = titleEl.textContent || "";
+    // Get the original title text (from the task, not from rendered element)
+    const currentText = t.title;
     const input = document.createElement("input");
     input.type = "text";
     input.value = currentText;
@@ -649,9 +778,9 @@ export class TaskWorkPanel extends ItemView {
       } else {
         // Restore original if cancelled or empty
         const newTitleEl = document.createElement("div");
-        newTitleEl.textContent = currentText;
         newTitleEl.className = "task-title";
         newTitleEl.style.cursor = "pointer";
+        this.renderDescriptionLine(newTitleEl, currentText);
         newTitleEl.addEventListener("click", () => {
           this.startEditingTitle(newTitleEl, t);
         });
@@ -667,9 +796,9 @@ export class TaskWorkPanel extends ItemView {
       } else if (e.key === "Escape") {
         e.preventDefault();
         const newTitleEl = document.createElement("div");
-        newTitleEl.textContent = currentText;
         newTitleEl.className = "task-title";
         newTitleEl.style.cursor = "pointer";
+        this.renderDescriptionLine(newTitleEl, currentText);
         newTitleEl.addEventListener("click", () => {
           this.startEditingTitle(newTitleEl, t);
         });
@@ -716,9 +845,15 @@ export class TaskWorkPanel extends ItemView {
   }
 
   /**
-   * Triggers a re-render of the task list.
+   * Triggers a re-render of the entire panel (tabs, filters, and list).
    */
   private rerender() {
+    const tabsEl = this.container.find(".taskwork-tabs") as HTMLElement;
+    if (tabsEl) this.renderTabs(tabsEl);
+    
+    const filtersEl = this.container.find(".taskwork-filters") as HTMLElement;
+    if (filtersEl) this.renderFilters(filtersEl);
+    
     const listEl = this.container.find(".taskwork-list") as HTMLElement;
     if (listEl) this.renderList(listEl);
   }
@@ -807,6 +942,59 @@ export class TaskWorkPanel extends ItemView {
   }
 
   /**
+   * Renders a description line, converting labels like "@ppl/Libby" into badges.
+   * @param container - Container element to render into
+   * @param line - Description line text
+   * @param renderLabelsAsBadges - Whether to render labels as badges (default: true for titles, false for descriptions)
+   */
+  private renderDescriptionLine(container: HTMLElement, line: string, renderLabelsAsBadges: boolean = true) {
+    // Pattern to match labels like @ppl/Libby, @person/Name, @label, etc.
+    // Matches @ followed by word characters, slashes, hyphens, and underscores
+    const labelPattern = /(@[\w/-]+)/g;
+    const parts: Array<{ text: string; isLabel: boolean }> = [];
+    let lastIndex = 0;
+    let match;
+
+    while ((match = labelPattern.exec(line)) !== null) {
+      // Add text before the label
+      if (match.index > lastIndex) {
+        parts.push({ text: line.substring(lastIndex, match.index), isLabel: false });
+      }
+      // Add the label
+      parts.push({ text: match[1], isLabel: true });
+      lastIndex = match.index + match[0].length;
+    }
+
+    // Add remaining text after the last label
+    if (lastIndex < line.length) {
+      parts.push({ text: line.substring(lastIndex), isLabel: false });
+    }
+
+    // If no labels found, just add the text as-is
+    if (parts.length === 0) {
+      container.textContent = line;
+      return;
+    }
+
+    // Render parts
+    parts.forEach(part => {
+      if (part.isLabel && renderLabelsAsBadges) {
+        // Create a badge for the label (only in titles)
+        container.createEl("span", { 
+          text: part.text, 
+          cls: "task-description-label" 
+        });
+      } else if (part.isLabel && !renderLabelsAsBadges) {
+        // Just show label as plain text in descriptions (since they're shown in bottom left)
+        container.appendText(part.text);
+      } else if (part.text.length > 0) {
+        // Add regular text (only if not empty)
+        container.appendText(part.text);
+      }
+    });
+  }
+
+  /**
    * Creates a debounced version of a function.
    * @param fn - Function to debounce
    * @param ms - Debounce delay in milliseconds
@@ -821,60 +1009,3 @@ export class TaskWorkPanel extends ItemView {
   }
 }
 
-/**
- * Modal for picking a file from a list of suggestions.
- */
-class FilePickerModal extends SuggestModal<TFile> {
-  files: TFile[];
-  result: TFile | null = null;
-
-  /**
-   * Creates a new file picker modal.
-   * @param app - Obsidian app instance
-   * @param files - List of files to choose from
-   */
-  constructor(app: App, files: TFile[]) {
-    super(app);
-    this.files = files;
-  }
-
-  /**
-   * Filters files based on query string.
-   * @param query - Search query
-   * @returns Filtered list of files
-   */
-  getSuggestions(query: string): TFile[] {
-    return this.files.filter(f => 
-      f.path.toLowerCase().includes(query.toLowerCase())
-    );
-  }
-
-  /**
-   * Renders a file suggestion in the list.
-   * @param f - The file to render
-   * @param el - The element to render into
-   */
-  renderSuggestion(f: TFile, el: HTMLElement) {
-    el.setText(f.path);
-  }
-
-  /**
-   * Called when a file is chosen from the list.
-   * @param f - The chosen file
-   */
-  onChooseSuggestion(f: TFile) {
-    this.result = f;
-    this.close();
-  }
-
-  /**
-   * Opens the modal and returns the selected file.
-   * @returns Selected file or null if cancelled
-   */
-  async openAndGet(): Promise<TFile | null> {
-    return new Promise((resolve) => {
-      this.onClose = () => resolve(this.result);
-      this.open();
-    });
-  }
-}
