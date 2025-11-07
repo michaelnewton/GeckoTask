@@ -1,11 +1,94 @@
 /*
-
+ 
 This CSS file will be included with your plugin, and
 available in the app when your plugin is enabled.
-
+ 
 If your plugin does not need CSS, delete this file.
-
+ 
 */
+
+/* Settings Tab - Prevent overflow */
+/* Target the settings tab container */
+.vertical-tab-content {
+  overflow-x: hidden !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
+}
+
+/* Ensure setting items don't overflow - override Obsidian defaults */
+.vertical-tab-content .setting-item {
+  max-width: 100% !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  overflow-x: hidden !important;
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  align-items: flex-start !important;
+}
+
+/* Allow setting item info to shrink - override any fixed widths */
+.vertical-tab-content .setting-item-info {
+  flex: 0 0 auto !important;
+  min-width: 0 !important;
+  max-width: 50% !important;
+  box-sizing: border-box !important;
+  overflow-x: hidden !important;
+  overflow-wrap: break-word !important;
+  word-wrap: break-word !important;
+}
+
+/* Allow setting item control to shrink - critical for preventing overflow */
+.vertical-tab-content .setting-item-control {
+  flex: 1 1 0% !important;
+  min-width: 0 !important;
+  max-width: 50% !important;
+  box-sizing: border-box !important;
+  overflow-x: hidden !important;
+}
+
+/* Ensure inputs respect container width - this is critical */
+.vertical-tab-content .setting-item-control input[type="text"],
+.vertical-tab-content .setting-item-control input[type="number"],
+.vertical-tab-content .setting-item-control textarea,
+.vertical-tab-content .setting-item-control select {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  min-width: 0 !important;
+}
+
+/* Ensure descriptions wrap */
+.vertical-tab-content .setting-item-description {
+  word-wrap: break-word !important;
+  overflow-wrap: break-word !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  overflow-x: hidden !important;
+}
+
+/* Mobile: Stack setting items vertically */
+@media (max-width: 768px), (hover: none) and (pointer: coarse) {
+  .vertical-tab-content .setting-item {
+    flex-direction: column !important;
+    flex-wrap: nowrap !important;
+    align-items: stretch !important;
+  }
+
+  .vertical-tab-content .setting-item-info {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-bottom: 8px !important;
+    flex: none !important;
+  }
+
+  .vertical-tab-content .setting-item-control {
+    width: 100% !important;
+    max-width: 100% !important;
+    flex: none !important;
+  }
+}
+
 
 .taskwork-panel { 
   padding: 12px;
@@ -936,4 +1019,367 @@ If your plugin does not need CSS, delete this file.
 .markdown-preview-view.mod-taskwork-styled .taskwork-field-value,
 .markdown-reading-view.mod-taskwork-styled .taskwork-field-value {
   font-weight: 500 !important;
+}
+
+/* Weekly Review Panel Styles */
+.weekly-review-panel {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.weekly-review-header {
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.weekly-review-header h2 {
+  margin: 0 0 8px 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.weekly-review-progress {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.weekly-review-step-title {
+  margin-bottom: 16px;
+}
+
+.weekly-review-phase {
+  margin-bottom: 8px;
+}
+
+.weekly-review-phase-label {
+  display: inline-block;
+  padding: 4px 12px;
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.weekly-review-step-title h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-normal);
+}
+
+.weekly-review-step-content {
+  flex: 1;
+  overflow-y: auto;
+  margin-bottom: 16px;
+}
+
+.weekly-review-guidance {
+  background: var(--background-modifier-border);
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 16px;
+}
+
+.weekly-review-guidance h4 {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.weekly-review-guidance p {
+  margin: 4px 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.weekly-review-guidance ul {
+  margin: 4px 0;
+  padding-left: 20px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.weekly-review-question {
+  margin-bottom: 20px;
+}
+
+.weekly-review-question h4 {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.weekly-review-question p {
+  margin: 0 0 8px 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.weekly-review-textarea {
+  width: 100%;
+  min-height: 80px;
+  padding: 8px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  background: var(--background-primary);
+  color: var(--text-normal);
+  font-size: 13px;
+  font-family: inherit;
+  resize: vertical;
+  margin-bottom: 8px;
+  box-sizing: border-box;
+}
+
+.weekly-review-textarea:focus {
+  outline: none;
+  border-color: var(--interactive-accent);
+  box-shadow: 0 0 0 2px var(--interactive-accent-hover);
+}
+
+.weekly-review-navigation {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--background-modifier-border);
+}
+
+.weekly-review-btn {
+  padding: 8px 16px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  background: var(--interactive-normal);
+  color: var(--text-normal);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.weekly-review-btn:hover:not(:disabled) {
+  background: var(--interactive-hover);
+  border-color: var(--background-modifier-border-hover);
+}
+
+.weekly-review-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.weekly-review-btn-next {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border-color: var(--interactive-accent);
+  margin-left: auto;
+}
+
+.weekly-review-btn-next:hover:not(:disabled) {
+  background: var(--interactive-accent-hover);
+  border-color: var(--interactive-accent-hover);
+}
+
+.weekly-review-btn-action {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border-color: var(--interactive-accent);
+}
+
+.weekly-review-btn-action:hover {
+  background: var(--interactive-accent-hover);
+  border-color: var(--interactive-accent-hover);
+}
+
+.weekly-review-btn-small {
+  padding: 4px 8px;
+  font-size: 11px;
+}
+
+.weekly-review-btn-icon {
+  padding: 4px 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+}
+
+.weekly-review-btn-icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.weekly-review-btn-danger {
+  background: var(--background-modifier-error);
+  color: var(--text-on-accent);
+  border-color: var(--background-modifier-error);
+}
+
+.weekly-review-btn-danger:hover {
+  background: var(--background-modifier-error-hover);
+  border-color: var(--background-modifier-error-hover);
+}
+
+.weekly-review-tasks-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.weekly-review-task-card {
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.weekly-review-task-card:hover {
+  border-color: var(--background-modifier-border-hover);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.weekly-review-task-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.weekly-review-task-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-normal);
+  word-wrap: break-word;
+}
+
+.weekly-review-task-description {
+  font-size: 12px;
+  color: var(--text-muted);
+  word-wrap: break-word;
+}
+
+.weekly-review-task-metadata {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.weekly-review-task-metadata span {
+  padding: 2px 6px;
+  background: var(--background-modifier-border);
+  border-radius: 4px;
+}
+
+.weekly-review-task-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.weekly-review-projects-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.weekly-review-project {
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  padding: 12px;
+}
+
+.weekly-review-project-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.weekly-review-project-header h4 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.weekly-review-warning {
+  color: var(--text-warning);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.weekly-review-step-controls {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.weekly-review-reviewed-section {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--background-modifier-border);
+}
+
+.weekly-review-reviewed-header {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+/* Mobile optimizations for weekly review */
+@media (max-width: 768px), (hover: none) and (pointer: coarse) {
+  .weekly-review-panel {
+    padding: 8px;
+  }
+
+  .weekly-review-textarea {
+    min-height: 60px;
+    font-size: 15px;
+  }
+
+  .weekly-review-btn {
+    padding: 10px 16px;
+    font-size: 15px;
+  }
+
+  .weekly-review-btn-small {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+
+  .weekly-review-navigation {
+    flex-direction: column;
+  }
+
+  .weekly-review-btn-next {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .weekly-review-task-actions {
+    flex-direction: column;
+  }
+
+  .weekly-review-task-actions button {
+    width: 100%;
+  }
 }
