@@ -66,7 +66,7 @@ export class TaskWorkPanel extends ItemView {
     const titleHeader = titleEl.createDiv({ cls: "taskwork-title-header" });
     titleHeader.createEl("h2", { text: "TaskWork: Tasks" });
     const quickAddBtn = titleHeader.createEl("button", { 
-      text: "Quick Add", 
+      text: this.isTouchDevice() ? "➕" : "Quick Add", 
       cls: "taskwork-quick-add-btn" 
     });
     quickAddBtn.addEventListener("click", async () => {
