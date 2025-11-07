@@ -6,6 +6,7 @@ import { calculateNextOccurrence } from "../services/Recurrence";
 import { inferAreaFromPath, isInTasksFolder, isSpecialFile } from "../utils/areaUtils";
 import { PromptModal } from "../ui/PromptModal";
 import { FilePickerModal } from "../ui/FilePickerModal";
+import { captureQuickTask } from "../ui/CaptureModal";
 import { DueWindow, TabType, FilterState, IndexedTask } from "./TaskworkPanelTypes";
 
 /**
@@ -60,9 +61,20 @@ export class TaskWorkPanel extends ItemView {
     this.container.empty();
     this.container.addClass("taskwork-panel");
 
-    // Title
+    // Title with Quick Add button
     const titleEl = this.container.createDiv({ cls: "taskwork-title" });
-    titleEl.createEl("h2", { text: "TaskWork: Tasks" });
+    const titleHeader = titleEl.createDiv({ cls: "taskwork-title-header" });
+    titleHeader.createEl("h2", { text: "TaskWork: Tasks" });
+    const quickAddBtn = titleHeader.createEl("button", { 
+      text: "Quick Add", 
+      cls: "taskwork-quick-add-btn" 
+    });
+    quickAddBtn.addEventListener("click", async () => {
+      await captureQuickTask(this.app, this.settings);
+      // Refresh the panel after adding a task
+      await this.reindex();
+      this.rerender();
+    });
 
     // Tabs
     const tabsEl = this.container.createDiv({ cls: "taskwork-tabs" });
