@@ -1,0 +1,11 @@
+{
+	"id": "taskwork",
+	"name": "TaskWork",
+	"version": "0.1.0",
+	"minAppVersion": "1.5.0",
+	"description": "Markdown-first task manager with inline metadata and Dataview-friendly fields.",
+	"author": "Geckom",
+	"isDesktopOnly": false,
+	"main": "main.js"
+  }
+  

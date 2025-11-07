@@ -1,0 +1,264 @@
+/*
+
+This CSS file will be included with your plugin, and
+available in the app when your plugin is enabled.
+
+If your plugin does not need CSS, delete this file.
+
+*/
+
+.taskwork-panel { 
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.taskwork-title {
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+.taskwork-title h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+/* Compact filters */
+.taskwork-filters-compact {
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.filter-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+  align-items: center;
+}
+
+.filter-row:last-child {
+  margin-bottom: 0;
+}
+
+.filter-search {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  background: var(--background-primary);
+  font-size: 13px;
+}
+
+.filter-buttons {
+  flex-wrap: wrap;
+}
+
+.filter-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  min-width: 100px;
+}
+
+.filter-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.filter-select {
+  flex: 1;
+  padding: 4px 6px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  background: var(--background-primary);
+  font-size: 12px;
+  min-width: 0;
+}
+
+/* Card-based task list */
+.taskwork-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.taskwork-card {
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.task-card-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.task-checkbox {
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.task-title {
+  flex: 1;
+  font-size: 14px;
+  line-height: 1.4;
+  word-wrap: break-word;
+}
+
+.task-title:hover {
+  background: var(--background-modifier-hover);
+  border-radius: 3px;
+  padding: 2px 4px;
+  margin: -2px -4px;
+}
+
+.task-title-edit {
+  flex: 1;
+  font-size: 14px;
+  line-height: 1.4;
+  border: 1px solid var(--interactive-accent);
+  border-radius: 4px;
+  background: var(--background-primary);
+  color: var(--text-normal);
+  outline: none;
+  box-shadow: 0 0 0 2px var(--interactive-accent-hover);
+}
+
+.task-card-description {
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px solid var(--background-modifier-border);
+}
+
+.task-description {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.task-description-line {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  word-wrap: break-word;
+}
+
+.task-description-empty {
+  height: 0.5em;
+}
+
+.task-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.task-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  background: var(--background-modifier-border);
+  color: var(--text-normal);
+  white-space: nowrap;
+}
+
+.task-due {
+  cursor: pointer;
+  background: var(--interactive-normal);
+}
+
+.task-due:hover {
+  background: var(--interactive-hover);
+}
+
+.task-due-empty {
+  opacity: 0.6;
+  font-style: italic;
+}
+
+.task-priority-container {
+  position: relative;
+  display: inline-block;
+}
+
+.task-priority {
+  cursor: pointer;
+}
+
+.task-priority-empty {
+  opacity: 0.6;
+  font-style: italic;
+}
+
+.task-priority-select {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 1000;
+  padding: 4px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  background: var(--background-primary);
+  font-size: 12px;
+  margin-top: 2px;
+  min-width: 100px;
+}
+
+.task-area {
+  background: var(--background-modifier-border-hover);
+}
+
+.task-project {
+  background: var(--background-modifier-border-hover);
+}
+
+.task-tag {
+  background: var(--tag-background);
+  color: var(--tag-color);
+}
+
+.task-card-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+  padding-top: 4px;
+  border-top: 1px solid var(--background-modifier-border);
+}
+
+.taskwork-action-btn {
+  background: var(--interactive-normal);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.taskwork-action-btn:hover {
+  background: var(--interactive-hover);
+}
+
+.taskwork-action-btn-primary {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border-color: var(--interactive-accent);
+}
+
+.taskwork-action-btn-primary:hover {
+  background: var(--interactive-accent-hover);
+}
