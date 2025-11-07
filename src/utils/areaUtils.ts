@@ -127,19 +127,43 @@ export function isSpecialFile(filePath: string, settings: TaskWorkSettings): boo
  */
 export function isTasksFolderFile(filePath: string, settings: TaskWorkSettings): boolean {
   // Check if the file is directly in the tasks folder and matches the folder name
-  const tasksFolderFile = `${settings.tasksFolder}/${settings.tasksFolder}.md`;
-  return filePath === tasksFolderFile;
+  // Handle both with and without .md extension
+  const tasksFolderFileWithExt = `${settings.tasksFolder}/${settings.tasksFolder}.md`;
+  const tasksFolderFileWithoutExt = `${settings.tasksFolder}/${settings.tasksFolder}`;
+  
+  // Check exact match with extension
+  if (filePath === tasksFolderFileWithExt) return true;
+  
+  // Check if path without extension matches
+  const pathWithoutExt = filePath.endsWith(".md") ? filePath.slice(0, -3) : filePath;
+  if (pathWithoutExt === tasksFolderFileWithoutExt) return true;
+  
+  // Also check if the basename matches the tasks folder name and it's directly in the tasks folder
+  const pathParts = filePath.split("/");
+  if (pathParts.length === 2 && pathParts[0] === settings.tasksFolder) {
+    const basename = pathParts[1].replace(/\.md$/, "");
+    if (basename === settings.tasksFolder) return true;
+  }
+  
+  return false;
 }
 
 /**
  * Gets the display name for a project path in dropdowns.
  * For General tasks files, returns the Area name instead of the file path.
+ * For other files, shows the relative path from the tasks folder (e.g., "Work/Project" or just "Project").
+ * Tasks folder files should never be passed to this function, but we check anyway for safety.
  * @param filePath - The file path
  * @param app - Obsidian app instance
  * @param settings - Plugin settings
  * @returns Display name for the project
  */
 export function getProjectDisplayName(filePath: string, app: App, settings: TaskWorkSettings): string {
+  // Safety check: if this is the tasks folder file, return empty string (shouldn't happen)
+  if (isTasksFolderFile(filePath, settings)) {
+    return "";
+  }
+  
   // Check if this is the General tasks file
   const basename = filePath.split("/").pop()?.replace(/\.md$/, "") || "";
   if (basename === settings.generalTasksFile) {
@@ -150,7 +174,23 @@ export function getProjectDisplayName(filePath: string, app: App, settings: Task
     }
   }
   
-  // For other files, remove .md extension for display
-  return filePath.endsWith(".md") ? filePath.slice(0, -3) : filePath;
+  // Check if this is the inbox file
+  const normalizedInboxPath = normalizeInboxPath(settings.inboxPath);
+  if (filePath === normalizedInboxPath) {
+    // Show just "Inbox" for the inbox file
+    return "Inbox";
+  }
+  
+  // For other files, show the relative path from the tasks folder
+  // Remove the tasks folder prefix and .md extension
+  if (!filePath.startsWith(settings.tasksFolder + "/")) {
+    // Fallback: just remove .md extension
+    return filePath.endsWith(".md") ? filePath.slice(0, -3) : filePath;
+  }
+  
+  // Get the relative path from tasks folder
+  const relativePath = filePath.substring(settings.tasksFolder.length + 1);
+  // Remove .md extension
+  return relativePath.endsWith(".md") ? relativePath.slice(0, -3) : relativePath;
 }
 
