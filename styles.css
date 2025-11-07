@@ -355,9 +355,10 @@ If your plugin does not need CSS, delete this file.
   display: flex;
   align-items: center;
   gap: 12px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap; /* Keep on one line */
   flex: 1;
   min-width: 0;
+  overflow: hidden; /* Prevent multi-line wrap pushing layout */
 }
 
 .task-card-bottom-right {
@@ -374,6 +375,8 @@ If your plugin does not need CSS, delete this file.
   font-size: 12px;
   color: var(--text-muted);
   transition: color 0.2s ease;
+  white-space: nowrap; /* Single-line badge */
+  flex-shrink: 0; /* Don't shrink date badge */
 }
 
 .task-due-container:hover {
@@ -407,6 +410,7 @@ If your plugin does not need CSS, delete this file.
   background: var(--background-modifier-border);
   white-space: nowrap;
   margin-left: 0;
+  flex-shrink: 0; /* Keep each tag intact; container may clip overflow */
 }
 
 .task-tag-icon {
@@ -551,6 +555,26 @@ If your plugin does not need CSS, delete this file.
   .taskwork-card.task-card-expanded {
     border-color: var(--interactive-accent);
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Hide tag icons on mobile */
+  .task-tag-icon {
+    display: none !important;
+  }
+  
+  /* Reduce spacing between date, tags, and description icon on mobile */
+  .task-card-bottom-left {
+    gap: 4px !important;
+  }
+  
+  /* Reduce spacing between tags and description icon on mobile */
+  .task-description-icon {
+    margin-left: 2px !important;
+  }
+  
+  /* Remove gap in tag container since icon is hidden */
+  .task-tag-container {
+    gap: 0 !important;
   }
 }
 
@@ -777,6 +801,26 @@ If your plugin does not need CSS, delete this file.
   .modal::-webkit-scrollbar-thumb {
     background: var(--background-modifier-border) !important;
     border-radius: 3px !important;
+  }
+  
+  /* Hide tag icons on mobile */
+  .task-tag-icon {
+    display: none !important;
+  }
+  
+  /* Reduce spacing between date, tags, and description icon on mobile */
+  .task-card-bottom-left {
+    gap: 4px !important;
+  }
+  
+  /* Reduce spacing between tags and description icon on mobile */
+  .task-description-icon {
+    margin-left: 2px !important;
+  }
+  
+  /* Remove gap in tag container since icon is hidden */
+  .task-tag-container {
+    gap: 0 !important;
   }
 }
 

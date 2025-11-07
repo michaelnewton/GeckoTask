@@ -14,6 +14,7 @@ export interface TaskWorkSettings {
   archiveOlderThanDays: number;       // 7
   allowedPriorities: string[];        // ["low","med","high","urgent"]
   nlDateParsing: boolean;
+  dueDateRanges: string[];            // Configurable due date ranges (e.g., ["7d", "14d", "30d", "60d"])
 }
 
 /**
@@ -27,7 +28,8 @@ export const DEFAULT_SETTINGS: TaskWorkSettings = {
   archivePattern: "Archive/Completed-YYYY.md",
   archiveOlderThanDays: 7,
   allowedPriorities: ["low","med","high","urgent"],
-  nlDateParsing: true
+  nlDateParsing: true,
+  dueDateRanges: ["7d", "14d", "30d", "60d", "90d"]  // Default configurable ranges
 };
 
 /**
@@ -152,6 +154,18 @@ export class TaskWorkSettingTab extends PluginSettingTab {
         .onChange(async (v) => {
           const priorities = v.split(",").map(p => p.trim()).filter(Boolean);
           this.plugin.settings.allowedPriorities = priorities.length > 0 ? priorities : ["low", "med", "high", "urgent"];
+          await this.plugin.saveSettings();
+        })
+      );
+
+    new Setting(containerEl)
+      .setName("Due date ranges")
+      .setDesc("Comma-separated list of due date ranges to show in filter dropdown (e.g., '7d, 14d, 30d, 60d, 90d'). Use format like '7d' for days or '30d' for 30 days.")
+      .addText(t => t
+        .setValue(this.plugin.settings.dueDateRanges.join(", "))
+        .onChange(async (v) => {
+          const ranges = v.split(",").map(r => r.trim()).filter(Boolean);
+          this.plugin.settings.dueDateRanges = ranges.length > 0 ? ranges : ["7d", "14d", "30d", "60d", "90d"];
           await this.plugin.saveSettings();
         })
       );

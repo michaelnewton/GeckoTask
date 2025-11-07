@@ -205,12 +205,37 @@ export class TaskWorkPanel extends ItemView {
       const dueContainer = filterRow.createDiv({ cls: "filter-item" });
       dueContainer.createEl("label", { text: "Due:", cls: "filter-label" });
       const dueSelect = dueContainer.createEl("select", { cls: "filter-select" });
-      const dueOpts: [string, DueWindow][] = [["Any","any"],["Today","today"],["7d","7d"],["Overdue","overdue"],["None","nodue"]];
-      dueOpts.forEach(([label,val]) => {
+      
+      // Fixed options
+      const dueOpts: [string, DueWindow][] = [
+        ["Any", "any"],
+        ["Today", "today"],
+        ["Overdue", "overdue"],
+        ["None", "nodue"]
+      ];
+      
+      // Add configurable day ranges from settings
+      this.settings.dueDateRanges.forEach(range => {
+        // Validate format (e.g., "7d", "14d", "30d")
+        if (/^\d+d$/.test(range)) {
+          dueOpts.push([range, range as DueWindow]);
+        }
+      });
+      
+      // Add relative periods
+      dueOpts.push(
+        ["This week", "this-week"],
+        ["Next week", "next-week"],
+        ["This month", "this-month"],
+        ["Next month", "next-month"]
+      );
+      
+      dueOpts.forEach(([label, val]) => {
         const opt = dueSelect.createEl("option", { text: label });
         opt.value = val;
         if (val === this.filters.due) opt.selected = true;
       });
+      
       dueSelect.addEventListener("change", (e) => {
         this.filters.due = (e.target as HTMLSelectElement).value as DueWindow;
         this.rerender();
@@ -397,13 +422,38 @@ export class TaskWorkPanel extends ItemView {
       rows = rows.filter(t => t.due && (t.due === today || t.due < today));
     } else {
       // Apply due filter only for "All Tasks" tab
-      if (f.due === "today") rows = rows.filter(t => t.due === today);
-      if (f.due === "7d") {
-        const next7 = (window as any).moment(today).add(7, "days").format("YYYY-MM-DD");
-        rows = rows.filter(t => t.due && t.due >= today && t.due <= next7);
+      const moment = (window as any).moment;
+      
+      if (f.due === "today") {
+        rows = rows.filter(t => t.due === today);
+      } else if (f.due === "overdue") {
+        rows = rows.filter(t => t.due && t.due < today);
+      } else if (f.due === "nodue") {
+        rows = rows.filter(t => !t.due);
+      } else if (f.due && /^\d+d$/.test(f.due)) {
+        // Configurable day range (e.g., "7d", "14d", "30d")
+        const days = parseInt(f.due.replace("d", ""), 10);
+        if (!isNaN(days)) {
+          const endDate = moment(today).add(days, "days").format("YYYY-MM-DD");
+          rows = rows.filter(t => t.due && t.due >= today && t.due <= endDate);
+        }
+      } else if (f.due === "this-week") {
+        const weekStart = moment().startOf("week").format("YYYY-MM-DD");
+        const weekEnd = moment().endOf("week").format("YYYY-MM-DD");
+        rows = rows.filter(t => t.due && t.due >= weekStart && t.due <= weekEnd);
+      } else if (f.due === "next-week") {
+        const nextWeekStart = moment().add(1, "week").startOf("week").format("YYYY-MM-DD");
+        const nextWeekEnd = moment().add(1, "week").endOf("week").format("YYYY-MM-DD");
+        rows = rows.filter(t => t.due && t.due >= nextWeekStart && t.due <= nextWeekEnd);
+      } else if (f.due === "this-month") {
+        const monthStart = moment().startOf("month").format("YYYY-MM-DD");
+        const monthEnd = moment().endOf("month").format("YYYY-MM-DD");
+        rows = rows.filter(t => t.due && t.due >= monthStart && t.due <= monthEnd);
+      } else if (f.due === "next-month") {
+        const nextMonthStart = moment().add(1, "month").startOf("month").format("YYYY-MM-DD");
+        const nextMonthEnd = moment().add(1, "month").endOf("month").format("YYYY-MM-DD");
+        rows = rows.filter(t => t.due && t.due >= nextMonthStart && t.due <= nextMonthEnd);
       }
-      if (f.due === "overdue") rows = rows.filter(t => t.due && t.due < today);
-      if (f.due === "nodue") rows = rows.filter(t => !t.due);
     }
     
     // Apply other filters (common to both tabs)

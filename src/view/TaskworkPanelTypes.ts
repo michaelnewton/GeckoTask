@@ -1,7 +1,15 @@
 /**
  * Due date filter window options.
+ * Includes fixed options (any, today, overdue, nodue), configurable day ranges (7d, 14d, 30d, etc.),
+ * and relative periods (this-week, next-week, this-month, next-month).
  */
-export type DueWindow = "any" | "today" | "7d" | "overdue" | "nodue";
+export type DueWindow = 
+  | "any" 
+  | "today" 
+  | "overdue" 
+  | "nodue"
+  | "7d" | "14d" | "30d" | "60d" | "90d"  // Configurable day ranges
+  | "this-week" | "next-week" | "this-month" | "next-month";  // Relative periods
 
 /**
  * Tab type for the panel view.
