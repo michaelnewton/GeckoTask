@@ -1624,7 +1624,7 @@ export class WeeklyReviewPanel extends ItemView {
       
       if (nextOccurrenceTask) {
         const nextOccurrenceLines = formatTaskWithDescription(nextOccurrenceTask);
-        updatedLines.push("", ...nextOccurrenceLines);
+        updatedLines.push(...nextOccurrenceLines);
       }
       
       const numLinesToReplace = descEndIdx - taskLineIdx + 1;

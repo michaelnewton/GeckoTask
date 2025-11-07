@@ -42,14 +42,19 @@ export function parseTask(line: string): Task | null {
   const recurEmojiIndex = rest.indexOf("🔁");
   if (recurEmojiIndex !== -1) {
     // Extract text after 🔁 until we hit a field marker, tag, or end of string
-    const afterEmoji = rest.substring(recurEmojiIndex + 1).trim();
+    // Use the emoji length to properly skip it (handles surrogate pairs correctly)
+    const emojiLength = "🔁".length;
+    const afterEmoji = rest.substring(recurEmojiIndex + emojiLength).trim();
     // Find where the recurrence pattern ends (before a field or tag)
     const fieldOrTagMatch = afterEmoji.match(/^([^#]+?)(?:\s+(?:#|due::|scheduled::|priority::|recur::|project::|area::|completed::|origin_file::|origin_project::|origin_area::)|$)/i);
     if (fieldOrTagMatch) {
       recurPattern = fieldOrTagMatch[1].trim();
       // Remove the emoji and pattern from the rest string for further parsing
+      // Keep the field marker (e.g., "due::") in the rest string
       const beforeEmoji = rest.substring(0, recurEmojiIndex).trim();
-      const afterPattern = afterEmoji.substring(fieldOrTagMatch[0].length).trim();
+      // Remove only the pattern part, keep the field marker and its value
+      const patternLength = fieldOrTagMatch[1].length;
+      const afterPattern = afterEmoji.substring(patternLength).trim();
       rest = (beforeEmoji + " " + afterPattern).trim();
     } else {
       // No field/tag after, so the rest is the recurrence pattern

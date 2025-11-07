@@ -888,10 +888,10 @@ export class TaskWorkPanel extends ItemView {
       // Format task with description
       const updatedLines = formatTaskWithDescription(parsed);
       
-      // If we have a next occurrence, add it after the current task
+      // If we have a next occurrence, add it directly underneath the current task
       if (nextOccurrenceTask) {
         const nextOccurrenceLines = formatTaskWithDescription(nextOccurrenceTask);
-        updatedLines.push("", ...nextOccurrenceLines);
+        updatedLines.push(...nextOccurrenceLines);
       }
       
       // Replace task line and description lines

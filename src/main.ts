@@ -9,6 +9,8 @@ import { WeeklyReviewPanel, VIEW_TYPE_WEEKLY_REVIEW } from "./view/WeeklyReviewP
 import { isInTasksFolder } from "./utils/areaUtils";
 import { ViewPlugin, Decoration, DecorationSet, ViewUpdate, EditorView } from "@codemirror/view";
 import { RangeSetBuilder } from "@codemirror/state";
+import { parseTaskWithDescription, formatTaskWithDescription, Task } from "./models/TaskModel";
+import { calculateNextOccurrence } from "./services/Recurrence";
 
 
 /**
@@ -223,6 +225,11 @@ export default class TaskWorkPlugin extends Plugin {
     // Style task metadata fields in source/editing mode using CodeMirror decorations
     this.registerEditorExtension(
       this.createTaskFieldDecorator()
+    );
+
+    // Intercept checkbox clicks to handle recurring tasks
+    this.registerEditorExtension(
+      this.createCheckboxClickHandler()
     );
 
     // Add/remove styling class to markdown views based on file location
@@ -645,6 +652,198 @@ export default class TaskWorkPlugin extends Plugin {
         decorations: (v) => v.decorations,
       }
     );
+  }
+
+  /**
+   * Creates a CodeMirror ViewPlugin that intercepts checkbox clicks to handle recurring tasks.
+   * @returns ViewPlugin instance
+   */
+  private createCheckboxClickHandler() {
+    const plugin = this;
+    
+    return ViewPlugin.fromClass(
+      class {
+        private view: EditorView;
+        private clickHandler: ((e: MouseEvent) => void) | null = null;
+
+        constructor(view: EditorView) {
+          this.view = view;
+          this.setupClickHandler(view);
+        }
+
+        update(update: ViewUpdate) {
+          // Re-setup click handler if view changed
+          if (update.viewportChanged || update.docChanged) {
+            this.setupClickHandler(update.view);
+          }
+        }
+
+        private setupClickHandler(view: EditorView) {
+          // Remove existing handler if any
+          if (this.clickHandler) {
+            const dom = this.view.dom;
+            if (dom) {
+              dom.removeEventListener("click", this.clickHandler);
+            }
+          }
+
+          this.view = view;
+          const dom = view.dom;
+          if (!dom) return;
+
+          // Find the MarkdownView associated with this editor
+          let markdownView: MarkdownView | null = null;
+          plugin.app.workspace.iterateAllLeaves((leaf) => {
+            if (leaf.view instanceof MarkdownView && leaf.view.editor) {
+              const editorView = (leaf.view.editor as any).cm as EditorView | undefined;
+              if (editorView === view) {
+                markdownView = leaf.view;
+                return false; // Stop iteration
+              }
+            }
+          });
+
+          if (!markdownView) return;
+
+          const file = markdownView.file;
+          if (!file || !isInTasksFolder(file.path, plugin.settings)) {
+            return;
+          }
+
+          // Create click handler
+          this.clickHandler = (e: MouseEvent) => {
+            const target = e.target as HTMLElement;
+            
+            // Check if click is on a checkbox pattern in the editor
+            // In CodeMirror, checkboxes are rendered as text, so we need to find the position
+            const pos = view.posAtCoords({ x: e.clientX, y: e.clientY });
+            if (pos === null) return;
+
+            // Get the line number
+            const line = view.state.doc.lineAt(pos);
+            const lineText = line.text;
+            
+            // Check if this line contains a task checkbox
+            const taskMatch = lineText.match(/^\s*-\s*\[([ x])\]\s+/i);
+            if (!taskMatch) return;
+
+            // Get the editor instance from MarkdownView
+            const editor = markdownView!.editor;
+            if (!editor) return;
+
+            // Use a small delay to let Obsidian's default checkbox toggle happen first
+            setTimeout(async () => {
+              // Now check if the task is recurring and was just completed
+              await plugin.handleCheckboxToggle(editor, markdownView!, line.number - 1);
+            }, 50);
+          };
+
+          // Add handler
+          dom.addEventListener("click", this.clickHandler);
+        }
+
+        destroy() {
+          // Cleanup
+          if (this.clickHandler) {
+            const dom = this.view.dom;
+            if (dom) {
+              dom.removeEventListener("click", this.clickHandler!);
+            }
+          }
+        }
+      }
+    );
+  }
+
+  /**
+   * Handles checkbox toggle for recurring tasks.
+   * @param editor - The editor instance
+   * @param view - The markdown view
+   * @param lineNo - The line number (0-based)
+   */
+  private async handleCheckboxToggle(editor: Editor, view: MarkdownView, lineNo: number) {
+    // Get all lines from the editor
+    const totalLines = editor.lineCount();
+    const lines: string[] = [];
+    for (let i = 0; i < totalLines; i++) {
+      lines.push(editor.getLine(i));
+    }
+
+    // Parse the task with its description
+    const { task: parsed, endLine } = parseTaskWithDescription(lines, lineNo);
+    if (!parsed) return;
+
+    // Only handle if task is recurring and is now checked (completed)
+    if (parsed.recur && parsed.recur.length > 0 && parsed.checked) {
+      // Check if it already has a completed date (to avoid duplicate handling)
+      if (!parsed.completed) {
+        // This is a newly completed recurring task
+        // Add completion date and create next occurrence
+        const today = new Date();
+        const completed = this.formatISODate(today);
+        
+        // Update the task with completion date
+        parsed.completed = completed;
+        
+        // Format the updated task with description
+        const updatedLines = formatTaskWithDescription(parsed);
+        const updatedText = updatedLines.join("\n");
+        
+        // Get the start and end positions of the task block
+        const startLine = lineNo;
+        const endLineNo = endLine;
+        const startLineContent = editor.getLine(startLine);
+        const endLineContent = editor.getLine(endLineNo);
+        
+        // Calculate positions: start at beginning of task line, end at end of last description line
+        const startPos = { line: startLine, ch: 0 };
+        const endPos = { line: endLineNo, ch: endLineContent.length };
+        
+        // Replace the entire task block (including description) with the updated version
+        editor.replaceRange(updatedText, startPos, endPos);
+        
+        // Create next occurrence
+        const nextDue = calculateNextOccurrence(parsed.recur, today);
+        if (nextDue) {
+          // Create new task with next occurrence
+          const newTask: Task = {
+            ...parsed,
+            checked: false,
+            due: nextDue,
+            completed: undefined,
+            recur: parsed.recur,
+          };
+          
+          // Remove description from the new task
+          delete newTask.description;
+          
+          const newTaskLines = formatTaskWithDescription(newTask);
+          
+          // Insert on the line directly underneath the task
+          const taskEndLine = startLine + updatedLines.length - 1;
+          const taskEndLineContent = editor.getLine(taskEndLine);
+          const insertPos = { line: taskEndLine, ch: taskEndLineContent.length };
+          
+          // Insert the new task on the next line (directly underneath)
+          const insertText = "\n" + newTaskLines.join("\n");
+          
+          editor.replaceRange(insertText, insertPos, insertPos);
+          
+          new Notice(`TaskWork: Next occurrence scheduled for ${nextDue}`);
+        }
+      }
+    }
+  }
+
+  /**
+   * Formats a date as ISO string (YYYY-MM-DD).
+   * @param d - The date to format
+   * @returns ISO date string
+   */
+  private formatISODate(d: Date): string {
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${d.getFullYear()}-${m}-${day}`;
   }
 
 }

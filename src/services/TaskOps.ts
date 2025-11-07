@@ -1,5 +1,5 @@
 import { App, Editor, MarkdownView, Notice } from "obsidian";
-import { Task, parseTask, formatTask, withField } from "../models/TaskModel";
+import { Task, parseTask, formatTask, withField, parseTaskWithDescription, formatTaskWithDescription } from "../models/TaskModel";
 import { TaskWorkSettings } from "../settings";
 import { parseNLDate } from "./NLDate";
 import { PromptModal } from "../ui/PromptModal";
@@ -30,49 +30,76 @@ function getLineTask(editor: Editor): { task: Task, lineNo: number } | null {
 export async function toggleCompleteAtCursor(editor: Editor, view: MarkdownView, settings: TaskWorkSettings) {
   const ctx = getLineTask(editor);
   if (!ctx) { new Notice("TaskWork: No task on this line."); return; }
-  const t = ctx.task;
-  const checked = !t.checked;
+  const currentLineNo = ctx.lineNo!;
+  
+  // Get all lines from the editor to parse task with description
+  const totalLines = editor.lineCount();
+  const lines: string[] = [];
+  for (let i = 0; i < totalLines; i++) {
+    lines.push(editor.getLine(i));
+  }
+  
+  // Parse the task with its description
+  const { task: parsed, endLine } = parseTaskWithDescription(lines, currentLineNo);
+  if (!parsed) { new Notice("TaskWork: Could not parse task."); return; }
+  
+  const checked = !parsed.checked;
   const today = new Date();
   const completed = checked ? iso(today) : undefined;
 
-  const updated = withField({ ...t, checked }, "completed", completed);
-  const line = formatTask(updated);
-  editor.setLine(ctx.lineNo!, line);
+  // Update the task
+  parsed.checked = checked;
+  parsed.completed = completed;
+
+  // Format the updated task with description
+  const updatedLines = formatTaskWithDescription(parsed);
+  const updatedText = updatedLines.join("\n");
+  
+  // Get the start and end positions of the task block
+  const startLine = currentLineNo;
+  const endLineNo = endLine;
+  const startLineContent = editor.getLine(startLine);
+  const endLineContent = editor.getLine(endLineNo);
+  
+  // Calculate positions: start at beginning of task line, end at end of last description line
+  const startPos = { line: startLine, ch: 0 };
+  const endPos = { line: endLineNo, ch: endLineContent.length };
+  
+  // Replace the entire task block (including description) with the updated version
+  editor.replaceRange(updatedText, startPos, endPos);
 
   // If completing a recurring task, create the next occurrence
-  if (checked && t.recur && t.recur.length > 0) {
-    const nextDue = calculateNextOccurrence(t.recur, today);
+  if (checked && parsed.recur && parsed.recur.length > 0) {
+    const nextDue = calculateNextOccurrence(parsed.recur, today);
     if (nextDue) {
       // Create new task with next occurrence
       const newTask: Task = {
-        ...t,
+        ...parsed,
         checked: false,
         due: nextDue,
         completed: undefined,
-        recur: t.recur, // Keep the recurrence pattern
+        recur: parsed.recur, // Keep the recurrence pattern
       };
 
       // Remove description from the new task (don't duplicate it)
       delete newTask.description;
 
-      const newTaskLine = formatTask(newTask);
+      const newTaskLines = formatTaskWithDescription(newTask);
       
-      // Insert the new task on the next line
-      const insertLine = ctx.lineNo! + 1;
-      const currentLine = editor.getLine(ctx.lineNo!);
-      const nextLine = editor.getLine(insertLine);
+      // Insert on the line directly underneath the task
+      // After replacing the task, the task ends at startLine + updatedLines.length - 1
+      const taskEndLine = startLine + updatedLines.length - 1;
+      const taskEndLineContent = editor.getLine(taskEndLine);
+      const insertPos = { line: taskEndLine, ch: taskEndLineContent.length };
       
-      // Determine if we need a newline before the new task
-      const needsNewline = nextLine.trim().length > 0;
-      const insertText = needsNewline ? `\n${newTaskLine}` : newTaskLine;
+      // Insert the new task on the next line (directly underneath)
+      const insertText = "\n" + newTaskLines.join("\n");
       
-      // Insert at the end of the current line (after the completed task)
-      const insertPos = { line: ctx.lineNo!, ch: currentLine.length };
       editor.replaceRange(insertText, insertPos, insertPos);
       
       new Notice(`TaskWork: Next occurrence scheduled for ${nextDue}`);
     } else {
-      new Notice(`TaskWork: Invalid recurrence pattern: ${t.recur}`);
+      new Notice(`TaskWork: Invalid recurrence pattern: ${parsed.recur}`);
     }
   }
 }
