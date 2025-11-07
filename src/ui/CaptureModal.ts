@@ -1,8 +1,9 @@
-import { App, Modal, Setting, Notice } from "obsidian";
+import { App, Modal, Setting, Notice, TFile } from "obsidian";
 import { TaskWorkSettings } from "../settings";
 import { parseNLDate } from "../services/NLDate";
-import { formatTask, formatTaskWithDescription, Task } from "../models/TaskModel";
+import { formatTask, formatTaskWithDescription, Task, parseTaskWithDescription } from "../models/TaskModel";
 import { isInTasksFolder, normalizeInboxPath, isSpecialFile } from "../utils/areaUtils";
+import { IndexedTask } from "../view/TaskworkPanelTypes";
 
 
 /**
@@ -15,36 +16,48 @@ interface Draft {
   due?: string;
   priority?: string;
   tags?: string[];
+  recur?: string;
 }
 
 /**
- * Opens a modal to quickly capture a new task.
+ * Opens a modal to quickly capture a new task or edit an existing one.
  * @param app - Obsidian app instance
  * @param settings - Plugin settings
+ * @param existingTask - Optional existing task to edit
  * @returns Promise that resolves when modal is closed
  */
-export async function captureQuickTask(app: App, settings: TaskWorkSettings) {
+export async function captureQuickTask(app: App, settings: TaskWorkSettings, existingTask?: IndexedTask) {
   const mdFiles = app.vault.getMarkdownFiles();
+  const isEditMode = !!existingTask;
 
   return new Promise<void>((resolve) => {
     const modal = new (class extends Modal {
       draft: Draft = {
-        title: "",
-        projectPath: normalizeInboxPath(settings.inboxPath)
+        title: existingTask?.title || "",
+        description: existingTask?.description,
+        projectPath: existingTask?.path || normalizeInboxPath(settings.inboxPath),
+        due: existingTask?.due,
+        priority: existingTask?.priority,
+        tags: existingTask?.tags || [],
+        recur: existingTask?.recur
       };
       onOpen() {
         const { contentEl } = this;
         contentEl.empty();
-        this.titleEl.setText("TaskWork — Quick Add");
+        this.titleEl.setText(isEditMode ? "TaskWork — Edit Task" : "TaskWork — Quick Add");
 
-        new Setting(contentEl).setName("Title").addText(t =>
-          t.onChange(v => this.draft.title = v)
-        );
+        new Setting(contentEl).setName("Title").addText(t => {
+          t.setValue(this.draft.title);
+          t.inputEl.style.width = "100%";
+          t.onChange(v => this.draft.title = v);
+        });
 
         // Description field (textarea for multi-line)
         new Setting(contentEl).setName("Description (optional)").addTextArea(t => {
           t.setPlaceholder("Multi-line description...");
+          t.setValue(this.draft.description || "");
           t.inputEl.rows = 4;
+          t.inputEl.style.width = "100%";
           t.onChange(v => this.draft.description = v.trim() || undefined);
         });
 
@@ -67,33 +80,55 @@ export async function captureQuickTask(app: App, settings: TaskWorkSettings) {
             }
           }
           d.setValue(this.draft.projectPath);
+          d.selectEl.style.width = "100%";
           d.onChange(v => this.draft.projectPath = v);
         });
 
-        new Setting(contentEl).setName("Due").addText(t =>
-          t.setPlaceholder("today / 2025-11-15").onChange(v => {
+        new Setting(contentEl).setName("Due").addText(t => {
+          t.setPlaceholder("today / 2025-11-15");
+          t.setValue(this.draft.due || "");
+          t.inputEl.style.width = "100%";
+          t.onChange(v => {
             if (settings.nlDateParsing && v) {
               const parsed = parseNLDate(v);
               this.draft.due = parsed || v;
             } else {
               this.draft.due = v;
             }
-          })
-        );
-
-        new Setting(contentEl).setName("Priority").addDropdown(d => {
-          for (const p of settings.allowedPriorities) d.addOption(p, p);
-          d.onChange(v => this.draft.priority = v);
+          });
         });
 
-        new Setting(contentEl).setName("Tags (space-separated)").addText(t =>
-          t.setPlaceholder("#work #bug").onChange(v => this.draft.tags = v.split(/\s+/).filter(Boolean))
-        );
+        new Setting(contentEl).setName("Priority").addDropdown(d => {
+          // Add empty option for "none"
+          d.addOption("", "(none)");
+          for (const p of settings.allowedPriorities) d.addOption(p, p);
+          d.setValue(this.draft.priority || "");
+          d.selectEl.style.width = "100%";
+          d.onChange(v => this.draft.priority = v || undefined);
+        });
+
+        new Setting(contentEl).setName("Recurrence (optional)").addText(t => {
+          t.setPlaceholder("every Tuesday / every 10 days");
+          t.setValue(this.draft.recur || "");
+          t.inputEl.style.width = "100%";
+          t.onChange(v => this.draft.recur = v.trim() || undefined);
+        });
+
+        new Setting(contentEl).setName("Tags (space-separated)").addText(t => {
+          t.setPlaceholder("#work #bug");
+          t.setValue((this.draft.tags || []).join(" "));
+          t.inputEl.style.width = "100%";
+          t.onChange(v => this.draft.tags = v.split(/\s+/).filter(Boolean));
+        });
 
         new Setting(contentEl)
-          .addButton(b => b.setButtonText("Add").setCta().onClick(async () => {
+          .addButton(b => b.setButtonText(isEditMode ? "Save" : "Add").setCta().onClick(async () => {
             if (!this.draft.title.trim()) { new Notice("Title required."); return; }
-            await appendTask(app, this.draft, settings);
+            if (isEditMode && existingTask) {
+              await updateTask(app, existingTask, this.draft, settings);
+            } else {
+              await appendTask(app, this.draft, settings);
+            }
             this.close();
             resolve();
           }))
@@ -135,6 +170,7 @@ async function appendTask(app: App, d: Draft, settings: TaskWorkSettings) {
     tags: tags,
     due: d.due,
     priority: d.priority,
+    recur: d.recur,
     project: projectName,
     area: undefined, // Don't store area in metadata, it's derived from folder
     raw: ""
@@ -146,4 +182,94 @@ async function appendTask(app: App, d: Draft, settings: TaskWorkSettings) {
     ? prev + "\n" + taskLines.join("\n") + "\n" 
     : taskLines.join("\n") + "\n";
   await app.vault.modify(tfile, next);
+}
+
+/**
+ * Updates an existing task in the file.
+ * @param app - Obsidian app instance
+ * @param existingTask - The existing task to update
+ * @param d - Draft task data with updated values
+ * @param settings - Plugin settings
+ */
+async function updateTask(app: App, existingTask: IndexedTask, d: Draft, settings: TaskWorkSettings) {
+  const sourceFile = app.vault.getAbstractFileByPath(existingTask.path);
+  if (!(sourceFile instanceof TFile)) {
+    new Notice(`TaskWork: File not found ${existingTask.path}`);
+    return;
+  }
+
+  // Check if task is being moved to a different file
+  const targetPath = d.projectPath;
+  const isMoving = targetPath !== existingTask.path;
+
+  // Read the source file to get the current task
+  const sourceContent = await app.vault.read(sourceFile);
+  const lines = sourceContent.split("\n");
+  const taskLineIdx = existingTask.line - 1; // 0-based
+  const descEndIdx = (existingTask.descriptionEndLine ?? existingTask.line) - 1;
+  
+  if (taskLineIdx < 0 || taskLineIdx >= lines.length) {
+    new Notice(`TaskWork: Task line out of bounds`);
+    return;
+  }
+
+  // Parse current task with description
+  const { task: parsed } = parseTaskWithDescription(lines, taskLineIdx);
+  if (!parsed) {
+    new Notice(`TaskWork: Failed to parse task`);
+    return;
+  }
+
+  // Preserve checked status and create updated task
+  const taskWithDescription: Task = {
+    ...parsed,
+    checked: parsed.checked,
+    title: d.title,
+    description: d.description,
+    due: d.due,
+    priority: d.priority,
+    recur: d.recur,
+    // Normalize tags (ensure they start with #)
+    tags: (d.tags ?? []).map(t => t.startsWith("#") ? t : "#" + t),
+  };
+
+  // If moving, update project based on target file
+  if (isMoving) {
+    const targetFile = app.vault.getAbstractFileByPath(targetPath);
+    if (!(targetFile instanceof TFile)) {
+      new Notice(`TaskWork: Target file not found ${targetPath}`);
+      return;
+    }
+
+    // Update project based on target file
+    const projectName = isSpecialFile(targetPath, settings) ? taskWithDescription.project : targetFile.basename;
+    taskWithDescription.project = projectName;
+    taskWithDescription.area = undefined; // Don't store area in metadata, it's derived from folder
+
+    // Remove task from source file
+    const numLinesToRemove = descEndIdx - taskLineIdx + 1;
+    lines.splice(taskLineIdx, numLinesToRemove);
+    await app.vault.modify(sourceFile, lines.join("\n"));
+
+    // Format task with description and append to target file
+    const updatedLines = formatTaskWithDescription(taskWithDescription);
+    const targetContent = await app.vault.read(targetFile);
+    const finalLines = updatedLines.join("\n");
+    const updated = targetContent.trim().length 
+      ? targetContent + "\n" + finalLines + "\n" 
+      : finalLines + "\n";
+    await app.vault.modify(targetFile, updated);
+
+    new Notice(`TaskWork: Task moved and updated`);
+  } else {
+    // Update task in place
+    const updatedLines = formatTaskWithDescription(taskWithDescription);
+    
+    // Replace task line and description lines
+    const numLinesToReplace = descEndIdx - taskLineIdx + 1;
+    lines.splice(taskLineIdx, numLinesToReplace, ...updatedLines);
+    await app.vault.modify(sourceFile, lines.join("\n"));
+
+    new Notice(`TaskWork: Task updated`);
+  }
 }

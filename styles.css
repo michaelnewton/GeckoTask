@@ -574,6 +574,42 @@ If your plugin does not need CSS, delete this file.
   background: var(--interactive-accent-hover);
 }
 
+/* TaskWork Capture Modal - Wider inputs */
+.modal .setting-item {
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: 12px !important;
+}
+
+.modal .setting-item-info {
+  flex: 0 0 auto !important;
+  min-width: 150px !important;
+}
+
+.modal .setting-item-control {
+  flex: 1 1 auto !important;
+  min-width: 300px !important;
+  max-width: none !important;
+}
+
+.modal .setting-item-control input[type="text"],
+.modal .setting-item-control textarea,
+.modal .setting-item-control select {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* Make the modal itself wider for better visibility */
+.modal {
+  min-width: 600px !important;
+  max-width: 90vw !important;
+}
+
+.modal-content {
+  min-width: 0 !important;
+}
+
 /* Apply TaskworkPanel label/tag styling to markdown view (only for tasks folder files) */
 
 /* Style hashtags in source view (editing mode) - CodeMirror 6 */

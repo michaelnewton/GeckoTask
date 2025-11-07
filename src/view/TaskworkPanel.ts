@@ -618,7 +618,10 @@ export class TaskWorkPanel extends ItemView {
       });
       editBtn.addEventListener("click", async (e) => {
         e.stopPropagation();
-        this.startEditingTitle(title, t);
+        await captureQuickTask(this.app, this.settings, t);
+        // Refresh the panel after editing
+        await this.reindex();
+        this.rerender();
       });
 
       // Move button
