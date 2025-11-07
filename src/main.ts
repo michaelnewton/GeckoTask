@@ -5,6 +5,7 @@ import { archiveAllCompletedInVault, archiveCompletedInFile } from "./services/A
 import { moveTaskAtCursorInteractive, createProjectFile } from "./services/VaultIO";
 import { toggleCompleteAtCursor, setFieldAtCursor, addRemoveTagsAtCursor, normalizeTaskLine } from "./services/TaskOps";
 import { TaskWorkPanel, VIEW_TYPE_TASKWORK } from "./view/TaskworkPanel";
+import { WeeklyReviewPanel, VIEW_TYPE_WEEKLY_REVIEW } from "./view/WeeklyReviewPanel";
 import { isInTasksFolder } from "./utils/areaUtils";
 import { ViewPlugin, Decoration, DecorationSet, ViewUpdate, EditorView } from "@codemirror/view";
 import { RangeSetBuilder } from "@codemirror/state";
@@ -24,8 +25,9 @@ export default class TaskWorkPlugin extends Plugin {
     await this.loadSettings();
     this.addSettingTab(new TaskWorkSettingTab(this.app, this));
 
-    // Register the side panel view
+    // Register the side panel views
     this.registerView(VIEW_TYPE_TASKWORK, (leaf: WorkspaceLeaf) => new TaskWorkPanel(leaf, this.settings));
+    this.registerView(VIEW_TYPE_WEEKLY_REVIEW, (leaf: WorkspaceLeaf) => new WeeklyReviewPanel(leaf, this.settings));
 
     /**
      * Opens the TaskWork side panel for task management.
@@ -35,6 +37,16 @@ export default class TaskWorkPlugin extends Plugin {
       id: "taskwork-open-panel",
       name: "Open TaskWork Panel",
       callback: () => this.activateView()
+    });
+
+    /**
+     * Opens the Weekly Review side panel.
+     * Unregistered automatically on plugin unload.
+     */
+    this.addCommand({
+      id: "weekly-review-open-panel",
+      name: "Open Weekly Review Panel",
+      callback: () => this.activateWeeklyReviewView()
     });
 
     // Optional ribbon icon
@@ -294,6 +306,21 @@ export default class TaskWorkPlugin extends Plugin {
       if (!rightLeaf) return; // Can't create view if no leaf available
       leaf = rightLeaf;
       await leaf.setViewState({ type: VIEW_TYPE_TASKWORK, active: true });
+    }
+    workspace.revealLeaf(leaf);
+  }
+
+  /**
+   * Activates or reveals the Weekly Review panel view.
+   */
+  async activateWeeklyReviewView() {
+    const { workspace } = this.app;
+    let leaf = workspace.getLeavesOfType(VIEW_TYPE_WEEKLY_REVIEW).first();
+    if (!leaf) {
+      const rightLeaf = workspace.getRightLeaf(false);
+      if (!rightLeaf) return; // Can't create view if no leaf available
+      leaf = rightLeaf;
+      await leaf.setViewState({ type: VIEW_TYPE_WEEKLY_REVIEW, active: true });
     }
     workspace.revealLeaf(leaf);
   }
