@@ -10,11 +10,13 @@ export interface TaskWorkSettings {
   areas: string[];                    // e.g., ["Work","Personal"] - folder names under tasksFolder
   inboxPath: string;                  // e.g., "tasks/Inbox.md" - single inbox for all areas
   generalTasksFile: string;            // e.g., "General" - file name for general tasks (no project shown)
+  somedayMaybeFolderName: string;      // e.g., "Someday Maybe" - folder name for someday/maybe items per area
   archivePattern: string;             // "Archive/Completed-YYYY.md"
   archiveOlderThanDays: number;       // 7
   allowedPriorities: string[];        // ["low","med","high","urgent"]
   nlDateParsing: boolean;
   dueDateRanges: string[];            // Configurable due date ranges (e.g., ["7d", "14d", "30d", "60d"])
+  customCollectionPoints: string[];   // Custom collection points for step 1A (e.g., ["Facebook", "Slack", "Twitter"])
 }
 
 /**
@@ -25,11 +27,13 @@ export const DEFAULT_SETTINGS: TaskWorkSettings = {
   areas: ["Work","Personal"],
   inboxPath: "tasks/Inbox", // Without .md extension - will be normalized when used
   generalTasksFile: "General", // File name for general tasks (no project shown, like Inbox)
+  somedayMaybeFolderName: "Someday Maybe", // Folder name for someday/maybe items per area
   archivePattern: "Archive/Completed-YYYY.md",
   archiveOlderThanDays: 7,
   allowedPriorities: ["low","med","high","urgent"],
   nlDateParsing: true,
-  dueDateRanges: ["7d", "14d", "30d", "60d", "90d"]  // Default configurable ranges
+  dueDateRanges: ["7d", "14d", "30d", "60d", "90d"],  // Default configurable ranges
+  customCollectionPoints: []  // No custom collection points by default
 };
 
 /**
@@ -114,6 +118,18 @@ export class TaskWorkSettingTab extends PluginSettingTab {
         })
       );
 
+    // Someday Maybe folder name
+    new Setting(containerEl)
+      .setName("Someday Maybe folder name")
+      .setDesc("Folder name for someday/maybe items per area (e.g., 'Someday Maybe'). This folder will be created under each area folder.")
+      .addText(t => t
+        .setValue(this.plugin.settings.somedayMaybeFolderName)
+        .onChange(async (v) => {
+          this.plugin.settings.somedayMaybeFolderName = v.trim() || "Someday Maybe";
+          await this.plugin.saveSettings();
+        })
+      );
+
     containerEl.createEl("h2", { text: "Archive" });
 
     new Setting(containerEl)
@@ -166,6 +182,20 @@ export class TaskWorkSettingTab extends PluginSettingTab {
         .onChange(async (v) => {
           const ranges = v.split(",").map(r => r.trim()).filter(Boolean);
           this.plugin.settings.dueDateRanges = ranges.length > 0 ? ranges : ["7d", "14d", "30d", "60d", "90d"];
+          await this.plugin.saveSettings();
+        })
+      );
+
+    containerEl.createEl("h2", { text: "Weekly Review" });
+
+    new Setting(containerEl)
+      .setName("Custom collection points")
+      .setDesc("Comma-separated list of additional collection points for step 1A (e.g., 'Facebook, Slack, Twitter'). These will appear as additional fields in the Collect Loose Ends step.")
+      .addText(t => t
+        .setValue(this.plugin.settings.customCollectionPoints.join(", "))
+        .onChange(async (v) => {
+          const points = v.split(",").map(p => p.trim()).filter(Boolean);
+          this.plugin.settings.customCollectionPoints = points;
           await this.plugin.saveSettings();
         })
       );
