@@ -8,7 +8,8 @@ import {
   normalizeInboxPath, 
   inferAreaFromPath, 
   isSpecialFile,
-  getAreaPath 
+  getAreaPath,
+  getAreas
 } from "../utils/areaUtils";
 
 /**
@@ -69,7 +70,8 @@ export async function fetchSomedayMaybeTasks(
   const somedayMaybeFolderName = settings.somedayMaybeFolderName;
 
   // Check each area for a Someday Maybe folder
-  for (const area of settings.areas) {
+  const areas = getAreas(app, settings);
+  for (const area of areas) {
     const somedayMaybePath = `${getAreaPath(area, settings)}/${somedayMaybeFolderName}`;
     const somedayMaybeFolder = app.vault.getAbstractFileByPath(somedayMaybePath);
     
@@ -134,14 +136,15 @@ export async function fetchSomedayMaybeProjects(
     // The area is the part right before the Someday Maybe folder
     const areaFromPath = pathParts[somedayMaybeIndex - 1];
     
-    // Try to match with configured areas, or use the folder name directly
+    // Try to match with detected areas, or use the folder name directly
     // This allows the function to work even if area names don't match exactly
+    const areas = getAreas(app, settings);
     let area: string | undefined;
-    if (settings.areas.includes(areaFromPath)) {
+    if (areas.includes(areaFromPath)) {
       area = areaFromPath;
     } else {
-      // If not in settings, try to infer it (might work if partial match)
-      area = inferAreaFromPath(path, settings) || areaFromPath;
+      // If not in detected areas, try to infer it (might work if partial match)
+      area = inferAreaFromPath(path, app, settings) || areaFromPath;
     }
     
     if (!area) continue;
@@ -203,7 +206,8 @@ export async function fetchNextActions(
     
     // Skip Someday Maybe folders
     let isSomedayMaybe = false;
-    for (const area of settings.areas) {
+    const areas = getAreas(app, settings);
+    for (const area of areas) {
       const somedayMaybePath = `${getAreaPath(area, settings)}/${somedayMaybeFolderName}`;
       if (path.startsWith(somedayMaybePath + "/") || path === somedayMaybePath + ".md") {
         isSomedayMaybe = true;
@@ -248,7 +252,8 @@ export async function fetchProjectsWithTasks(
     if (isSpecialFile(path, settings)) continue;
     
     let isSomedayMaybe = false;
-    for (const area of settings.areas) {
+    const areas = getAreas(app, settings);
+    for (const area of areas) {
       const somedayMaybePath = `${getAreaPath(area, settings)}/${somedayMaybeFolderName}`;
       if (path.startsWith(somedayMaybePath + "/") || path === somedayMaybePath + ".md") {
         isSomedayMaybe = true;
@@ -257,7 +262,7 @@ export async function fetchProjectsWithTasks(
     }
     if (isSomedayMaybe) continue;
 
-    const area = inferAreaFromPath(path, settings);
+    const area = inferAreaFromPath(path, app, settings);
     const projectName = isSpecialFile(path, settings) ? undefined : file.basename;
     
     if (!projectName) continue; // Skip if no project name
@@ -328,7 +333,7 @@ async function fetchTasksFromFile(
     if (!parsed) continue;
 
     const raw = lines[lineNo].trim();
-    const area = inferAreaFromPath(path, settings);
+    const area = inferAreaFromPath(path, app, settings);
     const project = parsed.project || (isSpecialFile(path, settings) ? undefined : file.basename);
 
     tasks.push({

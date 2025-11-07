@@ -3,7 +3,7 @@ import { parseTaskWithDescription, formatTaskWithDescription, Task } from "../mo
 import { TaskWorkSettings } from "../settings";
 import { parseNLDate } from "../services/NLDate";
 import { calculateNextOccurrence } from "../services/Recurrence";
-import { inferAreaFromPath, isInTasksFolder, isSpecialFile, normalizeInboxPath } from "../utils/areaUtils";
+import { inferAreaFromPath, isInTasksFolder, isSpecialFile, normalizeInboxPath, getAreas } from "../utils/areaUtils";
 import { PromptModal } from "../ui/PromptModal";
 import { FilePickerModal } from "../ui/FilePickerModal";
 import { captureQuickTask } from "../ui/CaptureModal";
@@ -161,7 +161,8 @@ export class TaskWorkPanel extends ItemView {
     const filterRow = host.createDiv({ cls: "filter-row filter-buttons" });
     
     // Area dropdown (only show if areas are configured)
-    if (this.settings.areas.length > 0) {
+    const areas = getAreas(this.app, this.settings);
+    if (areas.length > 0) {
       const areaContainer = filterRow.createDiv({ cls: "filter-item" });
       areaContainer.createEl("label", { text: "Area:", cls: "filter-label" });
       const areaSelect = areaContainer.createEl("select", { cls: "filter-select" });
@@ -169,8 +170,8 @@ export class TaskWorkPanel extends ItemView {
       const allOpt = areaSelect.createEl("option", { text: "All" });
       allOpt.value = "All";
       if (this.filters.area === "All") allOpt.selected = true;
-      // Add configured areas
-      this.settings.areas.forEach(a => {
+      // Add detected areas
+      areas.forEach(a => {
         const opt = areaSelect.createEl("option", { text: a });
         opt.value = a;
         if (a === this.filters.area) opt.selected = true;
@@ -320,7 +321,7 @@ export class TaskWorkPanel extends ItemView {
         const raw = lines[lineNo].trim();
 
         // Infer area from folder path (not from metadata)
-        const area = inferAreaFromPath(path, this.settings);
+        const area = inferAreaFromPath(path, this.app, this.settings);
         const project = parsed.project || (isSpecialFile(path, this.settings) ? undefined : file.basename);
 
         tasks.push({
@@ -1038,7 +1039,7 @@ export class TaskWorkPanel extends ItemView {
     if (!target) return;
 
     // Infer new area and project from target file
-    const newArea = inferAreaFromPath(target.path, this.settings);
+    const newArea = inferAreaFromPath(target.path, this.app, this.settings);
     const newProject = target.basename;
 
     // Remove from current file (preserving description)

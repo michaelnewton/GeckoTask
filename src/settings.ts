@@ -7,7 +7,7 @@ import { normalizeInboxPath, getInboxDisplayPath } from "./utils/areaUtils";
  */
 export interface TaskWorkSettings {
   tasksFolder: string;                // e.g., "tasks"
-  areas: string[];                    // e.g., ["Work","Personal"] - folder names under tasksFolder
+  areasEnabled: boolean;              // When enabled, areas are auto-detected from first-level directories in tasksFolder
   inboxPath: string;                  // e.g., "tasks/Inbox.md" - single inbox for all areas
   generalTasksFile: string;            // e.g., "General" - file name for general tasks (no project shown)
   somedayMaybeFolderName: string;      // e.g., "Someday Maybe" - folder name for someday/maybe items per area
@@ -24,7 +24,7 @@ export interface TaskWorkSettings {
  */
 export const DEFAULT_SETTINGS: TaskWorkSettings = {
   tasksFolder: "tasks",
-  areas: ["Work","Personal"],
+  areasEnabled: false, // Areas are auto-detected from first-level directories when enabled
   inboxPath: "tasks/Inbox", // Without .md extension - will be normalized when used
   generalTasksFile: "General", // File name for general tasks (no project shown, like Inbox)
   somedayMaybeFolderName: "Someday Maybe", // Folder name for someday/maybe items per area
@@ -80,15 +80,14 @@ export class TaskWorkSettingTab extends PluginSettingTab {
         })
       );
 
-    // Areas list
+    // Enabled Areas checkbox
     new Setting(containerEl)
-      .setName("Areas")
-      .setDesc("Comma-separated list of area folder names (e.g., 'Work, Personal'). Leave empty for no areas.")
-      .addText(t => t
-        .setValue(this.plugin.settings.areas.join(", "))
+      .setName("Enabled Areas")
+      .setDesc("When enabled, areas are automatically detected from first-level directories in the tasks folder. Each directory directly under the tasks folder will be treated as an area.")
+      .addToggle(t => t
+        .setValue(this.plugin.settings.areasEnabled)
         .onChange(async (v) => {
-          const areas = v.split(",").map(a => a.trim()).filter(Boolean);
-          this.plugin.settings.areas = areas;
+          this.plugin.settings.areasEnabled = v;
           await this.plugin.saveSettings();
         })
       );

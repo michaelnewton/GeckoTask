@@ -23,7 +23,8 @@ import {
   isInTasksFolder, 
   inferAreaFromPath, 
   isSpecialFile, 
-  getAreaPath 
+  getAreaPath,
+  getAreas
 } from "../utils/areaUtils";
 import { calculateNextOccurrence } from "../services/Recurrence";
 import { parseNLDate } from "../services/NLDate";
@@ -1350,7 +1351,8 @@ export class WeeklyReviewPanel extends ItemView {
    */
   private async moveTaskToSomedayMaybe(task: IndexedTask) {
     // Determine area from task
-    const area = task.area || this.settings.areas[0];
+    const areas = getAreas(this.app, this.settings);
+    const area = task.area || (areas.length > 0 ? areas[0] : undefined);
     if (!area) {
       new Notice("No area found for task");
       return;
@@ -1510,7 +1512,7 @@ export class WeeklyReviewPanel extends ItemView {
     const files = this.app.vault.getMarkdownFiles()
       .filter(f => {
         if (!isInTasksFolder(f.path, this.settings)) return false;
-        const fileArea = inferAreaFromPath(f.path, this.settings);
+        const fileArea = inferAreaFromPath(f.path, this.app, this.settings);
         if (fileArea !== area) return false;
         if (isSpecialFile(f.path, this.settings)) return false;
         // Exclude Someday Maybe folder
@@ -1548,7 +1550,7 @@ export class WeeklyReviewPanel extends ItemView {
     const files = this.app.vault.getMarkdownFiles()
       .filter(f => {
         if (!isInTasksFolder(f.path, this.settings)) return false;
-        const fileArea = inferAreaFromPath(f.path, this.settings);
+        const fileArea = inferAreaFromPath(f.path, this.app, this.settings);
         if (fileArea !== area) return false;
         if (isSpecialFile(f.path, this.settings)) return false;
         // Exclude Someday Maybe folder

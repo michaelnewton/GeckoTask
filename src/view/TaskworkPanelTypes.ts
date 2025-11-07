@@ -20,7 +20,7 @@ export type TabType = "all" | "today-overdue";
  * Filter state for task filtering in the panel.
  */
 export interface FilterState {
-  area: "All" | string; // "All" or one of settings.areas
+  area: "All" | string; // "All" or one of the detected areas
   project: "Any" | string;
   priority: "Any" | string; // Dynamic from settings.allowedPriorities
   due: DueWindow;

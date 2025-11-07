@@ -31,8 +31,8 @@ export async function archiveCompletedInFile(app: App, file: TFile, settings: Ta
     const t = parseTask(line);
     if (t?.checked && t.completed) {
       // ensure origin metadata
-      const withOrigin = appendOrigin(line, file, settings);
-      move.push(withOrigin);
+          const withOrigin = appendOrigin(line, file, app, settings);
+          move.push(withOrigin);
     } else {
       keep.push(line);
     }
@@ -77,11 +77,11 @@ export async function archiveAllCompletedInVault(app: App, settings: TaskWorkSet
 
     for (const line of lines) {
       const t = parseTask(line);
-      if (t?.checked && t.completed) {
-        const dt = new Date(t.completed);
-        if (!isNaN(dt.getTime()) && dt <= cutoff) {
-          move.push(appendOrigin(line, file, settings));
-          changed = true;
+        if (t?.checked && t.completed) {
+          const dt = new Date(t.completed);
+          if (!isNaN(dt.getTime()) && dt <= cutoff) {
+            move.push(appendOrigin(line, file, app, settings));
+            changed = true;
         } else {
           keep.push(line);
         }
@@ -108,14 +108,15 @@ export async function archiveAllCompletedInVault(app: App, settings: TaskWorkSet
  * Appends origin metadata fields to a task line if not already present.
  * @param line - The task line
  * @param file - The file the task is from
+ * @param app - Obsidian app instance
  * @param settings - Plugin settings
  * @returns Task line with origin metadata appended
  */
-function appendOrigin(line: string, file: TFile, settings: TaskWorkSettings): string {
+function appendOrigin(line: string, file: TFile, app: App, settings: TaskWorkSettings): string {
   // If origin fields exist, return as-is; else append.
   if (/\borigin_file::\b/.test(line)) return line;
   const project = file.basename;
-  const area = inferAreaFromPath(file.path, settings) || "";
+  const area = inferAreaFromPath(file.path, app, settings) || "";
   const suffix = `  origin_file:: ${file.path}  origin_project:: ${project}  origin_area:: ${area}`;
   return line + suffix;
 }

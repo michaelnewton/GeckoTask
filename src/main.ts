@@ -283,9 +283,25 @@ export default class TaskWorkPlugin extends Plugin {
 
   /**
    * Loads settings from storage, merging with defaults.
+   * Handles migration from old areas array to areasEnabled boolean.
    */
   async loadSettings() {
-    this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+    const loadedData = await this.loadData();
+    this.settings = Object.assign({}, DEFAULT_SETTINGS, loadedData);
+    
+    // Migration: If old areas array exists and has items, enable areas
+    // Remove the old areas property from settings
+    if (loadedData && 'areas' in loadedData && Array.isArray(loadedData.areas) && loadedData.areas.length > 0) {
+      this.settings.areasEnabled = true;
+      // Remove old areas property
+      delete (this.settings as any).areas;
+      // Save migrated settings
+      await this.saveSettings();
+    } else if (loadedData && 'areas' in loadedData) {
+      // Remove old areas property even if empty
+      delete (this.settings as any).areas;
+      await this.saveSettings();
+    }
   }
 
   /**

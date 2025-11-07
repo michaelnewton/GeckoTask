@@ -1,7 +1,7 @@
 import { App, TFile, SuggestModal, Notice, Editor, Modal, Setting } from "obsidian";
 import { TaskWorkSettings } from "../settings";
 import { parseTask, formatTask, Task } from "../models/TaskModel";
-import { inferAreaFromPath, isInTasksFolder, getAreaPath, isSpecialFile } from "../utils/areaUtils";
+import { inferAreaFromPath, isInTasksFolder, getAreaPath, isSpecialFile, getAreas } from "../utils/areaUtils";
 
 /**
  * Gets the task at the current cursor line in the editor.
@@ -33,7 +33,7 @@ export async function moveTaskAtCursorInteractive(app: App, editor: Editor, sett
   if (!target) return;
 
   // Infer new area and project from target file
-  const newArea = inferAreaFromPath(target.path, settings);
+  const newArea = inferAreaFromPath(target.path, app, settings);
   const newProject = target.basename;
 
   // Update task metadata (remove area:: since we're using folder-based areas)
@@ -67,7 +67,7 @@ export async function moveTaskAtCursorInteractive(app: App, editor: Editor, sett
 export async function createProjectFile(app: App, settings: TaskWorkSettings): Promise<TFile | null> {
   return new Promise((resolve) => {
     const modal = new (class extends Modal {
-      area: string = settings.areas.length > 0 ? settings.areas[0] : "";
+      area: string = "";
       projectName: string = "";
 
       onOpen() {
@@ -76,11 +76,13 @@ export async function createProjectFile(app: App, settings: TaskWorkSettings): P
         this.titleEl.setText("TaskWork — Create Project File");
 
         // Only show area dropdown if there are areas configured
-        if (settings.areas.length > 0) {
+        const areas = getAreas(app, settings);
+        if (areas.length > 0) {
+          this.area = areas[0]; // Set default to first area
           new Setting(contentEl)
             .setName("Area")
             .addDropdown(d => {
-              settings.areas.forEach(a => d.addOption(a, a));
+              areas.forEach(a => d.addOption(a, a));
               d.setValue(this.area);
               d.onChange(v => this.area = v);
             });
