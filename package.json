@@ -1,7 +1,6 @@
 {
 	"name": "taskwork",
 	"version": "0.1.0",
-	"private": true,
 	"main": "main.js",
 	"scripts": {
 		"build": "node esbuild.config.mjs production",

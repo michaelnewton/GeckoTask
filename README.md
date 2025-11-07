@@ -82,7 +82,7 @@ Tasks can include @ labels in titles or descriptions:
 
 ### Manual Installation
 
-1. Download the latest release from the [Releases page](https://github.com/yourusername/taskwork/releases)
+1. Download the latest release from the [Releases page](https://github.com/geckom/taskwork/releases)
 2. Extract the files (`main.js`, `manifest.json`, `styles.css`) to your vault's `.obsidian/plugins/taskwork/` folder
 3. Reload Obsidian
 4. Enable the plugin in **Settings → Community plugins**
