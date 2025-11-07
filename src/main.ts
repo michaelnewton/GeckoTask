@@ -1,10 +1,13 @@
-import { App, Editor, MarkdownFileInfo, MarkdownView, Notice, Plugin, WorkspaceLeaf } from "obsidian";
+import { App, Editor, MarkdownFileInfo, MarkdownView, Notice, Plugin, TFile, WorkspaceLeaf } from "obsidian";
 import { TaskWorkSettings, DEFAULT_SETTINGS, TaskWorkSettingTab } from "./settings";
 import { captureQuickTask } from "./ui/CaptureModal";
 import { archiveAllCompletedInVault, archiveCompletedInFile } from "./services/Archive";
 import { moveTaskAtCursorInteractive, createProjectFile } from "./services/VaultIO";
 import { toggleCompleteAtCursor, setFieldAtCursor, addRemoveTagsAtCursor, normalizeTaskLine } from "./services/TaskOps";
 import { TaskWorkPanel, VIEW_TYPE_TASKWORK } from "./view/TaskworkPanel";
+import { isInTasksFolder } from "./utils/areaUtils";
+import { ViewPlugin, Decoration, DecorationSet, ViewUpdate, EditorView } from "@codemirror/view";
+import { RangeSetBuilder } from "@codemirror/state";
 
 
 /**
@@ -140,6 +143,70 @@ export default class TaskWorkPlugin extends Plugin {
         new Notice(`TaskWork: Archived ${moved} completed task(s) across vault.`);
       }
     });
+
+    // Style @ labels and task metadata fields in markdown preview (only for files in tasks folder)
+    this.registerMarkdownPostProcessor((element, context) => {
+      // Check if the file is in the tasks folder
+      if (context.sourcePath && isInTasksFolder(context.sourcePath, this.settings)) {
+        // Style @ labels by wrapping them in spans
+        this.styleLabelsInMarkdown(element);
+        // Style task metadata fields (priority::, due::, etc.)
+        // Use a small delay to ensure DOM is fully rendered
+        setTimeout(() => {
+          this.styleTaskFieldsInMarkdown(element);
+        }, 0);
+      }
+    });
+
+    // Style task metadata fields in source/editing mode using CodeMirror decorations
+    this.registerEditorExtension(
+      this.createTaskFieldDecorator()
+    );
+
+    // Add/remove styling class to markdown views based on file location
+    this.registerEvent(
+      this.app.workspace.on("file-open", (file) => {
+        this.updateMarkdownViewStyling(file);
+      })
+    );
+
+    // Also update when active leaf changes (e.g., switching between files)
+    this.registerEvent(
+      this.app.workspace.on("active-leaf-change", (leaf) => {
+        if (leaf?.view instanceof MarkdownView) {
+          this.updateMarkdownViewStyling(leaf.view.file);
+          // Also update after a short delay to ensure content is rendered
+          setTimeout(() => this.updateMarkdownViewStyling(leaf.view.file), 100);
+        }
+      })
+    );
+
+    // Update when view mode changes (source <-> preview)
+    this.registerEvent(
+      this.app.workspace.on("layout-change", () => {
+        this.app.workspace.iterateAllLeaves((leaf) => {
+          if (leaf.view instanceof MarkdownView) {
+            this.updateMarkdownViewStyling(leaf.view.file);
+          }
+        });
+      })
+    );
+
+    // Update styling for initially open files
+    this.app.workspace.iterateAllLeaves((leaf) => {
+      if (leaf.view instanceof MarkdownView) {
+        this.updateMarkdownViewStyling(leaf.view.file);
+      }
+    });
+
+    // Also update after a delay to catch any views that load later
+    setTimeout(() => {
+      this.app.workspace.iterateAllLeaves((leaf) => {
+        if (leaf.view instanceof MarkdownView) {
+          this.updateMarkdownViewStyling(leaf.view.file);
+        }
+      });
+    }, 500);
   }
 
   /**
@@ -176,5 +243,310 @@ export default class TaskWorkPlugin extends Plugin {
     workspace.revealLeaf(leaf);
   }
 
+  /**
+   * Updates the styling class on markdown views based on whether the file is in the tasks folder.
+   * @param file - The file to check, or null to remove styling from all views
+   */
+  private updateMarkdownViewStyling(file: TFile | null) {
+    this.app.workspace.iterateAllLeaves((leaf) => {
+      if (leaf.view instanceof MarkdownView) {
+        const viewEl = leaf.view.containerEl;
+        const viewFile = leaf.view.file;
+        
+        // Check if this view's file is in the tasks folder
+        if (viewFile && isInTasksFolder(viewFile.path, this.settings)) {
+          // Add class to container
+          viewEl.classList.add("mod-taskwork-styled");
+          
+          // Also add to content area if it exists (for better targeting)
+          const contentEl = viewEl.querySelector(".markdown-source-view, .markdown-preview-view, .markdown-reading-view");
+          if (contentEl) {
+            contentEl.classList.add("mod-taskwork-styled");
+          }
+          
+          // Also add to CodeMirror editor if it exists (for source view)
+          if (leaf.view.editor) {
+            const cmEditor = (leaf.view.editor as any).cm as EditorView | undefined;
+            if (cmEditor) {
+              const cmEl = cmEditor.dom;
+              if (cmEl) {
+                cmEl.classList.add("mod-taskwork-styled");
+              }
+            }
+          }
+        } else {
+          // Remove class from container
+          viewEl.classList.remove("mod-taskwork-styled");
+          
+          // Also remove from content area
+          const contentEl = viewEl.querySelector(".markdown-source-view, .markdown-preview-view, .markdown-reading-view");
+          if (contentEl) {
+            contentEl.classList.remove("mod-taskwork-styled");
+          }
+          
+          // Also remove from CodeMirror editor
+          if (leaf.view.editor) {
+            const cmEditor = (leaf.view.editor as any).cm as EditorView | undefined;
+            if (cmEditor) {
+              const cmEl = cmEditor.dom;
+              if (cmEl) {
+                cmEl.classList.remove("mod-taskwork-styled");
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  /**
+   * Styles @ labels in markdown preview by wrapping them in spans.
+   * Only processes text nodes that aren't already inside a taskwork-label span.
+   * @param element - The markdown preview element
+   */
+  private styleLabelsInMarkdown(element: HTMLElement) {
+    // Pattern to match labels like @ppl/Libby, @person/Name, @label, etc.
+    const labelPattern = /(@[\w/-]+)/g;
+    
+    // Walk through all text nodes in the element
+    const walker = document.createTreeWalker(
+      element,
+      NodeFilter.SHOW_TEXT,
+      null
+    );
+    
+    const textNodes: Text[] = [];
+    let node;
+    while ((node = walker.nextNode())) {
+      // Skip if already inside a taskwork-label span or inside a tag/link
+      const parent = node.parentElement;
+      if (parent?.classList.contains("taskwork-label") || 
+          parent?.classList.contains("tag") ||
+          parent?.classList.contains("taskwork-field") ||
+          parent?.tagName === "A") {
+        continue;
+      }
+      textNodes.push(node as Text);
+    }
+    
+    // Process each text node
+    textNodes.forEach((textNode) => {
+      const text = textNode.textContent || "";
+      const matches = Array.from(text.matchAll(labelPattern));
+      
+      if (matches.length === 0) return;
+      
+      // Create a document fragment to hold the replacements
+      const fragment = document.createDocumentFragment();
+      let lastIndex = 0;
+      
+      matches.forEach((match) => {
+        // Add text before the label
+        if (match.index !== undefined && match.index > lastIndex) {
+          fragment.appendChild(
+            document.createTextNode(text.substring(lastIndex, match.index))
+          );
+        }
+        
+        // Create span for the label
+        const labelSpan = document.createElement("span");
+        labelSpan.className = "taskwork-label";
+        labelSpan.textContent = match[0];
+        fragment.appendChild(labelSpan);
+        
+        lastIndex = (match.index || 0) + match[0].length;
+      });
+      
+      // Add remaining text after the last label
+      if (lastIndex < text.length) {
+        fragment.appendChild(document.createTextNode(text.substring(lastIndex)));
+      }
+      
+      // Replace the text node with the fragment
+      if (textNode.parentNode) {
+        textNode.parentNode.replaceChild(fragment, textNode);
+      }
+    });
+  }
+
+  /**
+   * Styles task metadata fields (priority::, due::, etc.) in markdown preview by wrapping them in spans.
+   * Only processes text nodes that aren't already inside a taskwork-field span.
+   * @param element - The markdown preview element
+   */
+  private styleTaskFieldsInMarkdown(element: HTMLElement) {
+    // Pattern to match task fields like "priority:: urgent", "due:: 2025-11-07", "recur:: every Tuesday", etc.
+    // Matches: fieldname:: value (where fieldname is one of the allowed field keys)
+    // Value can be single word or multiple words, but stops at next field, tag, newline, or end
+    const fieldKeys = "(?:due|scheduled|priority|recur|project|area|completed|origin_file|origin_project|origin_area)";
+    // Pattern: fieldname:: value (value stops at newline, next field/tag, or end)
+    // Match value as one or more words (non-whitespace, non-hash, non-newline), separated by single spaces
+    // Stop before newline, next field, tag, or end
+    const fieldPattern = new RegExp(`\\b(${fieldKeys})::\\s*([^\\n\\s#]+(?: [^\\n\\s#]+)*?)(?=\\s+${fieldKeys}::|\\s+#|\\n|$)`, "gi");
+    
+    // Walk through all text nodes in the element
+    const walker = document.createTreeWalker(
+      element,
+      NodeFilter.SHOW_TEXT,
+      null
+    );
+    
+    const textNodes: Text[] = [];
+    let node;
+    while ((node = walker.nextNode())) {
+      // Skip if already inside a taskwork-field span or inside a tag/link
+      const parent = node.parentElement;
+      if (parent?.classList.contains("taskwork-field") || 
+          parent?.classList.contains("tag") ||
+          parent?.classList.contains("taskwork-label") ||
+          parent?.tagName === "A") {
+        continue;
+      }
+      textNodes.push(node as Text);
+    }
+    
+    // Process each text node
+    textNodes.forEach((textNode) => {
+      const text = textNode.textContent || "";
+      
+      // Reset regex lastIndex to ensure fresh matching
+      fieldPattern.lastIndex = 0;
+      const matches = Array.from(text.matchAll(fieldPattern));
+      
+      if (matches.length === 0) return;
+      
+      // Create a document fragment to hold the replacements
+      const fragment = document.createDocumentFragment();
+      let lastIndex = 0;
+      
+      matches.forEach((match) => {
+        // Add text before the field
+        if (match.index !== undefined && match.index > lastIndex) {
+          fragment.appendChild(
+            document.createTextNode(text.substring(lastIndex, match.index))
+          );
+        }
+        
+        // Create span for the field
+        const fieldSpan = document.createElement("span");
+        fieldSpan.className = "taskwork-field";
+        
+        // Add the field key (e.g., "priority::")
+        const keySpan = document.createElement("span");
+        keySpan.className = "taskwork-field-key";
+        keySpan.textContent = match[1] + "::";
+        fieldSpan.appendChild(keySpan);
+        
+        // Add a space
+        fieldSpan.appendChild(document.createTextNode(" "));
+        
+        // Add the field value (e.g., "urgent")
+        const valueSpan = document.createElement("span");
+        valueSpan.className = "taskwork-field-value";
+        valueSpan.textContent = match[2].trim();
+        fieldSpan.appendChild(valueSpan);
+        
+        fragment.appendChild(fieldSpan);
+        
+        lastIndex = (match.index || 0) + match[0].length;
+      });
+      
+      // Add remaining text after the last field
+      if (lastIndex < text.length) {
+        fragment.appendChild(document.createTextNode(text.substring(lastIndex)));
+      }
+      
+      // Replace the text node with the fragment
+      if (textNode.parentNode) {
+        textNode.parentNode.replaceChild(fragment, textNode);
+      }
+    });
+  }
+
+  /**
+   * Creates a CodeMirror ViewPlugin that decorates task metadata fields in source/editing mode.
+   * @returns ViewPlugin instance
+   */
+  private createTaskFieldDecorator() {
+    const plugin = this;
+    
+    return ViewPlugin.fromClass(
+      class {
+        decorations: DecorationSet;
+        private view: EditorView;
+
+        constructor(view: EditorView) {
+          this.view = view;
+          this.decorations = this.buildDecorations(view);
+        }
+
+        update(update: ViewUpdate) {
+          // Rebuild decorations if document changed or viewport changed
+          if (update.docChanged || update.viewportChanged) {
+            this.decorations = this.buildDecorations(update.view);
+          }
+        }
+
+        buildDecorations(view: EditorView): DecorationSet {
+          const builder = new RangeSetBuilder<Decoration>();
+          
+          // Get the file associated with this view by finding the MarkdownView
+          // The editor view is part of a MarkdownView in Obsidian
+          let file: TFile | null = null;
+          
+          // Try to find the file by iterating through all leaves
+          plugin.app.workspace.iterateAllLeaves((leaf) => {
+            if (leaf.view instanceof MarkdownView && leaf.view.editor) {
+              // Check if this editor's CodeMirror view matches
+              const editorView = (leaf.view.editor as any).cm as EditorView | undefined;
+              if (editorView === view) {
+                file = leaf.view.file;
+                return false; // Stop iteration
+              }
+            }
+          });
+          
+          if (!file || !isInTasksFolder(file.path, plugin.settings)) {
+            return builder.finish();
+          }
+
+          const { doc } = view.state;
+          const text = doc.toString();
+          
+          // Pattern to match task fields like "priority:: urgent", "due:: 2025-11-07", etc.
+          // Matches: fieldname:: value (where fieldname is one of the allowed field keys)
+          // Value can be single word or multiple words, but stops at next field, tag, newline, or end
+          // Match each field separately - value stops at whitespace before next field/tag or newline
+          const fieldKeys = "(?:due|scheduled|priority|recur|project|area|completed|origin_file|origin_project|origin_area)";
+          // Pattern: fieldname:: value (value stops at newline, next field/tag, or end)
+          // Match value as one or more words (non-whitespace, non-hash, non-newline), separated by single spaces
+          // Stop before newline, next field, tag, or end
+          const fieldPattern = new RegExp(`\\b(${fieldKeys})::\\s*([^\\n\\s#]+(?: [^\\n\\s#]+)*?)(?=\\s+${fieldKeys}::|\\s+#|\\n|$)`, "gi");
+          
+          let match;
+          while ((match = fieldPattern.exec(text)) !== null) {
+            const start = match.index;
+            const end = start + match[0].length;
+            
+            // Create decoration with taskwork-field class
+            const decoration = Decoration.mark({
+              class: "taskwork-field",
+              attributes: {
+                "data-field-key": match[1],
+                "data-field-value": match[2].trim()
+              }
+            });
+            
+            builder.add(start, end, decoration);
+          }
+
+          return builder.finish();
+        }
+      },
+      {
+        decorations: (v) => v.decorations,
+      }
+    );
+  }
 
 }

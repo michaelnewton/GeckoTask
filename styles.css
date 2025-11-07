@@ -545,3 +545,108 @@ If your plugin does not need CSS, delete this file.
 .taskwork-action-btn-primary:hover {
   background: var(--interactive-accent-hover);
 }
+
+/* Apply TaskworkPanel label/tag styling to markdown view (only for tasks folder files) */
+
+/* Style hashtags in source view (editing mode) - CodeMirror 6 */
+/* Obsidian splits hashtags into .cm-hashtag-begin (#) and .cm-hashtag-end (text) */
+/* Style them to appear as a single badge */
+.mod-taskwork-styled .cm-hashtag-begin,
+.markdown-source-view.mod-taskwork-styled .cm-hashtag-begin {
+  display: inline-block !important;
+  padding: 2px 0 2px 8px !important; /* Padding on left for # */
+  border-radius: 12px 0 0 12px !important; /* Rounded left side only */
+  font-size: 11px !important;
+  background: var(--background-modifier-border) !important;
+  color: var(--text-normal) !important;
+  margin: 0 2px 0 0 !important; /* Right margin for spacing, no left margin */
+  vertical-align: baseline !important;
+  font-weight: 500 !important;
+  text-decoration: none !important;
+}
+
+/* Style the end span to attach to the begin span */
+.mod-taskwork-styled .cm-hashtag-end,
+.markdown-source-view.mod-taskwork-styled .cm-hashtag-end {
+  display: inline-block !important;
+  padding: 2px 8px 2px 0 !important; /* Padding on right, no left padding */
+  border-radius: 0 12px 12px 0 !important; /* Rounded right side only */
+  font-size: 11px !important;
+  background: var(--background-modifier-border) !important;
+  color: var(--text-normal) !important;
+  margin: 0 2px 0 -1px !important; /* Negative margin to attach to begin */
+  vertical-align: baseline !important;
+  font-weight: 500 !important;
+  white-space: nowrap !important;
+  text-decoration: none !important;
+}
+
+/* Style hashtags in preview/reading view */
+.mod-taskwork-styled .tag,
+.markdown-preview-view.mod-taskwork-styled .tag,
+.markdown-reading-view.mod-taskwork-styled .tag {
+  display: inline-block !important;
+  padding: 2px 8px !important;
+  border-radius: 12px !important;
+  font-size: 11px !important;
+  background: var(--background-modifier-border) !important;
+  color: var(--text-normal) !important;
+  margin: 0 2px !important;
+  vertical-align: baseline !important;
+  font-weight: 500 !important;
+  white-space: nowrap !important;
+  text-decoration: none !important;
+}
+
+/* Style @ labels in markdown view to match TaskworkPanel */
+.mod-taskwork-styled .taskwork-label,
+.markdown-source-view.mod-taskwork-styled .taskwork-label,
+.markdown-preview-view.mod-taskwork-styled .taskwork-label,
+.markdown-reading-view.mod-taskwork-styled .taskwork-label {
+  display: inline-block !important;
+  padding: 2px 8px !important;
+  border-radius: 12px !important;
+  font-size: 11px !important;
+  background: var(--background-modifier-border) !important;
+  color: var(--text-normal) !important;
+  margin: 0 2px !important;
+  vertical-align: baseline !important;
+  font-weight: 500 !important;
+  white-space: nowrap !important;
+}
+
+/* Style task metadata fields (priority::, due::, etc.) in markdown view */
+.mod-taskwork-styled .taskwork-field,
+.markdown-source-view.mod-taskwork-styled .taskwork-field,
+.markdown-preview-view.mod-taskwork-styled .taskwork-field,
+.markdown-reading-view.mod-taskwork-styled .taskwork-field,
+.cm-editor.mod-taskwork-styled .taskwork-field,
+.cm-content .taskwork-field {
+  display: inline-block !important;
+  padding: 2px 8px !important;
+  border-radius: 12px !important;
+  font-size: 11px !important;
+  background: var(--background-modifier-border) !important;
+  color: var(--text-normal) !important;
+  margin: 0 2px !important;
+  vertical-align: baseline !important;
+  font-weight: 500 !important;
+  white-space: nowrap !important;
+}
+
+/* Style the field key (e.g., "priority::") */
+.mod-taskwork-styled .taskwork-field-key,
+.markdown-source-view.mod-taskwork-styled .taskwork-field-key,
+.markdown-preview-view.mod-taskwork-styled .taskwork-field-key,
+.markdown-reading-view.mod-taskwork-styled .taskwork-field-key {
+  font-weight: 600 !important;
+  opacity: 0.8 !important;
+}
+
+/* Style the field value (e.g., "urgent", "2025-11-07") */
+.mod-taskwork-styled .taskwork-field-value,
+.markdown-source-view.mod-taskwork-styled .taskwork-field-value,
+.markdown-preview-view.mod-taskwork-styled .taskwork-field-value,
+.markdown-reading-view.mod-taskwork-styled .taskwork-field-value {
+  font-weight: 500 !important;
+}
