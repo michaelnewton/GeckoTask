@@ -3,7 +3,7 @@ import { parseTaskWithDescription, formatTaskWithDescription, Task } from "../mo
 import { TaskWorkSettings } from "../settings";
 import { parseNLDate } from "../services/NLDate";
 import { calculateNextOccurrence } from "../services/Recurrence";
-import { inferAreaFromPath, isInTasksFolder, isSpecialFile, normalizeInboxPath, getAreas } from "../utils/areaUtils";
+import { inferAreaFromPath, isInTasksFolder, isSpecialFile, normalizeInboxPath, getAreas, isTasksFolderFile, getProjectDisplayName } from "../utils/areaUtils";
 import { PromptModal } from "../ui/PromptModal";
 import { FilePickerModal } from "../ui/FilePickerModal";
 import { captureQuickTask } from "../ui/CaptureModal";
@@ -257,23 +257,76 @@ export class TaskWorkPanel extends ItemView {
     projContainer.createEl("label", { text: "Project:", cls: "filter-label" });
     const projSelect = projContainer.createEl("select", { cls: "filter-select" });
     
-    // Helper to remove .md extension for display (like modal)
-    const displayPath = (path: string) => path.endsWith(".md") ? path.slice(0, -3) : path;
+    /**
+     * Refreshes the project dropdown options by updating projectPaths and re-rendering options.
+     */
+    const refreshProjectOptions = () => {
+      // Update projectPaths from current vault state
+      const files = this.app.vault.getMarkdownFiles();
+      const projectPathsSet = new Set<string>();
+      
+      for (const file of files) {
+        const path = file.path;
+        if (!isInTasksFolder(path, this.settings)) continue;
+        if (isTasksFolderFile(path, this.settings)) continue;
+        projectPathsSet.add(path);
+      }
+      
+      // Sort project paths (inbox first, then alphabetically)
+      const normalizedInboxPath = normalizeInboxPath(this.settings.inboxPath);
+      const projectPathsList = Array.from(projectPathsSet);
+      projectPathsList.sort((a, b) => {
+        if (a === normalizedInboxPath) return -1;
+        if (b === normalizedInboxPath) return 1;
+        return a.localeCompare(b);
+      });
+      
+      // Update the stored projectPaths
+      this.projectPaths = projectPathsList;
+      
+      // Clear and rebuild dropdown options
+      const currentValue = projSelect.value;
+      projSelect.empty();
+      
+      // Add "Any" option first
+      const anyProjOpt = projSelect.createEl("option", { text: "Any" });
+      anyProjOpt.value = "Any";
+      
+      // Add project files (inbox first, then others), excluding tasks folder file
+      this.projectPaths
+        .filter(path => !isTasksFolderFile(path, this.settings))
+        .forEach(path => {
+          const opt = projSelect.createEl("option", { text: getProjectDisplayName(path, this.app, this.settings) });
+          opt.value = path;
+        });
+      
+      // Restore the selected value if it still exists, otherwise use "Any"
+      if (currentValue === "Any") {
+        projSelect.value = "Any";
+      } else if (this.projectPaths.includes(currentValue)) {
+        projSelect.value = currentValue;
+      } else {
+        projSelect.value = "Any";
+        this.filters.project = "Any";
+      }
+    };
     
     // Add "Any" option first
     const anyProjOpt = projSelect.createEl("option", { text: "Any" });
     anyProjOpt.value = "Any";
     if (this.filters.project === "Any") anyProjOpt.selected = true;
     
-    // Add project files (inbox first, then others)
-    this.projectPaths.forEach(path => {
-      const opt = projSelect.createEl("option", { text: displayPath(path) });
-      opt.value = path;
-      // Match by path
-      if (path === this.filters.project) {
-        opt.selected = true;
-      }
-    });
+    // Add project files (inbox first, then others), excluding tasks folder file
+    this.projectPaths
+      .filter(path => !isTasksFolderFile(path, this.settings))
+      .forEach(path => {
+        const opt = projSelect.createEl("option", { text: getProjectDisplayName(path, this.app, this.settings) });
+        opt.value = path;
+        // Match by path
+        if (path === this.filters.project) {
+          opt.selected = true;
+        }
+      });
     
     projSelect.addEventListener("change", (e) => {
       const selectedValue = (e.target as HTMLSelectElement).value;
@@ -281,6 +334,10 @@ export class TaskWorkPanel extends ItemView {
       this.filters.project = selectedValue;
       this.rerender();
     });
+    
+    // Refresh options when dropdown is clicked/focused
+    projSelect.addEventListener("mousedown", refreshProjectOptions);
+    projSelect.addEventListener("focus", refreshProjectOptions);
   }
 
   /**
@@ -296,6 +353,9 @@ export class TaskWorkPanel extends ItemView {
       
       // Only index files in tasks folder structure
       if (!isInTasksFolder(path, this.settings)) continue;
+      
+      // Exclude tasks folder file from project paths
+      if (isTasksFolderFile(path, this.settings)) continue;
       
       // Add all project files to the set (not just those with tasks)
       projectPathsSet.add(path);
@@ -1050,7 +1110,8 @@ export class TaskWorkPanel extends ItemView {
    */
   private async moveTask(t: IndexedTask) {
     const files = this.app.vault.getMarkdownFiles()
-      .filter(f => isInTasksFolder(f.path, this.settings));
+      .filter(f => isInTasksFolder(f.path, this.settings))
+      .filter(f => !isTasksFolderFile(f.path, this.settings));
 
     const target = await new FilePickerModal(this.app, files).openAndGet();
     if (!target) return;

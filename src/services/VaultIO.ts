@@ -1,7 +1,7 @@
 import { App, TFile, SuggestModal, Notice, Editor, Modal, Setting } from "obsidian";
 import { TaskWorkSettings } from "../settings";
 import { parseTask, formatTask, Task } from "../models/TaskModel";
-import { inferAreaFromPath, isInTasksFolder, getAreaPath, isSpecialFile, getAreas } from "../utils/areaUtils";
+import { inferAreaFromPath, isInTasksFolder, getAreaPath, isSpecialFile, getAreas, isTasksFolderFile } from "../utils/areaUtils";
 
 /**
  * Gets the task at the current cursor line in the editor.
@@ -25,9 +25,10 @@ export async function moveTaskAtCursorInteractive(app: App, editor: Editor, sett
   const { task, lineNo, line } = await getActiveLineTask(editor);
   if (!task) { new Notice("TaskWork: No task on this line."); return; }
 
-  // Filter files to only those in tasks folder structure
+  // Filter files to only those in tasks folder structure, excluding tasks folder file
   const files = app.vault.getMarkdownFiles()
-    .filter(f => isInTasksFolder(f.path, settings));
+    .filter(f => isInTasksFolder(f.path, settings))
+    .filter(f => !isTasksFolderFile(f.path, settings));
 
   const target = await new FilePickerModal(app, files).openAndGet();
   if (!target) return;

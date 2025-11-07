@@ -24,7 +24,8 @@ import {
   inferAreaFromPath, 
   isSpecialFile, 
   getAreaPath,
-  getAreas
+  getAreas,
+  isTasksFolderFile
 } from "../utils/areaUtils";
 import { calculateNextOccurrence } from "../services/Recurrence";
 import { parseNLDate } from "../services/NLDate";
@@ -108,6 +109,14 @@ export class WeeklyReviewPanel extends ItemView {
     this.container.addClass("weekly-review-panel");
     await this.loadState();
     await this.renderCurrentStep();
+
+    // Refresh on file changes
+    const debouncedRefresh = this.debounce(async () => {
+      await this.renderCurrentStep();
+    }, 200);
+
+    this.registerEvent(this.app.vault.on("modify", debouncedRefresh));
+    this.registerEvent(this.app.metadataCache.on("changed", debouncedRefresh));
   }
 
   /**
@@ -1655,7 +1664,8 @@ export class WeeklyReviewPanel extends ItemView {
    */
   private async moveTaskToProject(task: IndexedTask) {
     const files = this.app.vault.getMarkdownFiles()
-      .filter(f => isInTasksFolder(f.path, this.settings));
+      .filter(f => isInTasksFolder(f.path, this.settings))
+      .filter(f => !isTasksFolderFile(f.path, this.settings));
 
     const target = await new FilePickerModal(this.app, files).openAndGet();
     if (!target) return;
@@ -1713,11 +1723,12 @@ export class WeeklyReviewPanel extends ItemView {
       const { task: parsed } = parseTaskWithDescription(lines, taskLineIdx);
       if (!parsed) return data;
 
+      const targetFile = this.app.vault.getAbstractFileByPath(targetPath);
+      const targetBasename = (targetFile instanceof TFile) ? targetFile.basename : undefined;
       taskWithDescription = {
         ...parsed,
         area: undefined,
-        project: isSpecialFile(targetPath, this.settings) ? parsed.project : 
-                 this.app.vault.getAbstractFileByPath(targetPath)?.basename
+        project: isSpecialFile(targetPath, this.settings) ? parsed.project : targetBasename
       };
 
       const numLinesToRemove = descEndIdx - taskLineIdx + 1;
@@ -1831,6 +1842,8 @@ export class WeeklyReviewPanel extends ItemView {
     const files = this.app.vault.getMarkdownFiles()
       .filter(f => {
         if (!isInTasksFolder(f.path, this.settings)) return false;
+        // Exclude tasks folder file
+        if (isTasksFolderFile(f.path, this.settings)) return false;
         const fileArea = inferAreaFromPath(f.path, this.app, this.settings);
         if (fileArea !== area) return false;
         // Exclude Inbox (but allow General tasks file for this area)
@@ -1871,6 +1884,8 @@ export class WeeklyReviewPanel extends ItemView {
     const files = this.app.vault.getMarkdownFiles()
       .filter(f => {
         if (!isInTasksFolder(f.path, this.settings)) return false;
+        // Exclude tasks folder file
+        if (isTasksFolderFile(f.path, this.settings)) return false;
         const fileArea = inferAreaFromPath(f.path, this.app, this.settings);
         if (fileArea !== area) return false;
         // Exclude Inbox (but allow General tasks file for this area)
@@ -2135,5 +2150,19 @@ export class WeeklyReviewPanel extends ItemView {
       await this.saveState();
       this.renderCurrentStep();
     }
+  }
+
+  /**
+   * Creates a debounced version of a function.
+   * @param fn - Function to debounce
+   * @param ms - Debounce delay in milliseconds
+   * @returns Debounced function
+   */
+  private debounce<T extends (...args:any[])=>any>(fn: T, ms: number): T {
+    let h: number | undefined;
+    return ((...args: any[]) => {
+      window.clearTimeout(h);
+      h = window.setTimeout(() => fn(...args), ms);
+    }) as unknown as T;
   }
 }

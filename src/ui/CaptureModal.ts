@@ -2,7 +2,7 @@ import { App, Modal, Setting, Notice, TFile } from "obsidian";
 import { TaskWorkSettings } from "../settings";
 import { parseNLDate } from "../services/NLDate";
 import { formatTask, formatTaskWithDescription, Task, parseTaskWithDescription } from "../models/TaskModel";
-import { isInTasksFolder, normalizeInboxPath, isSpecialFile } from "../utils/areaUtils";
+import { isInTasksFolder, normalizeInboxPath, isSpecialFile, isTasksFolderFile, getProjectDisplayName } from "../utils/areaUtils";
 import { IndexedTask } from "../view/TaskworkPanelTypes";
 
 
@@ -97,27 +97,62 @@ export async function captureQuickTask(app: App, settings: TaskWorkSettings, exi
           });
         });
 
-        // Get all files in tasks folder structure
+        const normalizedInboxPath = normalizeInboxPath(settings.inboxPath);
+        
+        // Get initial files in tasks folder structure, excluding tasks folder file
         const projectPaths = mdFiles
           .map(f => f.path)
-          .filter(p => isInTasksFolder(p, settings));
+          .filter(p => isInTasksFolder(p, settings))
+          .filter(p => !isTasksFolderFile(p, settings));
 
-        const normalizedInboxPath = normalizeInboxPath(settings.inboxPath);
         new Setting(contentEl).setName("Project").addDropdown(d => {
-          // Helper to remove .md extension for display
-          const displayPath = (path: string) => path.endsWith(".md") ? path.slice(0, -3) : path;
-          
           // Add inbox as default option
-          d.addOption(normalizedInboxPath, displayPath(normalizedInboxPath));
+          d.addOption(normalizedInboxPath, getProjectDisplayName(normalizedInboxPath, app, settings));
           // Add other project files
           for (const p of projectPaths) {
             if (p !== normalizedInboxPath) {
-              d.addOption(p, displayPath(p));
+              d.addOption(p, getProjectDisplayName(p, app, settings));
             }
           }
           d.setValue(this.draft.projectPath);
           d.selectEl.style.width = "100%";
           d.onChange(v => this.draft.projectPath = v);
+          
+          /**
+           * Refreshes the project dropdown options by scanning the vault for current files.
+           */
+          const refreshProjectOptions = () => {
+            const currentFiles = app.vault.getMarkdownFiles();
+            const currentProjectPaths = currentFiles
+              .map(f => f.path)
+              .filter(p => isInTasksFolder(p, settings))
+              .filter(p => !isTasksFolderFile(p, settings));
+            
+            // Clear existing options
+            const currentValue = d.selectEl.value;
+            d.selectEl.empty();
+            
+            // Add inbox as default option
+            d.addOption(normalizedInboxPath, getProjectDisplayName(normalizedInboxPath, app, settings));
+            // Add other project files
+            for (const p of currentProjectPaths) {
+              if (p !== normalizedInboxPath) {
+                d.addOption(p, getProjectDisplayName(p, app, settings));
+              }
+            }
+            
+            // Restore the selected value if it still exists, otherwise use inbox
+            if (currentProjectPaths.includes(currentValue) || currentValue === normalizedInboxPath) {
+              d.setValue(currentValue);
+            } else {
+              d.setValue(normalizedInboxPath);
+              this.draft.projectPath = normalizedInboxPath;
+            }
+          };
+          
+          // Refresh options when dropdown is clicked/focused
+          d.selectEl.addEventListener("mousedown", refreshProjectOptions);
+          d.selectEl.addEventListener("focus", refreshProjectOptions);
         });
 
         new Setting(contentEl).setName("Due").addText(t => {

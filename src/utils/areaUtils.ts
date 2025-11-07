@@ -118,3 +118,39 @@ export function isSpecialFile(filePath: string, settings: TaskWorkSettings): boo
   return basename === settings.generalTasksFile;
 }
 
+/**
+ * Checks if a file path matches the tasks folder name itself (e.g., tasks.md if tasksFolder is "tasks").
+ * These files should be excluded from project dropdowns.
+ * @param filePath - The file path to check
+ * @param settings - Plugin settings
+ * @returns True if the file matches the tasks folder name
+ */
+export function isTasksFolderFile(filePath: string, settings: TaskWorkSettings): boolean {
+  // Check if the file is directly in the tasks folder and matches the folder name
+  const tasksFolderFile = `${settings.tasksFolder}/${settings.tasksFolder}.md`;
+  return filePath === tasksFolderFile;
+}
+
+/**
+ * Gets the display name for a project path in dropdowns.
+ * For General tasks files, returns the Area name instead of the file path.
+ * @param filePath - The file path
+ * @param app - Obsidian app instance
+ * @param settings - Plugin settings
+ * @returns Display name for the project
+ */
+export function getProjectDisplayName(filePath: string, app: App, settings: TaskWorkSettings): string {
+  // Check if this is the General tasks file
+  const basename = filePath.split("/").pop()?.replace(/\.md$/, "") || "";
+  if (basename === settings.generalTasksFile) {
+    // Return the Area name instead of the file path
+    const area = inferAreaFromPath(filePath, app, settings);
+    if (area) {
+      return area;
+    }
+  }
+  
+  // For other files, remove .md extension for display
+  return filePath.endsWith(".md") ? filePath.slice(0, -3) : filePath;
+}
+
