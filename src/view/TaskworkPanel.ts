@@ -439,6 +439,29 @@ export class TaskWorkPanel extends ItemView {
     const list = host.createDiv({ cls: "taskwork-rows" });
     for (const t of rows) {
       const card = list.createDiv({ cls: "taskwork-card" });
+      
+      // Mobile tap-to-reveal: toggle action buttons on card tap
+      // Only add this on touch devices (mobile)
+      if (this.isTouchDevice()) {
+        card.addEventListener("click", (e) => {
+          // Don't toggle if clicking on interactive elements
+          const target = e.target as HTMLElement;
+          const isInteractive = target.closest("input, button, .task-checkbox, .task-recur-icon, .task-due-container, .task-description-icon, .task-priority-container, .taskwork-action-btn, .task-title, .task-title-container");
+          
+          if (!isInteractive) {
+            // Toggle this card and close others
+            const wasExpanded = card.classList.contains("task-card-expanded");
+            // Close all cards first
+            list.querySelectorAll(".taskwork-card").forEach((c) => {
+              c.classList.remove("task-card-expanded");
+            });
+            // Toggle this card if it wasn't already expanded
+            if (!wasExpanded) {
+              card.classList.add("task-card-expanded");
+            }
+          }
+        });
+      }
 
       // Top row: Checkbox + Recurring icon + Title
       const topRow = card.createDiv({ cls: "task-card-top" });
@@ -1021,6 +1044,22 @@ export class TaskWorkPanel extends ItemView {
       window.clearTimeout(h);
       h = window.setTimeout(() => fn(...args), ms);
     }) as unknown as T;
+  }
+
+  /**
+   * Detects if the current device is a touch device (mobile/tablet).
+   * @returns True if the device supports touch input
+   */
+  private isTouchDevice(): boolean {
+    // Check for touch support
+    if ("ontouchstart" in window || navigator.maxTouchPoints > 0) {
+      return true;
+    }
+    // Check media query for coarse pointer (touch)
+    if (window.matchMedia && window.matchMedia("(pointer: coarse)").matches) {
+      return true;
+    }
+    return false;
   }
 }
 

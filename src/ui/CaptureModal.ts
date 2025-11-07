@@ -53,10 +53,13 @@ export async function captureQuickTask(app: App, settings: TaskWorkSettings, exi
         });
 
         // Description field (textarea for multi-line)
+        // Use fewer rows on mobile for more compact display
+        const isMobile = "ontouchstart" in window || navigator.maxTouchPoints > 0 || 
+                        (window.matchMedia && window.matchMedia("(pointer: coarse)").matches);
         new Setting(contentEl).setName("Description (optional)").addTextArea(t => {
           t.setPlaceholder("Multi-line description...");
           t.setValue(this.draft.description || "");
-          t.inputEl.rows = 4;
+          t.inputEl.rows = isMobile ? 2 : 4; // Reduced rows on mobile
           t.inputEl.style.width = "100%";
           t.onChange(v => this.draft.description = v.trim() || undefined);
         });
