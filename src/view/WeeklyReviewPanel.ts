@@ -68,6 +68,7 @@ export class WeeklyReviewPanel extends ItemView {
   somedayMaybeProjects: ProjectReviewInfo[] = [];
   private readonly STATE_STORAGE_KEY = "weekly-review-state";
   private saveStateTimeout: number | null = null;
+  private nextFocusItemId: string | null = null; // Track next item to focus after re-render
 
   /**
    * Creates a new Weekly Review panel.
@@ -289,6 +290,10 @@ export class WeeklyReviewPanel extends ItemView {
   private async renderCurrentStep() {
     this.container.empty();
     this.container.addClass("weekly-review-panel");
+    
+    // Store the next focus item ID before clearing
+    const focusItemId = this.nextFocusItemId;
+    this.nextFocusItemId = null;
 
     // Check if review is completed - show congratulations screen
     if (this.wizardState.isCompleted) {
@@ -378,6 +383,26 @@ export class WeeklyReviewPanel extends ItemView {
       case "3A-brainstorm":
         await this.renderStep3A(stepContent);
         break;
+    }
+
+    // Scroll to the next item if one was identified
+    if (focusItemId) {
+      requestAnimationFrame(() => {
+        const element = this.container.querySelector(`[data-item-id="${focusItemId}"]`);
+        if (element && element instanceof HTMLElement) {
+          // Scroll the element to the top of the panel
+          element.scrollIntoView({ 
+            behavior: "smooth", 
+            block: "start",
+            inline: "nearest"
+          });
+          
+          // Also focus the element if it's focusable
+          if (element.tabIndex >= 0) {
+            element.focus();
+          }
+        }
+      });
     }
 
     // Navigation buttons
@@ -1007,6 +1032,7 @@ export class WeeklyReviewPanel extends ItemView {
    */
   private async renderProjectCard(host: HTMLElement, project: ProjectReviewInfo) {
     const projectDiv = host.createDiv({ cls: "weekly-review-project" });
+    projectDiv.setAttribute("data-item-id", `project-${project.path}`);
     const projectHeader = projectDiv.createDiv({ cls: "weekly-review-project-header" });
     const projectName = projectHeader.createEl("h4", { 
       text: `${project.name}${project.area ? ` (${project.area})` : ""}` 
@@ -1055,6 +1081,20 @@ export class WeeklyReviewPanel extends ItemView {
       });
       reviewedBtn.setAttribute("aria-label", "Reviewed");
       reviewedBtn.addEventListener("click", async () => {
+        // Find the next project to focus BEFORE marking as reviewed
+        const unreviewedProjects = this.projects.filter(p => 
+          !this.wizardState.reviewedProjects.has(p.path)
+        );
+        const currentIndex = unreviewedProjects.findIndex(p => p.path === project.path);
+        if (currentIndex >= 0 && currentIndex < unreviewedProjects.length - 1) {
+          // Focus on the next project (which will be at the same index after current is removed)
+          const nextProject = unreviewedProjects[currentIndex + 1];
+          this.nextFocusItemId = `project-${nextProject.path}`;
+        } else {
+          // This was the last project, no next item to focus
+          this.nextFocusItemId = null;
+        }
+        
         this.wizardState.reviewedProjects.add(project.path);
         await this.saveState();
         await this.renderCurrentStep(); // Re-render to hide the project
@@ -1220,6 +1260,7 @@ export class WeeklyReviewPanel extends ItemView {
    */
   private async renderSomedayMaybeProjectCard(host: HTMLElement, project: ProjectReviewInfo) {
     const projectDiv = host.createDiv({ cls: "weekly-review-project" });
+    projectDiv.setAttribute("data-item-id", `project-${project.path}`);
     const projectHeader = projectDiv.createDiv({ cls: "weekly-review-project-header" });
     const projectName = projectHeader.createEl("h4", { 
       text: `${project.name}${project.area ? ` (${project.area})` : ""}` 
@@ -1261,6 +1302,20 @@ export class WeeklyReviewPanel extends ItemView {
       });
       reviewedBtn.setAttribute("aria-label", "Reviewed");
       reviewedBtn.addEventListener("click", async () => {
+        // Find the next project to focus BEFORE marking as reviewed
+        const unreviewedProjects = this.somedayMaybeProjects.filter(p => 
+          !this.wizardState.reviewedSomedayMaybeProjects.has(p.path)
+        );
+        const currentIndex = unreviewedProjects.findIndex(p => p.path === project.path);
+        if (currentIndex >= 0 && currentIndex < unreviewedProjects.length - 1) {
+          // Focus on the next project (which will be at the same index after current is removed)
+          const nextProject = unreviewedProjects[currentIndex + 1];
+          this.nextFocusItemId = `project-${nextProject.path}`;
+        } else {
+          // This was the last project, no next item to focus
+          this.nextFocusItemId = null;
+        }
+        
         this.wizardState.reviewedSomedayMaybeProjects.add(project.path);
         await this.saveState();
         await this.renderCurrentStep(); // Re-render to hide the project
@@ -1290,6 +1345,8 @@ export class WeeklyReviewPanel extends ItemView {
     isSomedayMaybe: boolean = false
   ) {
     const card = host.createDiv({ cls: "weekly-review-task-card" });
+    const taskId = this.getTaskId(task);
+    card.setAttribute("data-item-id", `task-${taskId}`);
     
     // Task title and metadata
     const taskInfo = card.createDiv({ cls: "weekly-review-task-info" });
@@ -1508,6 +1565,21 @@ export class WeeklyReviewPanel extends ItemView {
         reviewedBtn.setAttribute("aria-label", "Reviewed");
         reviewedBtn.addEventListener("click", async () => {
           const taskId = this.getTaskId(task);
+          
+          // Find the next task to focus BEFORE marking as reviewed
+          const unreviewedTasks = this.nextActions.filter(t => 
+            !this.wizardState.reviewedTasks.has(this.getTaskId(t))
+          );
+          const currentIndex = unreviewedTasks.findIndex(t => this.getTaskId(t) === taskId);
+          if (currentIndex >= 0 && currentIndex < unreviewedTasks.length - 1) {
+            // Focus on the next task (which will be at the same index after current is removed)
+            const nextTask = unreviewedTasks[currentIndex + 1];
+            this.nextFocusItemId = `task-${this.getTaskId(nextTask)}`;
+          } else {
+            // This was the last task, no next item to focus
+            this.nextFocusItemId = null;
+          }
+          
           this.wizardState.reviewedTasks.add(taskId);
           await this.saveState();
           await this.renderCurrentStep(); // Re-render to hide the task
