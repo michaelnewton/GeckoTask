@@ -1,4 +1,4 @@
-import { App, TFile } from "obsidian";
+import { App, TFile, TFolder } from "obsidian";
 import { TaskWorkSettings } from "../settings";
 import { parseTask } from "../models/TaskModel";
 import { inferAreaFromPath } from "../utils/areaUtils";
@@ -12,6 +12,33 @@ import { inferAreaFromPath } from "../utils/areaUtils";
 function archivePathFor(settings: TaskWorkSettings, date = new Date()): string {
   const y = date.getFullYear();
   return settings.archivePattern.replace("YYYY", String(y));
+}
+
+/**
+ * Ensures the directory for the given file path exists, creating it if necessary.
+ * @param app - Obsidian app instance
+ * @param filePath - The file path (e.g., "Archive/Completed-2024.md")
+ * @returns Promise that resolves when the directory is ensured to exist
+ */
+async function ensureDirectoryExists(app: App, filePath: string): Promise<void> {
+  const pathParts = filePath.split("/");
+  if (pathParts.length <= 1) {
+    // No directory component, file is at root
+    return;
+  }
+
+  // Remove the filename, keep only directory parts
+  const dirPath = pathParts.slice(0, -1).join("/");
+  
+  // Check if directory already exists
+  const existingDir = app.vault.getAbstractFileByPath(dirPath);
+  if (existingDir instanceof TFolder) {
+    // Directory already exists
+    return;
+  }
+
+  // Create the directory (and any parent directories if needed)
+  await app.vault.createFolder(dirPath);
 }
 
 /**
@@ -45,6 +72,10 @@ export async function archiveCompletedInFile(app: App, file: TFile, settings: Ta
 
   // Append to archive file
   const archivePath = archivePathFor(settings);
+  
+  // Ensure the archive directory exists before creating the file
+  await ensureDirectoryExists(app, archivePath);
+  
   let archiveFile = app.vault.getAbstractFileByPath(archivePath) as TFile | null;
   if (!archiveFile) {
     archiveFile = await app.vault.create(archivePath, "# Completed Tasks\n\n");
@@ -67,6 +98,10 @@ export async function archiveAllCompletedInVault(app: App, settings: TaskWorkSet
   let total = 0;
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - settings.archiveOlderThanDays);
+
+  // Ensure the archive directory exists once before processing files
+  const archivePath = archivePathFor(settings);
+  await ensureDirectoryExists(app, archivePath);
 
   for (const file of files) {
     const content = await app.vault.read(file);
@@ -94,7 +129,6 @@ export async function archiveAllCompletedInVault(app: App, settings: TaskWorkSet
 
     await app.vault.modify(file, keep.join("\n").replace(/\n+$/,"") + "\n");
 
-    const archivePath = archivePathFor(settings);
     let archiveFile = app.vault.getAbstractFileByPath(archivePath) as TFile | null;
     if (!archiveFile) archiveFile = await app.vault.create(archivePath, "# Completed Tasks\n\n");
     const prev = await app.vault.read(archiveFile);
