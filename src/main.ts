@@ -117,17 +117,8 @@ export default class GeckoTaskPlugin extends Plugin {
       }
     });
 
-    /**
-     * Sets or updates the project field for the task at the cursor.
-     * Unregistered automatically on plugin unload.
-     */
-    this.addCommand({
-      id: "geckotask-set-project",
-      name: "Set Project (at cursor)",
-      editorCallback: async (editor: Editor, _ctx: MarkdownView | MarkdownFileInfo) => {
-        await setFieldAtCursor(this.app, editor, "project", this.settings);
-      }
-    });
+    // Note: Project command removed - projects are now file-based only
+    // Users should move tasks to different files to change projects
 
     /**
      * Sets or updates the recurrence pattern for the task at the cursor.
@@ -483,7 +474,7 @@ export default class GeckoTaskPlugin extends Plugin {
     // Pattern to match task fields like "priority:: urgent", "due:: 2025-11-07", "recur:: every Tuesday", etc.
     // Matches: fieldname:: value (where fieldname is one of the allowed field keys)
     // Value can be single word or multiple words, but stops at next field, tag, newline, or end
-    const fieldKeys = "(?:due|scheduled|priority|recur|project|area|completed|origin_file|origin_project|origin_area)";
+    const fieldKeys = "(?:due|scheduled|priority|recur|area|completed|origin_file|origin_project|origin_area)";
     // Pattern: fieldname:: value (value stops at newline, next field/tag, or end)
     // Match value as one or more words (non-whitespace, non-hash, non-newline), separated by single spaces
     // Stop before newline, next field, tag, or end
@@ -622,7 +613,7 @@ export default class GeckoTaskPlugin extends Plugin {
           // Matches: fieldname:: value (where fieldname is one of the allowed field keys)
           // Value can be single word or multiple words, but stops at next field, tag, newline, or end
           // Match each field separately - value stops at whitespace before next field/tag or newline
-          const fieldKeys = "(?:due|scheduled|priority|recur|project|area|completed|origin_file|origin_project|origin_area)";
+          const fieldKeys = "(?:due|scheduled|priority|recur|area|completed|origin_file|origin_project|origin_area)";
           // Pattern: fieldname:: value (value stops at newline, next field/tag, or end)
           // Match value as one or more words (non-whitespace, non-hash, non-newline), separated by single spaces
           // Stop before newline, next field, tag, or end

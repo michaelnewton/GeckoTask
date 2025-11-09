@@ -334,7 +334,8 @@ async function fetchTasksFromFile(
 
     const raw = lines[lineNo].trim();
     const area = inferAreaFromPath(path, app, settings);
-    const project = parsed.project || (isSpecialFile(path, settings) ? undefined : file.basename);
+    // Project is derived from file basename, not stored in metadata
+    const project = isSpecialFile(path, settings) ? undefined : file.basename;
 
     tasks.push({
       path,

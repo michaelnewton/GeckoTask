@@ -37,11 +37,11 @@ export async function moveTaskAtCursorInteractive(app: App, editor: Editor, sett
   const newArea = inferAreaFromPath(target.path, app, settings);
   const newProject = target.basename;
 
-  // Update task metadata (remove area:: since we're using folder-based areas)
+  // Update task metadata (remove area:: and project:: since we're using folder/file-based structure)
   const updatedTask: Task = {
     ...task,
     area: undefined, // Don't store area in metadata, it's derived from folder
-    project: isSpecialFile(target.path, settings) ? task.project : newProject,
+    project: undefined, // Don't store project in metadata, it's derived from file basename
   };
   const updatedLine = formatTask(updatedTask);
 

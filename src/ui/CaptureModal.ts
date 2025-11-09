@@ -255,7 +255,7 @@ async function appendTask(app: App, d: Draft, settings: GeckoTaskSettings) {
     due: d.due,
     priority: d.priority,
     recur: d.recur,
-    project: projectName,
+    project: undefined, // Don't store project in metadata, it's derived from file basename
     area: undefined, // Don't store area in metadata, it's derived from folder
     raw: ""
   };
@@ -325,9 +325,8 @@ async function updateTask(app: App, existingTask: IndexedTask, d: Draft, setting
       return;
     }
 
-    // Update project based on target file
-    const projectName = isSpecialFile(targetPath, settings) ? taskWithDescription.project : targetFile.basename;
-    taskWithDescription.project = projectName;
+    // Note: project is derived from file basename, not stored in metadata
+    // No need to update project field
     taskWithDescription.area = undefined; // Don't store area in metadata, it's derived from folder
 
     // Remove task from source file

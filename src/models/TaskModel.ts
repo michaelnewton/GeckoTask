@@ -21,7 +21,7 @@ export interface Task {
 }
 
 const FIELD_KEYS = new Set([
-  "due","scheduled","priority","recur","project","area","completed","origin_file","origin_project","origin_area"
+  "due","scheduled","priority","recur","area","completed","origin_file","origin_project","origin_area"
 ]);
 
 /**
@@ -46,7 +46,7 @@ export function parseTask(line: string): Task | null {
     const emojiLength = "🔁".length;
     const afterEmoji = rest.substring(recurEmojiIndex + emojiLength).trim();
     // Find where the recurrence pattern ends (before a field or tag)
-    const fieldOrTagMatch = afterEmoji.match(/^([^#]+?)(?:\s+(?:#|due::|scheduled::|priority::|recur::|project::|area::|completed::|origin_file::|origin_project::|origin_area::)|$)/i);
+    const fieldOrTagMatch = afterEmoji.match(/^([^#]+?)(?:\s+(?:#|due::|scheduled::|priority::|recur::|area::|completed::|origin_file::|origin_project::|origin_area::)|$)/i);
     if (fieldOrTagMatch) {
       recurPattern = fieldOrTagMatch[1].trim();
       // Remove the emoji and pattern from the rest string for further parsing
@@ -131,7 +131,8 @@ export function parseTask(line: string): Task | null {
     scheduled: fields["scheduled"],
     priority: fields["priority"],
     recur: recurPattern || fields["recur"], // Prefer emoji format if found, otherwise field format
-    project: fields["project"],
+    // Note: project is not stored in metadata, it's derived from file basename
+    // project: fields["project"],
     area: fields["area"],
     completed: fields["completed"],
     origin_file: fields["origin_file"],
@@ -163,7 +164,8 @@ export function formatTask(t: Task): string {
   f("priority", t.priority as string);
   f("due", t.due);
   f("scheduled", t.scheduled);
-  f("project", t.project);
+  // Note: project is not stored in metadata, it's derived from file basename
+  // f("project", t.project); // Removed - projects are file-based
   // Note: area is not stored in metadata, it's derived from folder structure
   // f("area", t.area); // Removed - areas are folder-based
   f("completed", t.completed);

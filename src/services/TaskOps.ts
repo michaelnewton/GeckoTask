@@ -108,10 +108,10 @@ export async function toggleCompleteAtCursor(editor: Editor, view: MarkdownView,
  * Sets a field value on the task at the cursor via user prompt.
  * @param app - Obsidian app instance
  * @param editor - The editor instance
- * @param key - The field key to set ("due", "priority", "project", or "recur")
+ * @param key - The field key to set ("due", "priority", or "recur")
  * @param settings - Plugin settings
  */
-export async function setFieldAtCursor(app: App, editor: Editor, key: "due"|"priority"|"project"|"recur", settings: GeckoTaskSettings) {
+export async function setFieldAtCursor(app: App, editor: Editor, key: "due"|"priority"|"recur", settings: GeckoTaskSettings) {
   const ctx = getLineTask(editor);
   if (!ctx) { new Notice("GeckoTask: No task on this line."); return; }
 

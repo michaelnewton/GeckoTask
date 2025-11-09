@@ -1762,11 +1762,11 @@ export class WeeklyReviewPanel extends ItemView {
       if (!parsed) return data;
 
       const targetFile = this.app.vault.getAbstractFileByPath(targetPath);
-      const targetBasename = (targetFile instanceof TFile) ? targetFile.basename : undefined;
+      // Project is derived from file basename, not stored in metadata
       taskWithDescription = {
         ...parsed,
         area: undefined,
-        project: isSpecialFile(targetPath, this.settings) ? parsed.project : targetBasename
+        project: undefined // Don't store project in metadata, it's derived from file basename
       };
 
       const numLinesToRemove = descEndIdx - taskLineIdx + 1;

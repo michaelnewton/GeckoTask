@@ -391,7 +391,8 @@ export class TasksPanel extends ItemView {
 
         // Infer area from folder path (not from metadata)
         const area = inferAreaFromPath(path, this.app, this.settings);
-        const project = parsed.project || (isSpecialFile(path, this.settings) ? undefined : file.basename);
+        // Project is derived from file basename, not stored in metadata
+        const project = isSpecialFile(path, this.settings) ? undefined : file.basename;
 
         tasks.push({
           path,
@@ -1160,11 +1161,11 @@ export class TasksPanel extends ItemView {
       const { task: parsed } = parseTaskWithDescription(lines, taskLineIdx);
       if (!parsed) return data;
 
-      // Update task metadata (remove area:: since we're using folder-based areas)
+      // Update task metadata (remove area:: and project:: since we're using folder/file-based structure)
       taskWithDescription = {
         ...parsed,
         area: undefined, // Don't store area in metadata, it's derived from folder
-        project: isSpecialFile(target.path, this.settings) ? parsed.project : newProject,
+        project: undefined, // Don't store project in metadata, it's derived from file basename
       };
 
       // Remove task line and description lines
