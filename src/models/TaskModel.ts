@@ -1,3 +1,5 @@
+import { parseNLDate } from "../services/NLDate";
+
 /**
  * Represents a task with all its metadata fields.
  */
@@ -123,11 +125,16 @@ export function parseTask(line: string): Task | null {
   }
 
   const title = titleParts.join(" ").trim();
+  
+  // Convert natural language dates to ISO format
+  const dueValue = fields["due"];
+  const parsedDue = dueValue ? (parseNLDate(dueValue) ?? dueValue) : undefined;
+  
   const t: Task = {
     checked,
     title,
     tags,
-    due: fields["due"],
+    due: parsedDue,
     scheduled: fields["scheduled"],
     priority: fields["priority"],
     recur: recurPattern || fields["recur"], // Prefer emoji format if found, otherwise field format

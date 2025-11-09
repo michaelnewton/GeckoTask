@@ -160,7 +160,7 @@ export async function captureQuickTask(app: App, settings: GeckoTaskSettings, ex
           t.setValue(this.draft.due || "");
           t.inputEl.style.width = "100%";
           t.onChange(v => {
-            if (settings.nlDateParsing && v) {
+            if (v) {
               const parsed = parseNLDate(v);
               this.draft.due = parsed || v;
             } else {

@@ -720,11 +720,11 @@ export class TasksPanel extends ItemView {
         dueText.textContent = this.formatDueDate(t.due);
         dueContainer.style.cursor = "pointer";
         dueContainer.addEventListener("click", async () => {
-          const defaultValue = t.due ?? (this.settings.nlDateParsing ? "today" : "");
+          const defaultValue = t.due ?? "today";
           const modal = new PromptModal(this.app, "Set due date (today / 2025-11-10)", defaultValue);
           const next = await modal.prompt();
           if (next == null || next.trim() === "") return;
-          const parsed = this.settings.nlDateParsing ? (parseNLDate(next) ?? next) : next;
+          const parsed = parseNLDate(next) ?? next;
           await this.updateField(t, "due", parsed);
         });
       } else {
@@ -736,11 +736,11 @@ export class TasksPanel extends ItemView {
         dueContainer.style.cursor = "pointer";
         dueContainer.style.opacity = "0.6";
         dueContainer.addEventListener("click", async () => {
-          const defaultValue = this.settings.nlDateParsing ? "today" : "";
+          const defaultValue = "today";
           const modal = new PromptModal(this.app, "Set due date (today / 2025-11-10)", defaultValue);
           const next = await modal.prompt();
           if (next == null || next.trim() === "") return;
-          const parsed = this.settings.nlDateParsing ? (parseNLDate(next) ?? next) : next;
+          const parsed = parseNLDate(next) ?? next;
           await this.updateField(t, "due", parsed);
         });
       }

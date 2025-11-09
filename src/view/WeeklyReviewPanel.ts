@@ -1792,12 +1792,12 @@ export class WeeklyReviewPanel extends ItemView {
    * Updates a task's due date.
    */
   private async updateTaskDueDate(task: IndexedTask) {
-    const defaultValue = task.due ?? (this.settings.nlDateParsing ? "today" : "");
+    const defaultValue = task.due ?? "today";
     const modal = new PromptModal(this.app, "Set due date (today / 2025-11-10)", defaultValue);
     const next = await modal.prompt();
     if (next == null || next.trim() === "") return;
     
-    const parsed = this.settings.nlDateParsing ? (parseNLDate(next) ?? next) : next;
+    const parsed = parseNLDate(next) ?? next;
     await this.updateTaskField(task, "due", parsed);
   }
 

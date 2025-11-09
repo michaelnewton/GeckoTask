@@ -118,7 +118,7 @@ export async function setFieldAtCursor(app: App, editor: Editor, key: "due"|"pri
   let promptText = `Set ${key}:`;
   let defaultValue = "";
   
-  if (key === "due" && settings.nlDateParsing) {
+  if (key === "due") {
     defaultValue = "today";
   } else if (key === "priority") {
     defaultValue = settings.allowedPriorities[0] || "";
@@ -132,7 +132,7 @@ export async function setFieldAtCursor(app: App, editor: Editor, key: "due"|"pri
   if (value == null) return;
 
   let v = value.trim();
-  if (key === "due" && settings.nlDateParsing) {
+  if (key === "due") {
     v = parseNLDate(v) ?? v;
   }
 
