@@ -33,7 +33,7 @@ export async function fetchInboxTasks(app: App, settings: GeckoTaskSettings): Pr
  * Fetches all tasks with a specific tag.
  * @param app - Obsidian app instance
  * @param settings - Plugin settings
- * @param tag - Tag to search for (e.g., "#WaitingFor")
+ * @param tag - Tag to search for (e.g., settings.waitingForTag)
  * @returns Array of indexed tasks with the tag
  */
 export async function fetchTasksByTag(
@@ -199,7 +199,7 @@ export async function fetchNextActions(
   
   const tasks: IndexedTask[] = [];
   const somedayMaybeFolderName = settings.somedayMaybeFolderName;
-  const waitingForTag = "#WaitingFor";
+  const waitingForTag = settings.waitingForTag;
 
   for (const file of files) {
     const path = file.path;

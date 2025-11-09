@@ -1114,7 +1114,7 @@ export class WeeklyReviewPanel extends ItemView {
       text: "Review each Waiting For task. Update, complete, or remove the tag as needed." 
     });
 
-    this.waitingForTasks = await fetchTasksByTag(this.app, this.settings, "#WaitingFor");
+    this.waitingForTasks = await fetchTasksByTag(this.app, this.settings, this.settings.waitingForTag);
 
     if (this.waitingForTasks.length === 0) {
       host.createEl("p", { 
@@ -1561,9 +1561,9 @@ export class WeeklyReviewPanel extends ItemView {
         text: "Not Waiting", 
         cls: "weekly-review-btn-text" 
       });
-      removeTagBtn.setAttribute("aria-label", "Remove #WaitingFor");
+      removeTagBtn.setAttribute("aria-label", `Remove ${this.settings.waitingForTag}`);
       removeTagBtn.addEventListener("click", async () => {
-        await this.removeTag(task, "#WaitingFor");
+        await this.removeTag(task, this.settings.waitingForTag);
         this.shouldScrollToCount = true;
         await this.renderCurrentStep();
       });

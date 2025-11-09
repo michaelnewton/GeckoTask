@@ -17,6 +17,7 @@ export interface GeckoTaskSettings {
   nlDateParsing: boolean;
   dueDateRanges: string[];            // Configurable due date ranges (e.g., ["7d", "14d", "30d", "60d"])
   customCollectionPoints: string[];   // Custom collection points for step 1A (e.g., ["Facebook", "Slack", "Twitter"])
+  waitingForTag: string;              // Tag for waiting-for tasks (e.g., "#WaitingFor")
 }
 
 /**
@@ -33,7 +34,8 @@ export const DEFAULT_SETTINGS: GeckoTaskSettings = {
   allowedPriorities: ["low","med","high","urgent"],
   nlDateParsing: true,
   dueDateRanges: ["7d", "14d", "30d", "60d", "90d"],  // Default configurable ranges
-  customCollectionPoints: []  // No custom collection points by default
+  customCollectionPoints: [],  // No custom collection points by default
+  waitingForTag: "#WaitingFor"  // Default tag for waiting-for tasks
 };
 
 /**
@@ -195,6 +197,21 @@ export class GeckoTaskSettingTab extends PluginSettingTab {
         .onChange(async (v) => {
           const points = v.split(",").map(p => p.trim()).filter(Boolean);
           this.plugin.settings.customCollectionPoints = points;
+          await this.plugin.saveSettings();
+        })
+      );
+
+    new Setting(containerEl)
+      .setName("Waiting For tag")
+      .setDesc("Tag used to identify waiting-for tasks (e.g., '#WaitingFor'). Include the '#' symbol.")
+      .addText(t => t
+        .setValue(this.plugin.settings.waitingForTag)
+        .onChange(async (v) => {
+          // Ensure tag starts with # if not empty
+          const trimmed = v.trim();
+          this.plugin.settings.waitingForTag = trimmed && !trimmed.startsWith("#") 
+            ? `#${trimmed}` 
+            : trimmed || "#WaitingFor";
           await this.plugin.saveSettings();
         })
       );
