@@ -1,5 +1,5 @@
 import { App, TFile, SuggestModal, Notice, Editor, Modal, Setting } from "obsidian";
-import { TaskWorkSettings } from "../settings";
+import { GeckoTaskSettings } from "../settings";
 import { parseTask, formatTask, Task } from "../models/TaskModel";
 import { inferAreaFromPath, isInTasksFolder, getAreaPath, isSpecialFile, getAreas, isTasksFolderFile } from "../utils/areaUtils";
 
@@ -21,9 +21,9 @@ async function getActiveLineTask(editor: Editor) {
  * @param editor - The editor instance
  * @param settings - Plugin settings
  */
-export async function moveTaskAtCursorInteractive(app: App, editor: Editor, settings: TaskWorkSettings) {
+export async function moveTaskAtCursorInteractive(app: App, editor: Editor, settings: GeckoTaskSettings) {
   const { task, lineNo, line } = await getActiveLineTask(editor);
-  if (!task) { new Notice("TaskWork: No task on this line."); return; }
+  if (!task) { new Notice("GeckoTask: No task on this line."); return; }
 
   // Filter files to only those in tasks folder structure, excluding tasks folder file
   const files = app.vault.getMarkdownFiles()
@@ -56,7 +56,7 @@ export async function moveTaskAtCursorInteractive(app: App, editor: Editor, sett
   const updated = content.trim().length ? content + "\n" + finalLine + "\n" : finalLine + "\n";
   await app.vault.modify(target, updated);
 
-  new Notice(`TaskWork: Moved task to ${target.path}`);
+  new Notice(`GeckoTask: Moved task to ${target.path}`);
 }
 
 /**
@@ -65,7 +65,7 @@ export async function moveTaskAtCursorInteractive(app: App, editor: Editor, sett
  * @param settings - Plugin settings
  * @returns Created file or null if cancelled/error
  */
-export async function createProjectFile(app: App, settings: TaskWorkSettings): Promise<TFile | null> {
+export async function createProjectFile(app: App, settings: GeckoTaskSettings): Promise<TFile | null> {
   return new Promise((resolve) => {
     const modal = new (class extends Modal {
       area: string = "";
@@ -74,7 +74,7 @@ export async function createProjectFile(app: App, settings: TaskWorkSettings): P
       onOpen() {
         const { contentEl } = this;
         contentEl.empty();
-        this.titleEl.setText("TaskWork — Create Project File");
+        this.titleEl.setText("GeckoTask — Create Project File");
 
         // Only show area dropdown if there are areas configured
         const areas = getAreas(app, settings);
@@ -102,7 +102,7 @@ export async function createProjectFile(app: App, settings: TaskWorkSettings): P
             .setCta()
             .onClick(async () => {
               if (!this.projectName.trim()) {
-                new Notice("TaskWork: Project name required.");
+                new Notice("GeckoTask: Project name required.");
                 return;
               }
 
@@ -114,7 +114,7 @@ export async function createProjectFile(app: App, settings: TaskWorkSettings): P
               // Check if file exists
               const existing = app.vault.getAbstractFileByPath(path);
               if (existing) {
-                new Notice(`TaskWork: File ${path} already exists.`);
+                new Notice(`GeckoTask: File ${path} already exists.`);
                 this.close();
                 resolve(existing as TFile);
                 return;
@@ -141,11 +141,11 @@ created: ${created}
 
               try {
                 const file = await app.vault.create(path, content);
-                new Notice(`TaskWork: Created project file ${path}`);
+                new Notice(`GeckoTask: Created project file ${path}`);
                 this.close();
                 resolve(file);
               } catch (error) {
-                new Notice(`TaskWork: Failed to create file: ${error}`);
+                new Notice(`GeckoTask: Failed to create file: ${error}`);
                 this.close();
                 resolve(null);
               }

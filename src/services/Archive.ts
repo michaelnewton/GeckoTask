@@ -1,5 +1,5 @@
 import { App, TFile, TFolder } from "obsidian";
-import { TaskWorkSettings } from "../settings";
+import { GeckoTaskSettings } from "../settings";
 import { parseTask } from "../models/TaskModel";
 import { inferAreaFromPath } from "../utils/areaUtils";
 
@@ -9,7 +9,7 @@ import { inferAreaFromPath } from "../utils/areaUtils";
  * @param date - Date to use for year substitution (defaults to today)
  * @returns Archive file path with YYYY replaced by year
  */
-function archivePathFor(settings: TaskWorkSettings, date = new Date()): string {
+function archivePathFor(settings: GeckoTaskSettings, date = new Date()): string {
   const y = date.getFullYear();
   return settings.archivePattern.replace("YYYY", String(y));
 }
@@ -48,7 +48,7 @@ async function ensureDirectoryExists(app: App, filePath: string): Promise<void> 
  * @param settings - Plugin settings
  * @returns Number of tasks archived
  */
-export async function archiveCompletedInFile(app: App, file: TFile, settings: TaskWorkSettings): Promise<number> {
+export async function archiveCompletedInFile(app: App, file: TFile, settings: GeckoTaskSettings): Promise<number> {
   const src = await app.vault.read(file);
   const lines = src.split("\n");
   const keep: string[] = [];
@@ -93,7 +93,7 @@ export async function archiveCompletedInFile(app: App, file: TFile, settings: Ta
  * @param settings - Plugin settings
  * @returns Total number of tasks archived
  */
-export async function archiveAllCompletedInVault(app: App, settings: TaskWorkSettings): Promise<number> {
+export async function archiveAllCompletedInVault(app: App, settings: GeckoTaskSettings): Promise<number> {
   const files = app.vault.getMarkdownFiles();
   let total = 0;
   const cutoff = new Date();
@@ -146,7 +146,7 @@ export async function archiveAllCompletedInVault(app: App, settings: TaskWorkSet
  * @param settings - Plugin settings
  * @returns Task line with origin metadata appended
  */
-function appendOrigin(line: string, file: TFile, app: App, settings: TaskWorkSettings): string {
+function appendOrigin(line: string, file: TFile, app: App, settings: GeckoTaskSettings): string {
   // If origin fields exist, return as-is; else append.
   if (/\borigin_file::\b/.test(line)) return line;
   const project = file.basename;

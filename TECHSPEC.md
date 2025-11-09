@@ -1,4 +1,4 @@
-# Obsidian Plugin Tech Spec — "TaskWork" (Custom Tasks + Dataview)
+# Obsidian Plugin Tech Spec — "GeckoTask" (Custom Tasks + Dataview)
 
 **Owner:** Matt  
 **Scope:** Single Obsidian plugin that manages task capture, metadata, movement, archiving, and UI actions, while **Dataview** handles list/table rendering.  
@@ -14,7 +14,7 @@
 * **Areas** (folder-based, e.g., `tasks/Work/`, `tasks/Personal/`) and **Projects** (per-project files) with **Inbox** support.
 * Fast capture (command palette / hotkeys / modal), easy **move between projects**.
 * **Archiving** completed tasks with source context kept.
-* **TaskWork Panel** side view for browsing, filtering, and managing tasks.
+* **GeckoTask Panel** side view for browsing, filtering, and managing tasks.
 * A few opinionated **commands/UI actions** (no heavy UI framework).
 * **Multi-line descriptions** stored as indented lines below task lines.
 
@@ -67,7 +67,7 @@
 * Everything stays on **one line** for easy grep/edit and mobile compatibility.
 * Fields: `due::`, `scheduled::` (optional, not used in UI), `priority:: <string>` (configurable list),
   `recur:: <pattern>` or `🔁 <pattern>` (recurrence pattern, Tasks plugin compatible), `tags` via `#hashtag`.
-* **@ Labels:** Tasks can include @ labels (e.g., `@ppl/Libby`, `@person/Name`) in titles or descriptions. These are automatically styled in markdown preview and extracted for display in the TaskWork Panel.
+* **@ Labels:** Tasks can include @ labels (e.g., `@ppl/Libby`, `@person/Name`) in titles or descriptions. These are automatically styled in markdown preview and extracted for display in the GeckoTask Panel.
 * **Area is NOT stored in metadata** — it's derived from folder structure.
 * **Project is NOT stored in metadata for regular project files** — it's derived from the file basename (e.g., `tasks/Work/RouterRevamp.md` → project: `RouterRevamp`). For special files (Inbox, General), project is undefined.
 * On completion, append `completed:: YYYY-MM-DD`.
@@ -91,34 +91,34 @@
 
 ### A) Capture
 
-* **Trigger:** Command Palette → "TaskWork: Quick Add Task"
+* **Trigger:** Command Palette → "GeckoTask: Quick Add Task"
 * **UI:** Modal with fields: *Title*, Description (optional, multi-line), Area (optional dropdown; if none, goes to inbox), Project (file picker), Due (natural language), Priority, Tags.
 * **Write to:** Selected project file or inbox; append as a new task line with optional description.
 
 ### B) Move Task Between Projects
 
-* **Trigger:** Cursor on a task → "TaskWork: Move Task (pick project)" or from TaskWork Panel → "Move" button
+* **Trigger:** Cursor on a task → "GeckoTask: Move Task (pick project)" or from GeckoTask Panel → "Move" button
 * **UI:** Quick picker of target project file within tasks folder structure.
 * **Action:** Cut task line and description lines, paste at end of target file, preserve metadata, update `project::` if needed. Area is inferred from target folder.
 
 ### C) Complete & Archive
 
-* **Complete:** Toggle `[ ]` → `[x]` via command or TaskWork Panel checkbox. Plugin appends `completed:: YYYY-MM-DD`.
+* **Complete:** Toggle `[ ]` → `[x]` via command or GeckoTask Panel checkbox. Plugin appends `completed:: YYYY-MM-DD`.
 * **Recurring tasks:** When a recurring task is completed, the plugin automatically creates the next occurrence with the calculated next due date based on the recurrence pattern.
 * **Archive policy:**
-  * **Manual:** "TaskWork: Archive Completed in Current File"
-  * **Global:** "TaskWork: Archive All Completed (older than N days)" (configurable)
+  * **Manual:** "GeckoTask: Archive Completed in Current File"
+  * **Global:** "GeckoTask: Archive All Completed (older than N days)" (configurable)
 * **Archive requirements:** Only tasks that are both checked (`[x]`) and have a `completed::` field are archived.
 * **Archive format:** Move lines to `Archive/Completed-YYYY.md`, append `origin_file::`, `origin_project::`, `origin_area::` if missing.
 
 ### D) Edit Metadata Quickly
 
 * Commands: "Set Due (at cursor)", "Set Priority (at cursor)", "Set Recurrence (at cursor)", "Add/Remove Tags (at cursor)", "Set Project (at cursor)". Operate on the task under cursor.
-* **TaskWork Panel:** Click badges to edit due date, priority, recurrence, title (inline editing). Click description icon to toggle description visibility.
+* **GeckoTask Panel:** Click badges to edit due date, priority, recurrence, title (inline editing). Click description icon to toggle description visibility.
 
-### E) TaskWork Panel
+### E) GeckoTask Panel
 
-* **Trigger:** Command Palette → "TaskWork: Open TaskWork Panel" or ribbon icon
+* **Trigger:** Command Palette → "GeckoTask: Open GeckoTask Panel" or ribbon icon
 * **Features:**
   * Browse all open tasks in tasks folder structure
   * Filter by area, project, priority, due date (today, 7d, overdue, none), search query
@@ -176,19 +176,19 @@ group by project
 
 ## 6) Commands (v1)
 
-* **TaskWork: Open TaskWork Panel** (opens side panel)
-* **TaskWork: Quick Add Task** (modal)
-* **TaskWork: Complete/Uncomplete Task at Cursor** (toggle + add `completed::`)
-* **TaskWork: Move Task (pick project)** (quick picker)
-* **TaskWork: Set Due (at cursor)** (natural-language parse → ISO date)
-* **TaskWork: Set Priority (at cursor)**
-* **TaskWork: Set Recurrence (at cursor)** (set recurrence pattern like "every Tuesday", "every 10 days")
-* **TaskWork: Add/Remove Tags (at cursor)**
-* **TaskWork: Set Project (at cursor)**
-* **TaskWork: Archive Completed in Current File**
-* **TaskWork: Archive All Completed (older than N days)**
-* **TaskWork: Create Project File** (scaffold with frontmatter)
-* **TaskWork: Normalize Task Line (at cursor)** (ensure metadata order & spacing)
+* **GeckoTask: Open GeckoTask Panel** (opens side panel)
+* **GeckoTask: Quick Add Task** (modal)
+* **GeckoTask: Complete/Uncomplete Task at Cursor** (toggle + add `completed::`)
+* **GeckoTask: Move Task (pick project)** (quick picker)
+* **GeckoTask: Set Due (at cursor)** (natural-language parse → ISO date)
+* **GeckoTask: Set Priority (at cursor)**
+* **GeckoTask: Set Recurrence (at cursor)** (set recurrence pattern like "every Tuesday", "every 10 days")
+* **GeckoTask: Add/Remove Tags (at cursor)**
+* **GeckoTask: Set Project (at cursor)**
+* **GeckoTask: Archive Completed in Current File**
+* **GeckoTask: Archive All Completed (older than N days)**
+* **GeckoTask: Create Project File** (scaffold with frontmatter)
+* **GeckoTask: Normalize Task Line (at cursor)** (ensure metadata order & spacing)
 
 Hotkeys configurable in Obsidian.
 
@@ -244,8 +244,8 @@ Hotkeys configurable in Obsidian.
   * `archiveAllCompletedInVault(app, settings)`
 * `NLDate.ts`
   * `parseNLDate(input: string): string | undefined` — minimal date parsing ("today", "tomorrow", "next mon", "in 3d")
-* `TaskworkPanel.ts`
-  * `TaskWorkPanel` — side panel view for browsing and managing tasks
+* `TasksPanel.ts`
+  * `TasksPanel` — side panel view for browsing and managing tasks
 * `areaUtils.ts`
   * `inferAreaFromPath(filePath, settings): string | undefined`
   * `isInTasksFolder(filePath, settings): boolean`
@@ -253,7 +253,7 @@ Hotkeys configurable in Obsidian.
   * `normalizeInboxPath(path): string`
   * `isSpecialFile(filePath, settings): boolean`
 * `settings.ts`
-  * `TaskWorkSettings` interface and `TaskWorkSettingTab`
+  * `GeckoTaskSettings` interface and `GeckoTaskSettingTab`
 
 ### Interfaces
 
@@ -277,7 +277,7 @@ export interface Task {
   lineNo?: number;            // optional: position in file for edits
 }
 
-export interface TaskWorkSettings {
+export interface GeckoTaskSettings {
   tasksFolder: string;                // e.g., "tasks"
   areas: string[];                     // e.g., ["Work","Personal"] - folder names under tasksFolder
   inboxPath: string;                   // e.g., "tasks/Inbox" - single inbox (without .md)
@@ -346,17 +346,17 @@ created: 2025-11-07
 
 * **Obsidian Sync / Syncthing / Git** are all compatible.
 * Avoid background watchers beyond Obsidian's own events.
-* TaskWork Panel auto-refreshes on vault changes (debounced).
+* GeckoTask Panel auto-refreshes on vault changes (debounced).
 
 ---
 
 ## 12) Performance & Safety
 
-* Parse only the current file when invoking actions; avoid scanning entire vault except when the user explicitly runs a global command (archive all) or TaskWork Panel reindexes.
+* Parse only the current file when invoking actions; avoid scanning entire vault except when the user explicitly runs a global command (archive all) or GeckoTask Panel reindexes.
 * Every write:
   * Read file → transform specific line(s) by position → write back.
   * Use `vault.process()` for atomic edits where possible.
-* TaskWork Panel indexes files in tasks folder structure and caches task metadata.
+* GeckoTask Panel indexes files in tasks folder structure and caches task metadata.
 
 ---
 
@@ -374,7 +374,7 @@ created: 2025-11-07
 * Move command relocates the exact task (by position) preserving metadata and description.
 * Complete command toggles checkbox and sets `completed::` date if newly completed.
 * Archive (file & global) moves completed tasks and appends origin fields.
-* TaskWork Panel displays all open tasks with filtering and editing capabilities.
+* GeckoTask Panel displays all open tasks with filtering and editing capabilities.
 * Dataview examples in §5 render correctly with no extra configuration.
 * Settings allow changing tasks folder, areas, inbox path, and archive pattern.
 * Works on iOS/desktop with plain Markdown editing (no desktop-only dependencies).
@@ -392,7 +392,7 @@ created: 2025-11-07
 6. Move by position → target project
 7. Archive in current file → archive all
 8. Settings & validation
-9. TaskWork Panel side view with filtering and editing
+9. GeckoTask Panel side view with filtering and editing
 
 ❌ **Not Implemented:**
 * ULID/ID tracking per task
@@ -401,9 +401,9 @@ created: 2025-11-07
 
 ---
 
-## 16) TaskWork Panel Details
+## 16) GeckoTask Panel Details
 
-The TaskWork Panel (`TaskworkPanel.ts`) provides a side view for managing tasks:
+The Tasks Panel (`TasksPanel.ts`) provides a side view for managing tasks:
 
 * **Indexing:** Scans all markdown files in tasks folder structure, parses tasks with descriptions
 * **Tabs:** Two tabs available:
@@ -480,7 +480,7 @@ The plugin automatically styles task metadata and @ labels in markdown files:
 
 * **Markdown Preview:** Task metadata fields (e.g., `priority::`, `due::`) and @ labels (e.g., `@ppl/Libby`) are wrapped in styled spans for visual distinction
 * **Source/Editing Mode:** CodeMirror decorations are applied to task metadata fields in source view
-* **Styling class:** Files in the tasks folder structure receive the `mod-taskwork-styled` class for CSS targeting
+* **Styling class:** Files in the tasks folder structure receive the `mod-geckotask-styled` class for CSS targeting
 * **Styling scope:** Only files within the configured tasks folder structure are styled
 
 ---
@@ -494,5 +494,5 @@ The plugin automatically styles task metadata and @ labels in markdown files:
 * **Multi-line descriptions:** Supported via indented lines below task line for richer task context.
 * **@ Labels:** Support for @ labels (e.g., `@ppl/Libby`) in titles and descriptions, styled in markdown preview and extracted for panel display.
 * **No ULID/ID:** Not implemented in v1; tasks are identified by file path and line number.
-* **TaskWork Panel:** Provides rich UI for task management without requiring Dataview knowledge.
+* **GeckoTask Panel:** Provides rich UI for task management without requiring Dataview knowledge.
 * **Styling:** Task metadata fields and @ labels are automatically styled in both markdown preview and source/editing mode for better visual distinction.

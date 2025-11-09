@@ -1,24 +1,24 @@
 import { App, ItemView, WorkspaceLeaf, TFile, Notice, MarkdownView } from "obsidian";
 import { parseTaskWithDescription, formatTaskWithDescription, Task } from "../models/TaskModel";
-import { TaskWorkSettings } from "../settings";
+import { GeckoTaskSettings } from "../settings";
 import { parseNLDate } from "../services/NLDate";
 import { calculateNextOccurrence } from "../services/Recurrence";
 import { inferAreaFromPath, isInTasksFolder, isSpecialFile, normalizeInboxPath, getAreas, isTasksFolderFile, getProjectDisplayName } from "../utils/areaUtils";
 import { PromptModal } from "../ui/PromptModal";
 import { FilePickerModal } from "../ui/FilePickerModal";
 import { captureQuickTask } from "../ui/CaptureModal";
-import { DueWindow, TabType, FilterState, IndexedTask } from "./TaskworkPanelTypes";
+import { DueWindow, TabType, FilterState, IndexedTask } from "./TasksPanelTypes";
 
 /**
- * View type identifier for the TaskWork panel.
+ * View type identifier for the Tasks panel.
  */
-export const VIEW_TYPE_TASKWORK = "taskwork-tasks-view";
+export const VIEW_TYPE_TASKS = "tasks-view";
 
 /**
  * Side panel view for displaying and managing tasks.
  */
-export class TaskWorkPanel extends ItemView {
-  settings: TaskWorkSettings;
+export class TasksPanel extends ItemView {
+  settings: GeckoTaskSettings;
   container!: HTMLElement;
   currentTab: TabType = "today-overdue";
   filters: FilterState = { area: "All", project: "Any", priority: "Any", due: "any", query: "" };
@@ -26,11 +26,11 @@ export class TaskWorkPanel extends ItemView {
   projectPaths: string[] = []; // for filter dropdown (file paths)
 
   /**
-   * Creates a new TaskWork panel.
+   * Creates a new Tasks panel.
    * @param leaf - Workspace leaf to attach to
    * @param settings - Plugin settings
    */
-  constructor(leaf: WorkspaceLeaf, settings: TaskWorkSettings) {
+  constructor(leaf: WorkspaceLeaf, settings: GeckoTaskSettings) {
     super(leaf);
     this.settings = settings;
   }
@@ -39,13 +39,13 @@ export class TaskWorkPanel extends ItemView {
    * Returns the view type identifier.
    * @returns View type string
    */
-  getViewType(): string { return VIEW_TYPE_TASKWORK; }
+  getViewType(): string { return VIEW_TYPE_TASKS; }
 
   /**
    * Returns the display text for the view.
    * @returns Display text
    */
-  getDisplayText(): string { return "TaskWork: Tasks"; }
+  getDisplayText(): string { return "Tasks"; }
 
   /**
    * Returns the icon name for the view.
@@ -59,15 +59,15 @@ export class TaskWorkPanel extends ItemView {
   async onOpen() {
     this.container = this.contentEl;
     this.container.empty();
-    this.container.addClass("taskwork-panel");
+    this.container.addClass("geckotask-panel");
 
     // Title with Quick Add button
-    const titleEl = this.container.createDiv({ cls: "taskwork-title" });
-    const titleHeader = titleEl.createDiv({ cls: "taskwork-title-header" });
-    titleHeader.createEl("h2", { text: "TaskWork: Tasks" });
+    const titleEl = this.container.createDiv({ cls: "geckotask-title" });
+    const titleHeader = titleEl.createDiv({ cls: "geckotask-title-header" });
+    titleHeader.createEl("h2", { text: "Tasks" });
     const quickAddBtn = titleHeader.createEl("button", { 
       text: this.isTouchDevice() ? "➕" : "Quick Add", 
-      cls: "taskwork-quick-add-btn" 
+      cls: "geckotask-quick-add-btn" 
     });
     this.registerDomEvent(quickAddBtn, "click", async () => {
       await captureQuickTask(this.app, this.settings);
@@ -77,15 +77,15 @@ export class TaskWorkPanel extends ItemView {
     });
 
     // Tabs
-    const tabsEl = this.container.createDiv({ cls: "taskwork-tabs" });
+    const tabsEl = this.container.createDiv({ cls: "geckotask-tabs" });
     this.renderTabs(tabsEl);
 
     // Filters UI
-    const filtersEl = this.container.createDiv({ cls: "taskwork-filters" });
+    const filtersEl = this.container.createDiv({ cls: "geckotask-filters" });
     this.renderFilters(filtersEl);
 
     // Results
-    const listEl = this.container.createDiv({ cls: "taskwork-list" });
+    const listEl = this.container.createDiv({ cls: "geckotask-list" });
 
     // Index initial
     await this.reindex();
@@ -112,10 +112,10 @@ export class TaskWorkPanel extends ItemView {
    */
   private renderTabs(host: HTMLElement) {
     host.empty();
-    host.addClass("taskwork-tabs-container");
+    host.addClass("geckotask-tabs-container");
 
     const todayTab = host.createDiv({ 
-      cls: `taskwork-tab ${this.currentTab === "today-overdue" ? "taskwork-tab-active" : ""}`
+      cls: `geckotask-tab ${this.currentTab === "today-overdue" ? "geckotask-tab-active" : ""}`
     });
     todayTab.setText("Today");
     todayTab.addEventListener("click", () => {
@@ -124,7 +124,7 @@ export class TaskWorkPanel extends ItemView {
     });
 
     const inboxTab = host.createDiv({ 
-      cls: `taskwork-tab ${this.currentTab === "inbox" ? "taskwork-tab-active" : ""}`
+      cls: `geckotask-tab ${this.currentTab === "inbox" ? "geckotask-tab-active" : ""}`
     });
     inboxTab.setText("Inbox");
     inboxTab.addEventListener("click", () => {
@@ -133,7 +133,7 @@ export class TaskWorkPanel extends ItemView {
     });
 
     const allTab = host.createDiv({ 
-      cls: `taskwork-tab ${this.currentTab === "all" ? "taskwork-tab-active" : ""}`
+      cls: `geckotask-tab ${this.currentTab === "all" ? "geckotask-tab-active" : ""}`
     });
     allTab.setText("All Tasks");
     allTab.addEventListener("click", () => {
@@ -148,7 +148,7 @@ export class TaskWorkPanel extends ItemView {
    */
   private renderFilters(host: HTMLElement) {
     host.empty();
-    host.addClass("taskwork-filters-compact");
+    host.addClass("geckotask-filters-compact");
 
     // For "Today" tab, hide the due filter since it's implicit
     const showDueFilter = this.currentTab === "all";
@@ -424,7 +424,7 @@ export class TaskWorkPanel extends ItemView {
     this.projectPaths = projectPathsList;
     this.tasks = tasks;
     // re-render filters project dropdown
-    const filtersHost = this.container.find(".taskwork-filters") as HTMLElement;
+    const filtersHost = this.container.find(".geckotask-filters") as HTMLElement;
     if (filtersHost) this.renderFilters(filtersHost);
   }
 
@@ -623,11 +623,11 @@ export class TaskWorkPanel extends ItemView {
     });
 
     // list (card-based layout)
-    const list = host.createDiv({ cls: "taskwork-rows" });
+    const list = host.createDiv({ cls: "geckotask-rows" });
     
     // Show empty state messages for tabs when no tasks
     if (rows.length === 0) {
-      const emptyMsg = list.createDiv({ cls: "taskwork-empty-message" });
+      const emptyMsg = list.createDiv({ cls: "geckotask-empty-message" });
       if (this.currentTab === "today-overdue") {
         emptyMsg.setText("No tasks due today or overdue");
       } else if (this.currentTab === "inbox") {
@@ -637,7 +637,7 @@ export class TaskWorkPanel extends ItemView {
     }
     
     for (const t of rows) {
-      const card = list.createDiv({ cls: "taskwork-card" });
+      const card = list.createDiv({ cls: "geckotask-card" });
       
       // Mobile tap-to-reveal: toggle action buttons on card tap
       // Only add this on touch devices (mobile)
@@ -645,13 +645,13 @@ export class TaskWorkPanel extends ItemView {
         card.addEventListener("click", (e) => {
           // Don't toggle if clicking on interactive elements
           const target = e.target as HTMLElement;
-          const isInteractive = target.closest("input, button, .task-checkbox, .task-recur-icon, .task-due-container, .task-description-icon, .task-priority-container, .taskwork-action-btn, .task-title, .task-title-container");
+          const isInteractive = target.closest("input, button, .task-checkbox, .task-recur-icon, .task-due-container, .task-description-icon, .task-priority-container, .geckotask-action-btn, .task-title, .task-title-container");
           
           if (!isInteractive) {
             // Toggle this card and close others
             const wasExpanded = card.classList.contains("task-card-expanded");
             // Close all cards first
-            list.querySelectorAll(".taskwork-card").forEach((c) => {
+            list.querySelectorAll(".geckotask-card").forEach((c) => {
               c.classList.remove("task-card-expanded");
             });
             // Toggle this card if it wasn't already expanded
@@ -824,7 +824,7 @@ export class TaskWorkPanel extends ItemView {
       // Edit button
       const editBtn = actionRow.createEl("button", { 
         text: "Edit", 
-        cls: "taskwork-action-btn taskwork-action-btn-edit"
+        cls: "geckotask-action-btn geckotask-action-btn-edit"
       });
       editBtn.addEventListener("click", async (e) => {
         e.stopPropagation();
@@ -837,7 +837,7 @@ export class TaskWorkPanel extends ItemView {
       // Move button
       const moveBtn = actionRow.createEl("button", { 
         text: "Move", 
-        cls: "taskwork-action-btn taskwork-action-btn-move"
+        cls: "geckotask-action-btn geckotask-action-btn-move"
       });
       moveBtn.addEventListener("click", async (e) => {
         e.stopPropagation();
@@ -847,7 +847,7 @@ export class TaskWorkPanel extends ItemView {
       // Open Note button
       const openBtn = actionRow.createEl("button", { 
         text: "Open", 
-        cls: "taskwork-action-btn taskwork-action-btn-primary"
+        cls: "geckotask-action-btn geckotask-action-btn-primary"
       });
       openBtn.addEventListener("click", async (e) => {
         e.stopPropagation();
@@ -1097,13 +1097,13 @@ export class TaskWorkPanel extends ItemView {
    * Triggers a re-render of the entire panel (tabs, filters, and list).
    */
   private rerender() {
-    const tabsEl = this.container.find(".taskwork-tabs") as HTMLElement;
+    const tabsEl = this.container.find(".geckotask-tabs") as HTMLElement;
     if (tabsEl) this.renderTabs(tabsEl);
     
-    const filtersEl = this.container.find(".taskwork-filters") as HTMLElement;
+    const filtersEl = this.container.find(".geckotask-filters") as HTMLElement;
     if (filtersEl) this.renderFilters(filtersEl);
     
-    const listEl = this.container.find(".taskwork-list") as HTMLElement;
+    const listEl = this.container.find(".geckotask-list") as HTMLElement;
     if (listEl) this.renderList(listEl);
   }
 
@@ -1186,7 +1186,7 @@ export class TaskWorkPanel extends ItemView {
       : finalLines + "\n";
     await this.app.vault.modify(target, updated);
 
-    new Notice(`TaskWork: Moved task to ${target.path}`);
+    new Notice(`GeckoTask: Moved task to ${target.path}`);
     await this.reindex();
     this.rerender();
   }

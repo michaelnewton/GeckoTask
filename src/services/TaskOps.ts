@@ -1,6 +1,6 @@
 import { App, Editor, MarkdownView, Notice } from "obsidian";
 import { Task, parseTask, formatTask, withField, parseTaskWithDescription, formatTaskWithDescription } from "../models/TaskModel";
-import { TaskWorkSettings } from "../settings";
+import { GeckoTaskSettings } from "../settings";
 import { parseNLDate } from "./NLDate";
 import { PromptModal } from "../ui/PromptModal";
 import { calculateNextOccurrence } from "./Recurrence";
@@ -27,9 +27,9 @@ function getLineTask(editor: Editor): { task: Task, lineNo: number } | null {
  * @param view - The markdown view
  * @param settings - Plugin settings
  */
-export async function toggleCompleteAtCursor(editor: Editor, view: MarkdownView, settings: TaskWorkSettings) {
+export async function toggleCompleteAtCursor(editor: Editor, view: MarkdownView, settings: GeckoTaskSettings) {
   const ctx = getLineTask(editor);
-  if (!ctx) { new Notice("TaskWork: No task on this line."); return; }
+  if (!ctx) { new Notice("GeckoTask: No task on this line."); return; }
   const currentLineNo = ctx.lineNo!;
   
   // Get all lines from the editor to parse task with description
@@ -41,7 +41,7 @@ export async function toggleCompleteAtCursor(editor: Editor, view: MarkdownView,
   
   // Parse the task with its description
   const { task: parsed, endLine } = parseTaskWithDescription(lines, currentLineNo);
-  if (!parsed) { new Notice("TaskWork: Could not parse task."); return; }
+  if (!parsed) { new Notice("GeckoTask: Could not parse task."); return; }
   
   const checked = !parsed.checked;
   const today = new Date();
@@ -97,9 +97,9 @@ export async function toggleCompleteAtCursor(editor: Editor, view: MarkdownView,
       
       editor.replaceRange(insertText, insertPos, insertPos);
       
-      new Notice(`TaskWork: Next occurrence scheduled for ${nextDue}`);
+      new Notice(`GeckoTask: Next occurrence scheduled for ${nextDue}`);
     } else {
-      new Notice(`TaskWork: Invalid recurrence pattern: ${parsed.recur}`);
+      new Notice(`GeckoTask: Invalid recurrence pattern: ${parsed.recur}`);
     }
   }
 }
@@ -111,9 +111,9 @@ export async function toggleCompleteAtCursor(editor: Editor, view: MarkdownView,
  * @param key - The field key to set ("due", "priority", "project", or "recur")
  * @param settings - Plugin settings
  */
-export async function setFieldAtCursor(app: App, editor: Editor, key: "due"|"priority"|"project"|"recur", settings: TaskWorkSettings) {
+export async function setFieldAtCursor(app: App, editor: Editor, key: "due"|"priority"|"project"|"recur", settings: GeckoTaskSettings) {
   const ctx = getLineTask(editor);
-  if (!ctx) { new Notice("TaskWork: No task on this line."); return; }
+  if (!ctx) { new Notice("GeckoTask: No task on this line."); return; }
 
   let promptText = `Set ${key}:`;
   let defaultValue = "";
@@ -149,9 +149,9 @@ export async function setFieldAtCursor(app: App, editor: Editor, key: "due"|"pri
  * @param editor - The editor instance
  * @param settings - Plugin settings
  */
-export async function addRemoveTagsAtCursor(app: App, editor: Editor, settings: TaskWorkSettings) {
+export async function addRemoveTagsAtCursor(app: App, editor: Editor, settings: GeckoTaskSettings) {
   const ctx = getLineTask(editor);
-  if (!ctx) { new Notice("TaskWork: No task on this line."); return; }
+  if (!ctx) { new Notice("GeckoTask: No task on this line."); return; }
 
   const currentTags = ctx.task.tags.join(" ");
   const modal = new PromptModal(app, "Add/remove tags (space-separated, prefix with - to remove):", currentTags);
@@ -197,7 +197,7 @@ export async function addRemoveTagsAtCursor(app: App, editor: Editor, settings: 
  */
 export function normalizeTaskLine(editor: Editor) {
   const ctx = getLineTask(editor);
-  if (!ctx) { new Notice("TaskWork: No task on this line."); return; }
+  if (!ctx) { new Notice("GeckoTask: No task on this line."); return; }
 
   const normalized = formatTask(ctx.task);
   editor.setLine(ctx.lineNo!, normalized);

@@ -1,13 +1,13 @@
-# TaskWork
+# GeckoTask
 
-**TaskWork** is a Markdown-first task manager for Obsidian that provides fast task capture, metadata management, and archiving while working seamlessly with Dataview for powerful task queries and displays.
+**GeckoTask** is a Markdown-first task manager for Obsidian that provides fast task capture, metadata management, and archiving while working seamlessly with Dataview for powerful task queries and displays.
 
 ## Features
 
 ### Core Functionality
 
 - **Fast Task Capture**: Quick-add modal for creating tasks with metadata (due date, priority, tags, project)
-- **TaskWork Panel**: Side panel view for browsing, filtering, and managing tasks with inline editing
+- **GeckoTask Panel**: Side panel view for browsing, filtering, and managing tasks with inline editing
 - **Folder-Based Organization**: Organize tasks by areas (Work, Personal) and projects using folder structure
 - **Recurring Tasks**: Support for recurring tasks with automatic next occurrence generation (Tasks plugin compatible)
 - **Multi-line Descriptions**: Support for task descriptions stored as indented lines below task lines
@@ -53,23 +53,23 @@ Tasks can include @ labels in titles or descriptions:
 - [ ] Schedule meeting with @person/John and @person/Sarah
 ```
 
-**Note:** @ labels are automatically styled in markdown preview and can be extracted from task descriptions for display in the TaskWork Panel.
+**Note:** @ labels are automatically styled in markdown preview and can be extracted from task descriptions for display in the GeckoTask Panel.
 
 ### Commands
 
-- **TaskWork: Open TaskWork Panel** - Opens the side panel for task management
-- **TaskWork: Quick Add Task** - Opens modal to create a new task
-- **TaskWork: Complete/Uncomplete Task at Cursor** - Toggles task completion
-- **TaskWork: Move Task (pick project)** - Move task to a different project file
-- **TaskWork: Set Due (at cursor)** - Set or update due date
-- **TaskWork: Set Priority (at cursor)** - Set or update priority
-- **TaskWork: Set Recurrence (at cursor)** - Set or update recurrence pattern
-- **TaskWork: Add/Remove Tags (at cursor)** - Manage task tags
-- **TaskWork: Set Project (at cursor)** - Set or update project
-- **TaskWork: Archive Completed in Current File** - Archive completed tasks from current file
-- **TaskWork: Archive All Completed (older than N days)** - Archive completed tasks across vault
-- **TaskWork: Create Project File** - Create a new project file with frontmatter
-- **TaskWork: Normalize Task Line (at cursor)** - Normalize task metadata order and spacing
+- **GeckoTask: Open GeckoTask Panel** - Opens the side panel for task management
+- **GeckoTask: Quick Add Task** - Opens modal to create a new task
+- **GeckoTask: Complete/Uncomplete Task at Cursor** - Toggles task completion
+- **GeckoTask: Move Task (pick project)** - Move task to a different project file
+- **GeckoTask: Set Due (at cursor)** - Set or update due date
+- **GeckoTask: Set Priority (at cursor)** - Set or update priority
+- **GeckoTask: Set Recurrence (at cursor)** - Set or update recurrence pattern
+- **GeckoTask: Add/Remove Tags (at cursor)** - Manage task tags
+- **GeckoTask: Set Project (at cursor)** - Set or update project
+- **GeckoTask: Archive Completed in Current File** - Archive completed tasks from current file
+- **GeckoTask: Archive All Completed (older than N days)** - Archive completed tasks across vault
+- **GeckoTask: Create Project File** - Create a new project file with frontmatter
+- **GeckoTask: Normalize Task Line (at cursor)** - Normalize task metadata order and spacing
 
 ## Installation
 
@@ -77,19 +77,19 @@ Tasks can include @ labels in titles or descriptions:
 
 1. Open Obsidian Settings
 2. Go to **Community plugins**
-3. Click **Browse** and search for "TaskWork"
+3. Click **Browse** and search for "GeckoTask"
 4. Click **Install**, then **Enable**
 
 ### Manual Installation
 
-1. Download the latest release from the [Releases page](https://github.com/geckom/taskwork/releases)
-2. Extract the files (`main.js`, `manifest.json`, `styles.css`) to your vault's `.obsidian/plugins/taskwork/` folder
+1. Download the latest release from the [Releases page](https://github.com/geckom/geckotask/releases)
+2. Extract the files (`main.js`, `manifest.json`, `styles.css`) to your vault's `.obsidian/plugins/geckotask/` folder
 3. Reload Obsidian
 4. Enable the plugin in **Settings → Community plugins**
 
 ## Configuration
 
-Open **Settings → TaskWork** to configure:
+Open **Settings → GeckoTask** to configure:
 
 - **Tasks folder**: Base folder for all tasks (default: `tasks`)
 - **Areas**: Comma-separated list of area folder names (e.g., `Work, Personal`)
@@ -105,7 +105,7 @@ Open **Settings → TaskWork** to configure:
 
 ### Vault Structure
 
-TaskWork organizes tasks in a folder structure:
+GeckoTask organizes tasks in a folder structure:
 
 ```
 /
@@ -125,15 +125,15 @@ TaskWork organizes tasks in a folder structure:
 
 ### Quick Start
 
-1. **Create your first task**: Use **TaskWork: Quick Add Task** from the command palette
-2. **Open TaskWork Panel**: Click the ribbon icon or use **TaskWork: Open TaskWork Panel**
+1. **Create your first task**: Use **GeckoTask: Quick Add Task** from the command palette
+2. **Open GeckoTask Panel**: Click the ribbon icon or use **GeckoTask: Open GeckoTask Panel**
 3. **Filter and manage**: Use the panel to filter by area, project, priority, due date, or search query
 4. **Edit tasks**: Click badges in the panel to edit due dates, priorities, or titles inline
 5. **Archive completed**: Use archive commands to move completed tasks to the archive folder
 
-### TaskWork Panel
+### GeckoTask Panel
 
-The TaskWork Panel provides a rich interface for managing tasks:
+The GeckoTask Panel provides a rich interface for managing tasks:
 
 - **Tabs**: Two tabs available:
   - "Today" - Shows tasks due today or overdue (due filter hidden)
@@ -152,7 +152,7 @@ The TaskWork Panel provides a rich interface for managing tasks:
 
 ### Dataview Integration
 
-TaskWork tasks work seamlessly with Dataview. Example queries:
+GeckoTask tasks work seamlessly with Dataview. Example queries:
 
 **Today's tasks:**
 ````markdown
@@ -216,7 +216,7 @@ src/
 ├── utils/
 │   └── areaUtils.ts     # Area/folder utilities
 └── view/
-    └── TaskworkPanel.ts # Side panel view
+    └── TasksPanel.ts # Side panel view
 ```
 
 ### Building
@@ -227,7 +227,7 @@ src/
 ### Manual Installation for Development
 
 1. Build the plugin: `npm run build`
-2. Copy `main.js`, `manifest.json`, and `styles.css` to `.obsidian/plugins/taskwork/`
+2. Copy `main.js`, `manifest.json`, and `styles.css` to `.obsidian/plugins/geckotask/`
 3. Reload Obsidian
 
 ## Design Philosophy

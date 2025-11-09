@@ -1,9 +1,9 @@
 import { App, Modal, Setting, Notice, TFile } from "obsidian";
-import { TaskWorkSettings } from "../settings";
+import { GeckoTaskSettings } from "../settings";
 import { parseNLDate } from "../services/NLDate";
 import { formatTask, formatTaskWithDescription, Task, parseTaskWithDescription } from "../models/TaskModel";
 import { isInTasksFolder, normalizeInboxPath, isSpecialFile, isTasksFolderFile, getProjectDisplayName } from "../utils/areaUtils";
-import { IndexedTask } from "../view/TaskworkPanelTypes";
+import { IndexedTask } from "../view/TasksPanelTypes";
 
 
 /**
@@ -27,7 +27,7 @@ interface Draft {
  * @param projectPath - Optional project path to pre-fill
  * @returns Promise that resolves when modal is closed
  */
-export async function captureQuickTask(app: App, settings: TaskWorkSettings, existingTask?: IndexedTask, projectPath?: string) {
+export async function captureQuickTask(app: App, settings: GeckoTaskSettings, existingTask?: IndexedTask, projectPath?: string) {
   const mdFiles = app.vault.getMarkdownFiles();
   const isEditMode = !!existingTask;
 
@@ -63,7 +63,7 @@ export async function captureQuickTask(app: App, settings: TaskWorkSettings, exi
       onOpen() {
         const { contentEl } = this;
         contentEl.empty();
-        this.titleEl.setText(isEditMode ? "TaskWork — Quick Edit" : "TaskWork — Quick Add");
+        this.titleEl.setText(isEditMode ? "GeckoTask — Quick Edit" : "GeckoTask — Quick Add");
 
         new Setting(contentEl).setName("Title").addText(t => {
           t.setValue(this.draft.title);
@@ -231,10 +231,10 @@ export async function captureQuickTask(app: App, settings: TaskWorkSettings, exi
  * @param d - Draft task data
  * @param settings - Plugin settings
  */
-async function appendTask(app: App, d: Draft, settings: TaskWorkSettings) {
+async function appendTask(app: App, d: Draft, settings: GeckoTaskSettings) {
   const file = app.vault.getAbstractFileByPath(d.projectPath);
   if (!file || !(file instanceof TFile)) {
-    new Notice(`TaskWork: File not found ${d.projectPath}`);
+    new Notice(`GeckoTask: File not found ${d.projectPath}`);
     return;
   }
   const prev = await app.vault.read(file);
@@ -275,10 +275,10 @@ async function appendTask(app: App, d: Draft, settings: TaskWorkSettings) {
  * @param d - Draft task data with updated values
  * @param settings - Plugin settings
  */
-async function updateTask(app: App, existingTask: IndexedTask, d: Draft, settings: TaskWorkSettings) {
+async function updateTask(app: App, existingTask: IndexedTask, d: Draft, settings: GeckoTaskSettings) {
   const sourceFile = app.vault.getAbstractFileByPath(existingTask.path);
   if (!(sourceFile instanceof TFile)) {
-    new Notice(`TaskWork: File not found ${existingTask.path}`);
+    new Notice(`GeckoTask: File not found ${existingTask.path}`);
     return;
   }
 
@@ -293,14 +293,14 @@ async function updateTask(app: App, existingTask: IndexedTask, d: Draft, setting
   const descEndIdx = (existingTask.descriptionEndLine ?? existingTask.line) - 1;
   
   if (taskLineIdx < 0 || taskLineIdx >= lines.length) {
-    new Notice(`TaskWork: Task line out of bounds`);
+    new Notice(`GeckoTask: Task line out of bounds`);
     return;
   }
 
   // Parse current task with description
   const { task: parsed } = parseTaskWithDescription(lines, taskLineIdx);
   if (!parsed) {
-    new Notice(`TaskWork: Failed to parse task`);
+    new Notice(`GeckoTask: Failed to parse task`);
     return;
   }
 
@@ -321,7 +321,7 @@ async function updateTask(app: App, existingTask: IndexedTask, d: Draft, setting
   if (isMoving) {
     const targetFile = app.vault.getAbstractFileByPath(targetPath);
     if (!(targetFile instanceof TFile)) {
-      new Notice(`TaskWork: Target file not found ${targetPath}`);
+      new Notice(`GeckoTask: Target file not found ${targetPath}`);
       return;
     }
 
@@ -344,7 +344,7 @@ async function updateTask(app: App, existingTask: IndexedTask, d: Draft, setting
       : finalLines + "\n";
     await app.vault.modify(targetFile, updated);
 
-    new Notice(`TaskWork: Task moved and updated`);
+    new Notice(`GeckoTask: Task moved and updated`);
   } else {
     // Update task in place
     const updatedLines = formatTaskWithDescription(taskWithDescription);
@@ -354,6 +354,6 @@ async function updateTask(app: App, existingTask: IndexedTask, d: Draft, setting
     lines.splice(taskLineIdx, numLinesToReplace, ...updatedLines);
     await app.vault.modify(sourceFile, lines.join("\n"));
 
-    new Notice(`TaskWork: Task updated`);
+    new Notice(`GeckoTask: Task updated`);
   }
 }

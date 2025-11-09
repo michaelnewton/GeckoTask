@@ -1,10 +1,10 @@
 import { App, Editor, MarkdownFileInfo, MarkdownView, Notice, Plugin, TFile, WorkspaceLeaf } from "obsidian";
-import { TaskWorkSettings, DEFAULT_SETTINGS, TaskWorkSettingTab } from "./settings";
+import { GeckoTaskSettings, DEFAULT_SETTINGS, GeckoTaskSettingTab } from "./settings";
 import { captureQuickTask } from "./ui/CaptureModal";
 import { archiveAllCompletedInVault, archiveCompletedInFile } from "./services/Archive";
 import { moveTaskAtCursorInteractive, createProjectFile } from "./services/VaultIO";
 import { toggleCompleteAtCursor, setFieldAtCursor, addRemoveTagsAtCursor, normalizeTaskLine } from "./services/TaskOps";
-import { TaskWorkPanel, VIEW_TYPE_TASKWORK } from "./view/TaskworkPanel";
+import { TasksPanel, VIEW_TYPE_TASKS } from "./view/TasksPanel";
 import { WeeklyReviewPanel, VIEW_TYPE_WEEKLY_REVIEW } from "./view/WeeklyReviewPanel";
 import { isInTasksFolder } from "./utils/areaUtils";
 import { ViewPlugin, Decoration, DecorationSet, ViewUpdate, EditorView } from "@codemirror/view";
@@ -14,30 +14,30 @@ import { calculateNextOccurrence } from "./services/Recurrence";
 
 
 /**
- * Main plugin class for TaskWork - manages task lifecycle and commands.
+ * Main plugin class for GeckoTask - manages task lifecycle and commands.
  */
-export default class TaskWorkPlugin extends Plugin {
+export default class GeckoTaskPlugin extends Plugin {
   // definite assignment (!), we set it in loadSettings()
-  settings!: TaskWorkSettings;
+  settings!: GeckoTaskSettings;
 
   /**
    * Called when the plugin is loaded. Registers commands, settings tab, and view.
    */
   async onload() {
     await this.loadSettings();
-    this.addSettingTab(new TaskWorkSettingTab(this.app, this));
+    this.addSettingTab(new GeckoTaskSettingTab(this.app, this));
 
     // Register the side panel views
-    this.registerView(VIEW_TYPE_TASKWORK, (leaf: WorkspaceLeaf) => new TaskWorkPanel(leaf, this.settings));
+    this.registerView(VIEW_TYPE_TASKS, (leaf: WorkspaceLeaf) => new TasksPanel(leaf, this.settings));
     this.registerView(VIEW_TYPE_WEEKLY_REVIEW, (leaf: WorkspaceLeaf) => new WeeklyReviewPanel(leaf, this.settings, this));
 
     /**
-     * Opens the TaskWork side panel for task management.
+     * Opens the Tasks side panel for task management.
      * Unregistered automatically on plugin unload.
      */
     this.addCommand({
-      id: "taskwork-open-panel",
-      name: "Open TaskWork Panel",
+      id: "geckotask-open-panel",
+      name: "Open Tasks Panel",
       callback: () => this.activateView()
     });
 
@@ -52,14 +52,14 @@ export default class TaskWorkPlugin extends Plugin {
     });
 
     // Optional ribbon icon
-    this.addRibbonIcon("check-circle", "TaskWork Panel", () => this.activateView());
+    this.addRibbonIcon("check-circle", "Tasks Panel", () => this.activateView());
 
     /**
      * Opens a modal to quickly capture a new task with metadata.
      * Unregistered automatically on plugin unload.
      */
     this.addCommand({
-      id: "taskwork-quick-add",
+      id: "geckotask-quick-add",
       name: "Quick Add Task",
       callback: () => captureQuickTask(this.app, this.settings)
     });
@@ -70,11 +70,11 @@ export default class TaskWorkPlugin extends Plugin {
      * Unregistered automatically on plugin unload.
      */
     this.addCommand({
-      id: "taskwork-toggle-complete",
+      id: "geckotask-toggle-complete",
       name: "Complete/Uncomplete Task at Cursor",
       editorCallback: (editor: Editor, _ctx: MarkdownView | MarkdownFileInfo) => {
         const view = this.app.workspace.getActiveViewOfType(MarkdownView);
-        if (!view) return new Notice("TaskWork: Not in a Markdown view.");
+        if (!view) return new Notice("GeckoTask: Not in a Markdown view.");
         toggleCompleteAtCursor(editor, view, this.settings);
       }
     });
@@ -85,7 +85,7 @@ export default class TaskWorkPlugin extends Plugin {
      * Unregistered automatically on plugin unload.
      */
     this.addCommand({
-      id: "taskwork-move-task",
+      id: "geckotask-move-task",
       name: "Move Task (pick project)",
       editorCallback: async (editor: Editor, _ctx: MarkdownView | MarkdownFileInfo) => {
         await moveTaskAtCursorInteractive(this.app, editor, this.settings);
@@ -98,7 +98,7 @@ export default class TaskWorkPlugin extends Plugin {
      * Unregistered automatically on plugin unload.
      */
     this.addCommand({
-      id: "taskwork-set-due",
+      id: "geckotask-set-due",
       name: "Set Due (at cursor)",
       editorCallback: async (editor: Editor, _ctx: MarkdownView | MarkdownFileInfo) => {
         await setFieldAtCursor(this.app, editor, "due", this.settings);
@@ -110,7 +110,7 @@ export default class TaskWorkPlugin extends Plugin {
      * Unregistered automatically on plugin unload.
      */
     this.addCommand({
-      id: "taskwork-set-priority",
+      id: "geckotask-set-priority",
       name: "Set Priority (at cursor)",
       editorCallback: async (editor: Editor, _ctx: MarkdownView | MarkdownFileInfo) => {
         await setFieldAtCursor(this.app, editor, "priority", this.settings);
@@ -122,7 +122,7 @@ export default class TaskWorkPlugin extends Plugin {
      * Unregistered automatically on plugin unload.
      */
     this.addCommand({
-      id: "taskwork-set-project",
+      id: "geckotask-set-project",
       name: "Set Project (at cursor)",
       editorCallback: async (editor: Editor, _ctx: MarkdownView | MarkdownFileInfo) => {
         await setFieldAtCursor(this.app, editor, "project", this.settings);
@@ -134,7 +134,7 @@ export default class TaskWorkPlugin extends Plugin {
      * Unregistered automatically on plugin unload.
      */
     this.addCommand({
-      id: "taskwork-set-recur",
+      id: "geckotask-set-recur",
       name: "Set Recurrence (at cursor)",
       editorCallback: async (editor: Editor, _ctx: MarkdownView | MarkdownFileInfo) => {
         await setFieldAtCursor(this.app, editor, "recur", this.settings);
@@ -149,7 +149,7 @@ export default class TaskWorkPlugin extends Plugin {
      * Unregistered automatically on plugin unload.
      */
     this.addCommand({
-      id: "taskwork-add-remove-tags",
+      id: "geckotask-add-remove-tags",
       name: "Add/Remove Tags (at cursor)",
       editorCallback: async (editor: Editor, _ctx: MarkdownView | MarkdownFileInfo) => {
         await addRemoveTagsAtCursor(this.app, editor, this.settings);
@@ -161,7 +161,7 @@ export default class TaskWorkPlugin extends Plugin {
      * Unregistered automatically on plugin unload.
      */
     this.addCommand({
-      id: "taskwork-create-project",
+      id: "geckotask-create-project",
       name: "Create Project File",
       callback: async () => {
         await createProjectFile(this.app, this.settings);
@@ -173,7 +173,7 @@ export default class TaskWorkPlugin extends Plugin {
      * Unregistered automatically on plugin unload.
      */
     this.addCommand({
-      id: "taskwork-normalize-task",
+      id: "geckotask-normalize-task",
       name: "Normalize Task Line (at cursor)",
       editorCallback: (editor: Editor, _ctx: MarkdownView | MarkdownFileInfo) => {
         normalizeTaskLine(editor);
@@ -185,13 +185,13 @@ export default class TaskWorkPlugin extends Plugin {
      * Unregistered automatically on plugin unload.
      */
     this.addCommand({
-      id: "taskwork-archive-file",
+      id: "geckotask-archive-file",
       name: "Archive Completed in Current File",
       editorCallback: async (_ed: Editor, ctx: MarkdownView | MarkdownFileInfo) => {
         const file = ctx instanceof MarkdownView ? ctx.file : ctx.file;
-        if (!file) return new Notice("TaskWork: No file in context.");
+        if (!file) return new Notice("GeckoTask: No file in context.");
         const moved = await archiveCompletedInFile(this.app, file, this.settings);
-        new Notice(`TaskWork: Archived ${moved} completed task(s) from ${file.name}.`);
+        new Notice(`GeckoTask: Archived ${moved} completed task(s) from ${file.name}.`);
       }
     });
 
@@ -200,11 +200,11 @@ export default class TaskWorkPlugin extends Plugin {
      * Unregistered automatically on plugin unload.
      */
     this.addCommand({
-      id: "taskwork-archive-global",
+      id: "geckotask-archive-global",
       name: "Archive All Completed (older than N days)",
       callback: async () => {
         const moved = await archiveAllCompletedInVault(this.app, this.settings);
-        new Notice(`TaskWork: Archived ${moved} completed task(s) across vault.`);
+        new Notice(`GeckoTask: Archived ${moved} completed task(s) across vault.`);
       }
     });
 
@@ -319,16 +319,16 @@ export default class TaskWorkPlugin extends Plugin {
   }
 
   /**
-   * Activates or reveals the TaskWork panel view.
+   * Activates or reveals the Tasks panel view.
    */
   async activateView() {
     const { workspace } = this.app;
-    let leaf = workspace.getLeavesOfType(VIEW_TYPE_TASKWORK).first();
+    let leaf = workspace.getLeavesOfType(VIEW_TYPE_TASKS).first();
     if (!leaf) {
       const rightLeaf = workspace.getRightLeaf(false);
       if (!rightLeaf) return; // Can't create view if no leaf available
       leaf = rightLeaf;
-      await leaf.setViewState({ type: VIEW_TYPE_TASKWORK, active: true });
+      await leaf.setViewState({ type: VIEW_TYPE_TASKS, active: true });
     }
     workspace.revealLeaf(leaf);
   }
@@ -361,12 +361,12 @@ export default class TaskWorkPlugin extends Plugin {
         // Check if this view's file is in the tasks folder
         if (viewFile && isInTasksFolder(viewFile.path, this.settings)) {
           // Add class to container
-          viewEl.classList.add("mod-taskwork-styled");
+          viewEl.classList.add("mod-geckotask-styled");
           
           // Also add to content area if it exists (for better targeting)
           const contentEl = viewEl.querySelector(".markdown-source-view, .markdown-preview-view, .markdown-reading-view");
           if (contentEl) {
-            contentEl.classList.add("mod-taskwork-styled");
+            contentEl.classList.add("mod-geckotask-styled");
           }
           
           // Also add to CodeMirror editor if it exists (for source view)
@@ -375,18 +375,18 @@ export default class TaskWorkPlugin extends Plugin {
             if (cmEditor) {
               const cmEl = cmEditor.dom;
               if (cmEl) {
-                cmEl.classList.add("mod-taskwork-styled");
+                cmEl.classList.add("mod-geckotask-styled");
               }
             }
           }
         } else {
           // Remove class from container
-          viewEl.classList.remove("mod-taskwork-styled");
+          viewEl.classList.remove("mod-geckotask-styled");
           
           // Also remove from content area
           const contentEl = viewEl.querySelector(".markdown-source-view, .markdown-preview-view, .markdown-reading-view");
           if (contentEl) {
-            contentEl.classList.remove("mod-taskwork-styled");
+            contentEl.classList.remove("mod-geckotask-styled");
           }
           
           // Also remove from CodeMirror editor
@@ -395,7 +395,7 @@ export default class TaskWorkPlugin extends Plugin {
             if (cmEditor) {
               const cmEl = cmEditor.dom;
               if (cmEl) {
-                cmEl.classList.remove("mod-taskwork-styled");
+                cmEl.classList.remove("mod-geckotask-styled");
               }
             }
           }
@@ -406,7 +406,7 @@ export default class TaskWorkPlugin extends Plugin {
 
   /**
    * Styles @ labels in markdown preview by wrapping them in spans.
-   * Only processes text nodes that aren't already inside a taskwork-label span.
+   * Only processes text nodes that aren't already inside a geckotask-label span.
    * @param element - The markdown preview element
    */
   private styleLabelsInMarkdown(element: HTMLElement) {
@@ -423,11 +423,11 @@ export default class TaskWorkPlugin extends Plugin {
     const textNodes: Text[] = [];
     let node;
     while ((node = walker.nextNode())) {
-      // Skip if already inside a taskwork-label span or inside a tag/link
+      // Skip if already inside a geckotask-label span or inside a tag/link
       const parent = node.parentElement;
-      if (parent?.classList.contains("taskwork-label") || 
+      if (parent?.classList.contains("geckotask-label") || 
           parent?.classList.contains("tag") ||
-          parent?.classList.contains("taskwork-field") ||
+          parent?.classList.contains("geckotask-field") ||
           parent?.tagName === "A") {
         continue;
       }
@@ -455,7 +455,7 @@ export default class TaskWorkPlugin extends Plugin {
         
         // Create span for the label
         const labelSpan = document.createElement("span");
-        labelSpan.className = "taskwork-label";
+        labelSpan.className = "geckotask-label";
         labelSpan.textContent = match[0];
         fragment.appendChild(labelSpan);
         
@@ -476,7 +476,7 @@ export default class TaskWorkPlugin extends Plugin {
 
   /**
    * Styles task metadata fields (priority::, due::, etc.) in markdown preview by wrapping them in spans.
-   * Only processes text nodes that aren't already inside a taskwork-field span.
+   * Only processes text nodes that aren't already inside a geckotask-field span.
    * @param element - The markdown preview element
    */
   private styleTaskFieldsInMarkdown(element: HTMLElement) {
@@ -499,11 +499,11 @@ export default class TaskWorkPlugin extends Plugin {
     const textNodes: Text[] = [];
     let node;
     while ((node = walker.nextNode())) {
-      // Skip if already inside a taskwork-field span or inside a tag/link
+      // Skip if already inside a geckotask-field span or inside a tag/link
       const parent = node.parentElement;
-      if (parent?.classList.contains("taskwork-field") || 
+      if (parent?.classList.contains("geckotask-field") ||
           parent?.classList.contains("tag") ||
-          parent?.classList.contains("taskwork-label") ||
+          parent?.classList.contains("geckotask-label") ||
           parent?.tagName === "A") {
         continue;
       }
@@ -534,11 +534,11 @@ export default class TaskWorkPlugin extends Plugin {
         
         // Create span for the field
         const fieldSpan = document.createElement("span");
-        fieldSpan.className = "taskwork-field";
+        fieldSpan.className = "geckotask-field";
         
         // Add the field key (e.g., "priority::")
         const keySpan = document.createElement("span");
-        keySpan.className = "taskwork-field-key";
+        keySpan.className = "geckotask-field-key";
         keySpan.textContent = match[1] + "::";
         fieldSpan.appendChild(keySpan);
         
@@ -547,7 +547,7 @@ export default class TaskWorkPlugin extends Plugin {
         
         // Add the field value (e.g., "urgent")
         const valueSpan = document.createElement("span");
-        valueSpan.className = "taskwork-field-value";
+        valueSpan.className = "geckotask-field-value";
         valueSpan.textContent = match[2].trim();
         fieldSpan.appendChild(valueSpan);
         
@@ -633,9 +633,9 @@ export default class TaskWorkPlugin extends Plugin {
             const start = match.index;
             const end = start + match[0].length;
             
-            // Create decoration with taskwork-field class
+            // Create decoration with geckotask-field class
             const decoration = Decoration.mark({
-              class: "taskwork-field",
+              class: "geckotask-field",
               attributes: {
                 "data-field-key": match[1],
                 "data-field-value": match[2].trim()
@@ -829,7 +829,7 @@ export default class TaskWorkPlugin extends Plugin {
           
           editor.replaceRange(insertText, insertPos, insertPos);
           
-          new Notice(`TaskWork: Next occurrence scheduled for ${nextDue}`);
+          new Notice(`GeckoTask: Next occurrence scheduled for ${nextDue}`);
         }
       }
     }

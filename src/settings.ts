@@ -1,11 +1,11 @@
 import { App, PluginSettingTab, Setting } from "obsidian";
-import TaskWorkPlugin from "./main";
+import GeckoTaskPlugin from "./main";
 import { normalizeInboxPath, getInboxDisplayPath } from "./utils/areaUtils";
 
 /**
  * Plugin settings interface defining all configuration options.
  */
-export interface TaskWorkSettings {
+export interface GeckoTaskSettings {
   tasksFolder: string;                // e.g., "tasks"
   areasEnabled: boolean;              // When enabled, areas are auto-detected from first-level directories in tasksFolder
   inboxPath: string;                  // e.g., "tasks/Inbox.md" - single inbox for all areas
@@ -22,7 +22,7 @@ export interface TaskWorkSettings {
 /**
  * Default settings values used when no saved settings exist.
  */
-export const DEFAULT_SETTINGS: TaskWorkSettings = {
+export const DEFAULT_SETTINGS: GeckoTaskSettings = {
   tasksFolder: "tasks",
   areasEnabled: false, // Areas are auto-detected from first-level directories when enabled
   inboxPath: "tasks/Inbox", // Without .md extension - will be normalized when used
@@ -37,17 +37,17 @@ export const DEFAULT_SETTINGS: TaskWorkSettings = {
 };
 
 /**
- * Settings tab UI for configuring TaskWork plugin options.
+ * Settings tab UI for configuring GeckoTask plugin options.
  */
-export class TaskWorkSettingTab extends PluginSettingTab {
-  plugin: TaskWorkPlugin;
+export class GeckoTaskSettingTab extends PluginSettingTab {
+  plugin: GeckoTaskPlugin;
 
   /**
    * Creates a new settings tab.
    * @param app - Obsidian app instance
-   * @param plugin - TaskWork plugin instance
+   * @param plugin - GeckoTask plugin instance
    */
-  constructor(app: App, plugin: TaskWorkPlugin) {
+  constructor(app: App, plugin: GeckoTaskPlugin) {
     super(app, plugin);
     this.plugin = plugin;
   }

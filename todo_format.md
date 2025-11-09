@@ -1,6 +1,6 @@
 # Task Format Specification
 
-This document describes the markdown format used for tasks in the TaskWork plugin.
+This document describes the markdown format used for tasks in the GeckoTask plugin.
 
 ## Basic Format
 
@@ -65,7 +65,7 @@ Tasks can include @ labels in the title or description:
 - [ ] Schedule meeting with @person/John and @person/Sarah
 ```
 
-**Note:** @ labels are automatically styled in markdown preview and can be extracted from task descriptions for display in the TaskWork Panel.
+**Note:** @ labels are automatically styled in markdown preview and can be extracted from task descriptions for display in the GeckoTask Panel.
 
 ### Task with Due Date
 

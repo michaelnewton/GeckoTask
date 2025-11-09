@@ -1,7 +1,7 @@
 import { App, ItemView, WorkspaceLeaf, TFile, Notice, setIcon, MarkdownView, Plugin } from "obsidian";
-import { TaskWorkSettings } from "../settings";
+import { GeckoTaskSettings } from "../settings";
 import { ReviewStep, WizardState, TaskReviewItem, ProjectReviewInfo, SerializedWizardState } from "./WeeklyReviewPanelTypes";
-import { IndexedTask } from "./TaskworkPanelTypes";
+import { IndexedTask } from "./TasksPanelTypes";
 import { captureQuickTask } from "../ui/CaptureModal";
 import { FilePickerModal } from "../ui/FilePickerModal";
 import { PromptModal } from "../ui/PromptModal";
@@ -55,7 +55,7 @@ const ALL_STEPS: ReviewStep[] = [
  * Side panel view for weekly review functionality.
  */
 export class WeeklyReviewPanel extends ItemView {
-  settings: TaskWorkSettings;
+  settings: GeckoTaskSettings;
   plugin: Plugin;
   container!: HTMLElement;
   wizardState: WizardState;
@@ -76,7 +76,7 @@ export class WeeklyReviewPanel extends ItemView {
    * @param settings - Plugin settings
    * @param plugin - Plugin instance for data persistence
    */
-  constructor(leaf: WorkspaceLeaf, settings: TaskWorkSettings, plugin: Plugin) {
+  constructor(leaf: WorkspaceLeaf, settings: GeckoTaskSettings, plugin: Plugin) {
     super(leaf);
     this.settings = settings;
     this.plugin = plugin;

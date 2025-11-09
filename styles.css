@@ -90,34 +90,34 @@ If your plugin does not need CSS, delete this file.
 }
 
 
-.taskwork-panel { 
+.geckotask-panel { 
   padding: 12px;
   display: flex;
   flex-direction: column;
   height: 100%;
 }
 
-.taskwork-title {
+.geckotask-title {
   margin-bottom: 12px;
   padding-bottom: 8px;
   border-bottom: 1px solid var(--background-modifier-border);
 }
 
-.taskwork-title-header {
+.geckotask-title-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 12px;
 }
 
-.taskwork-title h2 {
+.geckotask-title h2 {
   margin: 0;
   font-size: 18px;
   font-weight: 600;
   flex: 1;
 }
 
-.taskwork-quick-add-btn {
+.geckotask-quick-add-btn {
   background: var(--interactive-accent);
   color: var(--text-on-accent);
   border: 1px solid var(--interactive-accent);
@@ -131,13 +131,13 @@ If your plugin does not need CSS, delete this file.
   flex-shrink: 0;
 }
 
-.taskwork-quick-add-btn:hover {
+.geckotask-quick-add-btn:hover {
   background: var(--interactive-accent-hover);
   border-color: var(--interactive-accent-hover);
 }
 
 /* Tabs */
-.taskwork-tabs-container {
+.geckotask-tabs-container {
   display: flex;
   gap: 4px;
   margin-bottom: 12px;
@@ -145,7 +145,7 @@ If your plugin does not need CSS, delete this file.
   border-bottom: 1px solid var(--background-modifier-border);
 }
 
-.taskwork-tab {
+.geckotask-tab {
   padding: 6px 12px;
   border-radius: 4px;
   font-size: 13px;
@@ -158,12 +158,12 @@ If your plugin does not need CSS, delete this file.
   border: 1px solid transparent;
 }
 
-.taskwork-tab:hover {
+.geckotask-tab:hover {
   color: var(--text-normal);
   background: var(--background-modifier-hover);
 }
 
-.taskwork-tab-active {
+.geckotask-tab-active {
   color: var(--text-normal);
   background: var(--background-modifier-active);
   border-color: var(--background-modifier-border);
@@ -171,7 +171,7 @@ If your plugin does not need CSS, delete this file.
 }
 
 /* Compact filters */
-.taskwork-filters-compact {
+.geckotask-filters-compact {
   margin-bottom: 12px;
   padding-bottom: 12px;
   border-bottom: 1px solid var(--background-modifier-border);
@@ -226,7 +226,7 @@ If your plugin does not need CSS, delete this file.
 }
 
 /* Card-based task list */
-.taskwork-rows {
+.geckotask-rows {
   display: flex;
   flex-direction: column;
   gap: 12px; /* Increased spacing for better visual separation */
@@ -235,7 +235,7 @@ If your plugin does not need CSS, delete this file.
 }
 
 /* Empty state message */
-.taskwork-empty-message {
+.geckotask-empty-message {
   text-align: center;
   padding: 40px 20px;
   color: var(--text-muted);
@@ -243,7 +243,7 @@ If your plugin does not need CSS, delete this file.
   font-style: italic;
 }
 
-.taskwork-card {
+.geckotask-card {
   background: var(--background-primary);
   border: 1px solid var(--background-modifier-border);
   border-radius: 8px; /* Slightly larger radius for modern look */
@@ -254,7 +254,7 @@ If your plugin does not need CSS, delete this file.
   transition: box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
-.taskwork-card:hover {
+.geckotask-card:hover {
   border-color: var(--background-modifier-border-hover);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
@@ -671,7 +671,7 @@ If your plugin does not need CSS, delete this file.
 
 /* Desktop: show on hover */
 @media (hover: hover) and (pointer: fine) {
-  .taskwork-card:hover .task-card-actions {
+  .geckotask-card:hover .task-card-actions {
     opacity: 1;
     border-top: 1px solid var(--background-modifier-border);
     padding-top: 8px;
@@ -682,7 +682,7 @@ If your plugin does not need CSS, delete this file.
 
 /* Mobile: show when card is expanded (tapped) */
 @media (hover: none) and (pointer: coarse) {
-  .taskwork-card.task-card-expanded .task-card-actions {
+  .geckotask-card.task-card-expanded .task-card-actions {
     opacity: 1;
     border-top: 1px solid var(--background-modifier-border);
     padding-top: 8px;
@@ -691,7 +691,7 @@ If your plugin does not need CSS, delete this file.
   }
   
   /* Visual feedback when card is expanded */
-  .taskwork-card.task-card-expanded {
+  .geckotask-card.task-card-expanded {
     border-color: var(--interactive-accent);
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
   }
@@ -717,7 +717,7 @@ If your plugin does not need CSS, delete this file.
   }
 }
 
-.taskwork-action-btn {
+.geckotask-action-btn {
   background: var(--interactive-normal);
   border: 1px solid var(--background-modifier-border);
   border-radius: 4px;
@@ -731,33 +731,33 @@ If your plugin does not need CSS, delete this file.
   transition: background 0.2s ease;
 }
 
-.taskwork-action-btn:hover {
+.geckotask-action-btn:hover {
   background: var(--interactive-hover);
 }
 
 /* Edit button icon */
-.taskwork-action-btn-edit::before {
+.geckotask-action-btn-edit::before {
   content: '✎';
   font-size: 12px;
 }
 
 /* Move button icon */
-.taskwork-action-btn-move::before {
+.geckotask-action-btn-move::before {
   content: '↔';
   font-size: 12px;
 }
 
-.taskwork-action-btn-primary {
+.geckotask-action-btn-primary {
   background: var(--interactive-accent);
   color: var(--text-on-accent);
   border-color: var(--interactive-accent);
 }
 
-.taskwork-action-btn-primary:hover {
+.geckotask-action-btn-primary:hover {
   background: var(--interactive-accent-hover);
 }
 
-/* TaskWork Capture Modal - Wider inputs (desktop) */
+/* GeckoTask Capture Modal - Wider inputs (desktop) */
 .modal .setting-item {
   display: flex !important;
   align-items: flex-start !important;
@@ -979,13 +979,13 @@ If your plugin does not need CSS, delete this file.
   }
 }
 
-/* Apply TaskworkPanel label/tag styling to markdown view (only for tasks folder files) */
+/* Apply TasksPanel label/tag styling to markdown view (only for tasks folder files) */
 
 /* Style hashtags in source view (editing mode) - CodeMirror 6 */
 /* Obsidian splits hashtags into .cm-hashtag-begin (#) and .cm-hashtag-end (text) */
 /* Style them to appear as a single badge */
-.mod-taskwork-styled .cm-hashtag-begin,
-.markdown-source-view.mod-taskwork-styled .cm-hashtag-begin {
+.mod-geckotask-styled .cm-hashtag-begin,
+.markdown-source-view.mod-geckotask-styled .cm-hashtag-begin {
   display: inline-block !important;
   padding: 2px 0 2px 8px !important; /* Padding on left for # */
   border-radius: 12px 0 0 12px !important; /* Rounded left side only */
@@ -999,8 +999,8 @@ If your plugin does not need CSS, delete this file.
 }
 
 /* Style the end span to attach to the begin span */
-.mod-taskwork-styled .cm-hashtag-end,
-.markdown-source-view.mod-taskwork-styled .cm-hashtag-end {
+.mod-geckotask-styled .cm-hashtag-end,
+.markdown-source-view.mod-geckotask-styled .cm-hashtag-end {
   display: inline-block !important;
   padding: 2px 8px 2px 0 !important; /* Padding on right, no left padding */
   border-radius: 0 12px 12px 0 !important; /* Rounded right side only */
@@ -1015,9 +1015,9 @@ If your plugin does not need CSS, delete this file.
 }
 
 /* Style hashtags in preview/reading view */
-.mod-taskwork-styled .tag,
-.markdown-preview-view.mod-taskwork-styled .tag,
-.markdown-reading-view.mod-taskwork-styled .tag {
+.mod-geckotask-styled .tag,
+.markdown-preview-view.mod-geckotask-styled .tag,
+.markdown-reading-view.mod-geckotask-styled .tag {
   display: inline-block !important;
   padding: 2px 8px !important;
   border-radius: 12px !important;
@@ -1031,11 +1031,11 @@ If your plugin does not need CSS, delete this file.
   text-decoration: none !important;
 }
 
-/* Style @ labels in markdown view to match TaskworkPanel */
-.mod-taskwork-styled .taskwork-label,
-.markdown-source-view.mod-taskwork-styled .taskwork-label,
-.markdown-preview-view.mod-taskwork-styled .taskwork-label,
-.markdown-reading-view.mod-taskwork-styled .taskwork-label {
+/* Style @ labels in markdown view to match TasksPanel */
+.mod-geckotask-styled .geckotask-label,
+.markdown-source-view.mod-geckotask-styled .geckotask-label,
+.markdown-preview-view.mod-geckotask-styled .geckotask-label,
+.markdown-reading-view.mod-geckotask-styled .geckotask-label {
   display: inline-block !important;
   padding: 2px 8px !important;
   border-radius: 12px !important;
@@ -1049,12 +1049,12 @@ If your plugin does not need CSS, delete this file.
 }
 
 /* Style task metadata fields (priority::, due::, etc.) in markdown view */
-.mod-taskwork-styled .taskwork-field,
-.markdown-source-view.mod-taskwork-styled .taskwork-field,
-.markdown-preview-view.mod-taskwork-styled .taskwork-field,
-.markdown-reading-view.mod-taskwork-styled .taskwork-field,
-.cm-editor.mod-taskwork-styled .taskwork-field,
-.cm-content .taskwork-field {
+.mod-geckotask-styled .geckotask-field,
+.markdown-source-view.mod-geckotask-styled .geckotask-field,
+.markdown-preview-view.mod-geckotask-styled .geckotask-field,
+.markdown-reading-view.mod-geckotask-styled .geckotask-field,
+.cm-editor.mod-geckotask-styled .geckotask-field,
+.cm-content .geckotask-field {
   display: inline-block !important;
   padding: 2px 8px !important;
   border-radius: 12px !important;
@@ -1068,19 +1068,19 @@ If your plugin does not need CSS, delete this file.
 }
 
 /* Style the field key (e.g., "priority::") */
-.mod-taskwork-styled .taskwork-field-key,
-.markdown-source-view.mod-taskwork-styled .taskwork-field-key,
-.markdown-preview-view.mod-taskwork-styled .taskwork-field-key,
-.markdown-reading-view.mod-taskwork-styled .taskwork-field-key {
+.mod-geckotask-styled .geckotask-field-key,
+.markdown-source-view.mod-geckotask-styled .geckotask-field-key,
+.markdown-preview-view.mod-geckotask-styled .geckotask-field-key,
+.markdown-reading-view.mod-geckotask-styled .geckotask-field-key {
   font-weight: 600 !important;
   opacity: 0.8 !important;
 }
 
 /* Style the field value (e.g., "urgent", "2025-11-07") */
-.mod-taskwork-styled .taskwork-field-value,
-.markdown-source-view.mod-taskwork-styled .taskwork-field-value,
-.markdown-preview-view.mod-taskwork-styled .taskwork-field-value,
-.markdown-reading-view.mod-taskwork-styled .taskwork-field-value {
+.mod-geckotask-styled .geckotask-field-value,
+.markdown-source-view.mod-geckotask-styled .geckotask-field-value,
+.markdown-preview-view.mod-geckotask-styled .geckotask-field-value,
+.markdown-reading-view.mod-geckotask-styled .geckotask-field-value {
   font-weight: 500 !important;
 }
 

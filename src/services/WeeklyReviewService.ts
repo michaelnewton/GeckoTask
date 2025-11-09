@@ -1,7 +1,7 @@
 import { App, TFile } from "obsidian";
-import { TaskWorkSettings } from "../settings";
+import { GeckoTaskSettings } from "../settings";
 import { parseTaskWithDescription, Task } from "../models/TaskModel";
-import { IndexedTask } from "../view/TaskworkPanelTypes";
+import { IndexedTask } from "../view/TasksPanelTypes";
 import { TaskReviewItem, ProjectReviewInfo } from "../view/WeeklyReviewPanelTypes";
 import { 
   isInTasksFolder, 
@@ -18,7 +18,7 @@ import {
  * @param settings - Plugin settings
  * @returns Array of indexed tasks from the Inbox
  */
-export async function fetchInboxTasks(app: App, settings: TaskWorkSettings): Promise<IndexedTask[]> {
+export async function fetchInboxTasks(app: App, settings: GeckoTaskSettings): Promise<IndexedTask[]> {
   const inboxPath = normalizeInboxPath(settings.inboxPath);
   const inboxFile = app.vault.getAbstractFileByPath(inboxPath);
   
@@ -38,7 +38,7 @@ export async function fetchInboxTasks(app: App, settings: TaskWorkSettings): Pro
  */
 export async function fetchTasksByTag(
   app: App, 
-  settings: TaskWorkSettings, 
+  settings: GeckoTaskSettings, 
   tag: string
 ): Promise<IndexedTask[]> {
   const files = app.vault.getMarkdownFiles()
@@ -64,7 +64,7 @@ export async function fetchTasksByTag(
  */
 export async function fetchSomedayMaybeTasks(
   app: App, 
-  settings: TaskWorkSettings
+  settings: GeckoTaskSettings
 ): Promise<IndexedTask[]> {
   const tasks: IndexedTask[] = [];
   const somedayMaybeFolderName = settings.somedayMaybeFolderName;
@@ -102,7 +102,7 @@ export async function fetchSomedayMaybeTasks(
  */
 export async function fetchSomedayMaybeProjects(
   app: App, 
-  settings: TaskWorkSettings
+  settings: GeckoTaskSettings
 ): Promise<ProjectReviewInfo[]> {
   const projects: ProjectReviewInfo[] = [];
   const somedayMaybeFolderName = settings.somedayMaybeFolderName;
@@ -192,7 +192,7 @@ export async function fetchSomedayMaybeProjects(
  */
 export async function fetchNextActions(
   app: App, 
-  settings: TaskWorkSettings
+  settings: GeckoTaskSettings
 ): Promise<IndexedTask[]> {
   const files = app.vault.getMarkdownFiles()
     .filter(f => isInTasksFolder(f.path, settings));
@@ -235,7 +235,7 @@ export async function fetchNextActions(
  */
 export async function fetchProjectsWithTasks(
   app: App, 
-  settings: TaskWorkSettings
+  settings: GeckoTaskSettings
 ): Promise<ProjectReviewInfo[]> {
   const files = app.vault.getMarkdownFiles()
     .filter(f => isInTasksFolder(f.path, settings));
@@ -301,7 +301,7 @@ export async function fetchProjectsWithTasks(
 async function fetchTasksFromFile(
   app: App, 
   file: TFile, 
-  settings: TaskWorkSettings
+  settings: GeckoTaskSettings
 ): Promise<IndexedTask[]> {
   const path = file.path;
   const tasks: IndexedTask[] = [];

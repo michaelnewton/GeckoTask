@@ -1,4 +1,4 @@
-import { IndexedTask } from "./TaskworkPanelTypes";
+import { IndexedTask } from "./TasksPanelTypes";
 
 /**
  * Step identifier for the weekly review wizard.

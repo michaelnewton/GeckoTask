@@ -1,5 +1,5 @@
 import { App, TFolder } from "obsidian";
-import { TaskWorkSettings } from "../settings";
+import { GeckoTaskSettings } from "../settings";
 
 /**
  * Gets the list of areas by detecting first-level directories in the tasks folder.
@@ -8,7 +8,7 @@ import { TaskWorkSettings } from "../settings";
  * @param settings - Plugin settings
  * @returns Array of area names (sorted alphabetically)
  */
-export function getAreas(app: App, settings: TaskWorkSettings): string[] {
+export function getAreas(app: App, settings: GeckoTaskSettings): string[] {
   // If areas are disabled, return empty array
   if (!settings.areasEnabled) {
     return [];
@@ -48,7 +48,7 @@ export function getAreas(app: App, settings: TaskWorkSettings): string[] {
  * @param settings - Plugin settings
  * @returns Area name or undefined
  */
-export function inferAreaFromPath(filePath: string, app: App, settings: TaskWorkSettings): string | undefined {
+export function inferAreaFromPath(filePath: string, app: App, settings: GeckoTaskSettings): string | undefined {
   // Check if file is under tasksFolder
   if (!filePath.startsWith(settings.tasksFolder + "/")) {
     return undefined;
@@ -73,14 +73,14 @@ export function inferAreaFromPath(filePath: string, app: App, settings: TaskWork
 /**
  * Checks if a file path is within the tasks folder structure
  */
-export function isInTasksFolder(filePath: string, settings: TaskWorkSettings): boolean {
+export function isInTasksFolder(filePath: string, settings: GeckoTaskSettings): boolean {
   return filePath.startsWith(settings.tasksFolder + "/");
 }
 
 /**
  * Gets the full path for an area folder
  */
-export function getAreaPath(area: string, settings: TaskWorkSettings): string {
+export function getAreaPath(area: string, settings: GeckoTaskSettings): string {
   return `${settings.tasksFolder}/${area}`;
 }
 
@@ -107,7 +107,7 @@ export function getInboxDisplayPath(path: string): string {
  * Checks if a file path is a special file that shouldn't show a project name
  * (e.g., the configured inbox file or the general tasks file)
  */
-export function isSpecialFile(filePath: string, settings: TaskWorkSettings): boolean {
+export function isSpecialFile(filePath: string, settings: GeckoTaskSettings): boolean {
   const normalizedInboxPath = normalizeInboxPath(settings.inboxPath);
   // Check if this is the configured inbox file
   if (filePath === normalizedInboxPath) {
@@ -125,7 +125,7 @@ export function isSpecialFile(filePath: string, settings: TaskWorkSettings): boo
  * @param settings - Plugin settings
  * @returns True if the file matches the tasks folder name
  */
-export function isTasksFolderFile(filePath: string, settings: TaskWorkSettings): boolean {
+export function isTasksFolderFile(filePath: string, settings: GeckoTaskSettings): boolean {
   // Check if the file is directly in the tasks folder and matches the folder name
   // Handle both with and without .md extension
   const tasksFolderFileWithExt = `${settings.tasksFolder}/${settings.tasksFolder}.md`;
@@ -158,7 +158,7 @@ export function isTasksFolderFile(filePath: string, settings: TaskWorkSettings):
  * @param settings - Plugin settings
  * @returns Display name for the project
  */
-export function getProjectDisplayName(filePath: string, app: App, settings: TaskWorkSettings): string {
+export function getProjectDisplayName(filePath: string, app: App, settings: GeckoTaskSettings): string {
   // Safety check: if this is the tasks folder file, return empty string (shouldn't happen)
   if (isTasksFolderFile(filePath, settings)) {
     return "";
