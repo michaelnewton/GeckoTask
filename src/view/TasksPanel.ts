@@ -1215,15 +1215,27 @@ export class TasksPanel extends ItemView {
       // Format task with description
       const updatedLines = formatTaskWithDescription(taskWithDescription);
 
+      // Ensure target file exists and is accessible
+      let targetFile = this.app.vault.getAbstractFileByPath(target.path);
+      if (!targetFile || !(targetFile instanceof TFile)) {
+        // If file doesn't exist, try to get it from the target object directly
+        targetFile = target;
+      }
+      
+      if (!targetFile || !(targetFile instanceof TFile)) {
+        new Notice(`GeckoTask: Target file not found: ${target.path}`);
+        return;
+      }
+
       // Append to target file
-      const targetContent = await this.app.vault.read(target);
+      const targetContent = await this.app.vault.read(targetFile);
       const finalLines = updatedLines.join("\n");
       const updated = targetContent.trim().length 
         ? targetContent + "\n" + finalLines + "\n" 
         : finalLines + "\n";
-      await this.app.vault.modify(target, updated);
+      await this.app.vault.modify(targetFile, updated);
 
-      new Notice(`GeckoTask: Moved task to ${target.path}`);
+      new Notice(`GeckoTask: Moved task to ${targetFile.path}`);
       await this.reindex();
       this.rerender();
     } catch (error) {

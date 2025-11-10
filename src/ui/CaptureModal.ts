@@ -4,6 +4,7 @@ import { parseNLDate } from "../services/NLDate";
 import { formatTask, formatTaskWithDescription, Task, parseTaskWithDescription } from "../models/TaskModel";
 import { isInTasksFolder, normalizeInboxPath, isSpecialFile, isTasksFolderFile, getProjectDisplayName } from "../utils/areaUtils";
 import { IndexedTask } from "../view/TasksPanelTypes";
+import { createProjectFile } from "../services/VaultIO";
 
 
 /**
@@ -106,22 +107,12 @@ export async function captureQuickTask(app: App, settings: GeckoTaskSettings, ex
           .filter(p => !isTasksFolderFile(p, settings));
 
         new Setting(contentEl).setName("Project").addDropdown(d => {
-          // Add inbox as default option
-          d.addOption(normalizedInboxPath, getProjectDisplayName(normalizedInboxPath, app, settings));
-          // Add other project files
-          for (const p of projectPaths) {
-            if (p !== normalizedInboxPath) {
-              d.addOption(p, getProjectDisplayName(p, app, settings));
-            }
-          }
-          d.setValue(this.draft.projectPath);
-          d.selectEl.style.width = "100%";
-          d.onChange(v => this.draft.projectPath = v);
+          const CREATE_NEW_PROJECT_VALUE = "__CREATE_NEW_PROJECT__";
           
           /**
-           * Refreshes the project dropdown options by scanning the vault for current files.
+           * Populates the dropdown with current project options.
            */
-          const refreshProjectOptions = () => {
+          const populateOptions = () => {
             const currentFiles = app.vault.getMarkdownFiles();
             const currentProjectPaths = currentFiles
               .map(f => f.path)
@@ -132,8 +123,12 @@ export async function captureQuickTask(app: App, settings: GeckoTaskSettings, ex
             const currentValue = d.selectEl.value;
             d.selectEl.empty();
             
+            // Add "Create new project" option first
+            d.addOption(CREATE_NEW_PROJECT_VALUE, "➕ Create new project");
+            
             // Add inbox as default option
             d.addOption(normalizedInboxPath, getProjectDisplayName(normalizedInboxPath, app, settings));
+            
             // Add other project files
             for (const p of currentProjectPaths) {
               if (p !== normalizedInboxPath) {
@@ -142,7 +137,10 @@ export async function captureQuickTask(app: App, settings: GeckoTaskSettings, ex
             }
             
             // Restore the selected value if it still exists, otherwise use inbox
-            if (currentProjectPaths.includes(currentValue) || currentValue === normalizedInboxPath) {
+            if (currentValue === CREATE_NEW_PROJECT_VALUE) {
+              // If "Create new project" was selected, keep it selected
+              d.setValue(CREATE_NEW_PROJECT_VALUE);
+            } else if (currentProjectPaths.includes(currentValue) || currentValue === normalizedInboxPath) {
               d.setValue(currentValue);
             } else {
               d.setValue(normalizedInboxPath);
@@ -150,9 +148,35 @@ export async function captureQuickTask(app: App, settings: GeckoTaskSettings, ex
             }
           };
           
+          // Initial population
+          populateOptions();
+          d.setValue(this.draft.projectPath);
+          d.selectEl.style.width = "100%";
+          
+          d.onChange(async (v) => {
+            if (v === CREATE_NEW_PROJECT_VALUE) {
+              // Open create project modal
+              const newFile = await createProjectFile(app, settings);
+              if (newFile) {
+                // Update draft with new project path
+                this.draft.projectPath = newFile.path;
+                // Refresh options to include the new project
+                populateOptions();
+                // Select the newly created project
+                d.setValue(newFile.path);
+              } else {
+                // User cancelled - restore previous selection
+                populateOptions();
+                d.setValue(this.draft.projectPath || normalizedInboxPath);
+              }
+            } else {
+              this.draft.projectPath = v;
+            }
+          });
+          
           // Refresh options when dropdown is clicked/focused
-          d.selectEl.addEventListener("mousedown", refreshProjectOptions);
-          d.selectEl.addEventListener("focus", refreshProjectOptions);
+          d.selectEl.addEventListener("mousedown", populateOptions);
+          d.selectEl.addEventListener("focus", populateOptions);
         });
 
         new Setting(contentEl).setName("Due").addText(t => {
