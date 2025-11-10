@@ -1654,7 +1654,6 @@ export class WeeklyReviewPanel extends ItemView {
             completed: undefined,
             recur: parsed.recur,
           };
-          delete nextOccurrenceTask.description;
         }
       }
 

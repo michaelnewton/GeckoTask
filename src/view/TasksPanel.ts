@@ -927,7 +927,6 @@ export class TasksPanel extends ItemView {
               completed: undefined,
               recur: parsed.recur,
             };
-            delete nextOccurrenceTask.description; // Don't duplicate description
           }
         }
       } else {

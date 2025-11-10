@@ -120,7 +120,7 @@ export async function captureQuickTask(app: App, settings: GeckoTaskSettings, ex
               .filter(p => !isTasksFolderFile(p, settings));
             
             // Clear existing options
-            const currentValue = d.selectEl.value;
+            const currentValue = d.selectEl.value || this.draft.projectPath;
             d.selectEl.empty();
             
             // Add "Create new project" option first
@@ -136,21 +136,25 @@ export async function captureQuickTask(app: App, settings: GeckoTaskSettings, ex
               }
             }
             
-            // Restore the selected value if it still exists, otherwise use inbox
+            // Restore the selected value if it still exists, otherwise use draft path or inbox
             if (currentValue === CREATE_NEW_PROJECT_VALUE) {
               // If "Create new project" was selected, keep it selected
               d.setValue(CREATE_NEW_PROJECT_VALUE);
             } else if (currentProjectPaths.includes(currentValue) || currentValue === normalizedInboxPath) {
               d.setValue(currentValue);
             } else {
-              d.setValue(normalizedInboxPath);
-              this.draft.projectPath = normalizedInboxPath;
+              // If draft path exists and is valid, use it; otherwise use inbox
+              const valueToUse = this.draft.projectPath && 
+                (currentProjectPaths.includes(this.draft.projectPath) || this.draft.projectPath === normalizedInboxPath)
+                ? this.draft.projectPath 
+                : normalizedInboxPath;
+              d.setValue(valueToUse);
+              this.draft.projectPath = valueToUse;
             }
           };
           
           // Initial population
           populateOptions();
-          d.setValue(this.draft.projectPath);
           d.selectEl.style.width = "100%";
           
           d.onChange(async (v) => {

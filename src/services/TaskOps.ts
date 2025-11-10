@@ -81,9 +81,6 @@ export async function toggleCompleteAtCursor(editor: Editor, view: MarkdownView,
         recur: parsed.recur, // Keep the recurrence pattern
       };
 
-      // Remove description from the new task (don't duplicate it)
-      delete newTask.description;
-
       const newTaskLines = formatTaskWithDescription(newTask);
       
       // Insert on the line directly underneath the task

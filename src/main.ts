@@ -6,11 +6,12 @@ import { moveTaskAtCursorInteractive, createProjectFile } from "./services/Vault
 import { toggleCompleteAtCursor, setFieldAtCursor, addRemoveTagsAtCursor, normalizeTaskLine } from "./services/TaskOps";
 import { TasksPanel, VIEW_TYPE_TASKS } from "./view/TasksPanel";
 import { WeeklyReviewPanel, VIEW_TYPE_WEEKLY_REVIEW } from "./view/WeeklyReviewPanel";
-import { isInTasksFolder } from "./utils/areaUtils";
+import { isInTasksFolder, inferAreaFromPath, isSpecialFile } from "./utils/areaUtils";
 import { ViewPlugin, Decoration, DecorationSet, ViewUpdate, EditorView } from "@codemirror/view";
 import { RangeSetBuilder } from "@codemirror/state";
 import { parseTaskWithDescription, formatTaskWithDescription, Task } from "./models/TaskModel";
 import { calculateNextOccurrence } from "./services/Recurrence";
+import { IndexedTask } from "./view/TasksPanelTypes";
 
 
 /**
@@ -55,13 +56,35 @@ export default class GeckoTaskPlugin extends Plugin {
     this.addRibbonIcon("check-circle", "Tasks Panel", () => this.activateView());
 
     /**
-     * Opens a modal to quickly capture a new task with metadata.
+     * Opens a modal to quickly capture a new task or edit an existing task at the cursor.
+     * If the cursor is on a task line, opens in edit mode; otherwise opens in add mode.
      * Unregistered automatically on plugin unload.
      */
     this.addCommand({
       id: "geckotask-quick-add",
-      name: "Quick Add Task",
-      callback: () => captureQuickTask(this.app, this.settings)
+      name: "Quick Add/Edit Task",
+      editorCallback: async (editor: Editor, ctx: MarkdownView | MarkdownFileInfo) => {
+        const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+        if (!view || !view.file) {
+          // Not in a markdown view, just open add mode
+          await captureQuickTask(this.app, this.settings);
+          return;
+        }
+
+        // Try to get task at cursor
+        const existingTask = this.getTaskAtCursor(editor, view.file);
+        if (existingTask) {
+          // Task found at cursor, open in edit mode
+          await captureQuickTask(this.app, this.settings, existingTask);
+        } else {
+          // No task at cursor, open in add mode
+          await captureQuickTask(this.app, this.settings);
+        }
+      },
+      callback: async () => {
+        // Fallback when not in editor - just open add mode
+        await captureQuickTask(this.app, this.settings);
+      }
     });
 
     /**
@@ -805,9 +828,6 @@ export default class GeckoTaskPlugin extends Plugin {
             recur: parsed.recur,
           };
           
-          // Remove description from the new task
-          delete newTask.description;
-          
           const newTaskLines = formatTaskWithDescription(newTask);
           
           // Insert on the line directly underneath the task
@@ -835,6 +855,51 @@ export default class GeckoTaskPlugin extends Plugin {
     const m = String(d.getMonth() + 1).padStart(2, "0");
     const day = String(d.getDate()).padStart(2, "0");
     return `${d.getFullYear()}-${m}-${day}`;
+  }
+
+  /**
+   * Gets the task at the cursor position and converts it to IndexedTask format.
+   * @param editor - The editor instance
+   * @param file - The file containing the task
+   * @returns IndexedTask if a task is found at the cursor, null otherwise
+   */
+  private getTaskAtCursor(editor: Editor, file: TFile): IndexedTask | null {
+    const lineNo = editor.getCursor().line;
+    
+    // Get all lines from the editor to parse task with description
+    const totalLines = editor.lineCount();
+    const lines: string[] = [];
+    for (let i = 0; i < totalLines; i++) {
+      lines.push(editor.getLine(i));
+    }
+    
+    // Parse the task with its description
+    const { task: parsed, endLine } = parseTaskWithDescription(lines, lineNo);
+    if (!parsed) {
+      return null;
+    }
+    
+    const path = file.path;
+    const raw = lines[lineNo].trim();
+    const area = inferAreaFromPath(path, this.app, this.settings);
+    // Project is derived from file basename, not stored in metadata
+    const project = isSpecialFile(path, this.settings) ? undefined : file.basename;
+    
+    return {
+      path,
+      line: lineNo + 1, // 1-based task line
+      raw,
+      title: parsed.title,
+      description: parsed.description,
+      tags: parsed.tags || [],
+      area,
+      project,
+      priority: parsed.priority,
+      due: parsed.due,
+      recur: parsed.recur,
+      checked: parsed.checked,
+      descriptionEndLine: endLine + 1 // 1-based, inclusive
+    };
   }
 
 }
