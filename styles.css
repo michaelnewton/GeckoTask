@@ -485,6 +485,10 @@ If your plugin does not need CSS, delete this file.
   font-weight: 500;
 }
 
+.task-due-text-overdue {
+  color: #e74c3c; /* Red for overdue dates */
+}
+
 .task-due-container.task-due-empty {
   opacity: 0.6;
   font-style: italic;

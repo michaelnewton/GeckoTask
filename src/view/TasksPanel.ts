@@ -444,6 +444,18 @@ export class TasksPanel extends ItemView {
   }
 
   /**
+   * Checks if a due date is overdue (older than today).
+   * @param dueDate - ISO date string (YYYY-MM-DD)
+   * @returns True if the date is overdue
+   */
+  private isOverdue(dueDate: string): boolean {
+    const moment = (window as any).moment;
+    const due = moment(dueDate);
+    const today = moment().startOf("day");
+    return due.diff(today, "days") < 0;
+  }
+
+  /**
    * Formats a due date for display.
    * Shows day name if within next 7 days, otherwise shortened format like "7th Nov".
    * @param dueDate - ISO date string (YYYY-MM-DD)
@@ -732,6 +744,10 @@ export class TasksPanel extends ItemView {
         dueIcon.innerHTML = "📅";
         const dueText = dueContainer.createEl("span", { cls: "task-due-text" });
         dueText.textContent = this.formatDueDate(t.due);
+        // Apply red styling if overdue
+        if (this.isOverdue(t.due)) {
+          dueText.addClass("task-due-text-overdue");
+        }
         dueContainer.style.cursor = "pointer";
         dueContainer.addEventListener("click", async () => {
           const defaultValue = t.due ?? "today";
