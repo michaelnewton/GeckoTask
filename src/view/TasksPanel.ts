@@ -147,6 +147,11 @@ export class TasksPanel extends ItemView {
    * @param host - Container element to render into
    */
   private renderFilters(host: HTMLElement) {
+    // Preserve focus state before emptying
+    const activeElement = document.activeElement as HTMLElement;
+    const wasSearchFocused = activeElement?.classList.contains("filter-search");
+    const cursorPosition = wasSearchFocused ? (activeElement as HTMLInputElement).selectionStart : null;
+    
     host.empty();
     host.addClass("geckotask-filters-compact");
 
@@ -165,6 +170,15 @@ export class TasksPanel extends ItemView {
       this.filters.query = (e.target as HTMLInputElement).value;
       this.rerender();
     });
+    
+    // Restore focus and cursor position if search input was focused
+    if (wasSearchFocused && cursorPosition !== null) {
+      // Use requestAnimationFrame to ensure DOM is ready before restoring focus
+      requestAnimationFrame(() => {
+        searchInput.focus();
+        searchInput.setSelectionRange(cursorPosition, cursorPosition);
+      });
+    }
 
     // Second row: Compact filter buttons
     const filterRow = host.createDiv({ cls: "filter-row filter-buttons" });
@@ -781,9 +795,19 @@ export class TasksPanel extends ItemView {
         descIcon.style.cursor = "pointer";
       }
       
-      // Right side: Project
+      // Right side: Project (or Area if in General file)
       const rightSide = bottomRow.createDiv({ cls: "task-card-bottom-right" });
-      if (t.project) {
+      // Check if this task is in the General project file
+      const basename = t.path.split("/").pop()?.replace(/\.md$/, "") || "";
+      const isGeneralFile = basename === this.settings.generalTasksFile;
+      
+      if (isGeneralFile && t.area) {
+        // Show Area instead of project for General file
+        const areaContainer = rightSide.createDiv({ cls: "task-project-container" });
+        const areaText = areaContainer.createEl("span", { cls: "task-project-text" });
+        areaText.textContent = `# ${t.area}`;
+      } else if (t.project) {
+        // Show project for other files
         const projectContainer = rightSide.createDiv({ cls: "task-project-container" });
         const projectText = projectContainer.createEl("span", { cls: "task-project-text" });
         projectText.textContent = `# ${t.project}`;
@@ -1134,62 +1158,78 @@ export class TasksPanel extends ItemView {
    * @param t - The indexed task to move
    */
   private async moveTask(t: IndexedTask) {
-    const files = this.app.vault.getMarkdownFiles()
-      .filter(f => isInTasksFolder(f.path, this.settings))
-      .filter(f => !isTasksFolderFile(f.path, this.settings));
+    try {
+      const files = this.app.vault.getMarkdownFiles()
+        .filter(f => isInTasksFolder(f.path, this.settings))
+        .filter(f => !isTasksFolderFile(f.path, this.settings));
 
-    const target = await new FilePickerModal(this.app, files).openAndGet();
-    if (!target) return;
+      if (files.length === 0) {
+        new Notice("GeckoTask: No files available to move task to.");
+        return;
+      }
 
-    // Infer new area and project from target file
-    const newArea = inferAreaFromPath(target.path, this.app, this.settings);
-    const newProject = target.basename;
+      const modal = new FilePickerModal(this.app, files, this.settings);
+      const target = await modal.openAndGet();
+      if (!target) {
+        // User cancelled - this is fine, just return
+        return;
+      }
 
-    // Remove from current file (preserving description)
-    const sourceFile = this.app.vault.getAbstractFileByPath(t.path);
-    if (!(sourceFile instanceof TFile)) return;
+      // Remove from current file (preserving description)
+      const sourceFile = this.app.vault.getAbstractFileByPath(t.path);
+      if (!(sourceFile instanceof TFile)) {
+        new Notice("GeckoTask: Source file not found.");
+        return;
+      }
 
-    let taskWithDescription: Task | null = null;
-    await this.app.vault.process(sourceFile, (data) => {
-      const lines = data.split("\n");
-      const taskLineIdx = t.line - 1; // 0-based
-      const descEndIdx = (t.descriptionEndLine ?? t.line) - 1;
-      
-      if (taskLineIdx < 0 || taskLineIdx >= lines.length) return data;
+      let taskWithDescription: Task | null = null;
+      await this.app.vault.process(sourceFile, (data) => {
+        const lines = data.split("\n");
+        const taskLineIdx = t.line - 1; // 0-based
+        const descEndIdx = (t.descriptionEndLine ?? t.line) - 1;
+        
+        if (taskLineIdx < 0 || taskLineIdx >= lines.length) return data;
 
-      // Parse current task with description
-      const { task: parsed } = parseTaskWithDescription(lines, taskLineIdx);
-      if (!parsed) return data;
+        // Parse current task with description
+        const { task: parsed } = parseTaskWithDescription(lines, taskLineIdx);
+        if (!parsed) return data;
 
-      // Update task metadata (remove area:: and project:: since we're using folder/file-based structure)
-      taskWithDescription = {
-        ...parsed,
-        area: undefined, // Don't store area in metadata, it's derived from folder
-        project: undefined, // Don't store project in metadata, it's derived from file basename
-      };
+        // Update task metadata (remove area:: and project:: since we're using folder/file-based structure)
+        taskWithDescription = {
+          ...parsed,
+          area: undefined, // Don't store area in metadata, it's derived from folder
+          project: undefined, // Don't store project in metadata, it's derived from file basename
+        };
 
-      // Remove task line and description lines
-      const numLinesToRemove = descEndIdx - taskLineIdx + 1;
-      lines.splice(taskLineIdx, numLinesToRemove);
-      return lines.join("\n");
-    });
+        // Remove task line and description lines
+        const numLinesToRemove = descEndIdx - taskLineIdx + 1;
+        lines.splice(taskLineIdx, numLinesToRemove);
+        return lines.join("\n");
+      });
 
-    if (!taskWithDescription) return;
+      if (!taskWithDescription) {
+        new Notice("GeckoTask: Could not parse task to move.");
+        return;
+      }
 
-    // Format task with description
-    const updatedLines = formatTaskWithDescription(taskWithDescription);
+      // Format task with description
+      const updatedLines = formatTaskWithDescription(taskWithDescription);
 
-    // Append to target file
-    const targetContent = await this.app.vault.read(target);
-    const finalLines = updatedLines.join("\n");
-    const updated = targetContent.trim().length 
-      ? targetContent + "\n" + finalLines + "\n" 
-      : finalLines + "\n";
-    await this.app.vault.modify(target, updated);
+      // Append to target file
+      const targetContent = await this.app.vault.read(target);
+      const finalLines = updatedLines.join("\n");
+      const updated = targetContent.trim().length 
+        ? targetContent + "\n" + finalLines + "\n" 
+        : finalLines + "\n";
+      await this.app.vault.modify(target, updated);
 
-    new Notice(`GeckoTask: Moved task to ${target.path}`);
-    await this.reindex();
-    this.rerender();
+      new Notice(`GeckoTask: Moved task to ${target.path}`);
+      await this.reindex();
+      this.rerender();
+    } catch (error) {
+      new Notice(`GeckoTask: Error moving task: ${error}`);
+      console.error("GeckoTask: Error moving task:", error);
+    }
   }
 
   /**

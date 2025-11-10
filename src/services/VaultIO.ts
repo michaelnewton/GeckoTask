@@ -1,7 +1,7 @@
 import { App, TFile, SuggestModal, Notice, Editor, Modal, Setting } from "obsidian";
 import { GeckoTaskSettings } from "../settings";
 import { parseTask, formatTask, Task } from "../models/TaskModel";
-import { inferAreaFromPath, isInTasksFolder, getAreaPath, isSpecialFile, getAreas, isTasksFolderFile } from "../utils/areaUtils";
+import { inferAreaFromPath, isInTasksFolder, getAreaPath, isSpecialFile, getAreas, isTasksFolderFile, getProjectDisplayName } from "../utils/areaUtils";
 
 /**
  * Gets the task at the current cursor line in the editor.
@@ -30,7 +30,7 @@ export async function moveTaskAtCursorInteractive(app: App, editor: Editor, sett
     .filter(f => isInTasksFolder(f.path, settings))
     .filter(f => !isTasksFolderFile(f.path, settings));
 
-  const target = await new FilePickerModal(app, files).openAndGet();
+  const target = await new FilePickerModal(app, files, settings).openAndGet();
   if (!target) return;
 
   // Infer new area and project from target file
@@ -169,48 +169,108 @@ created: ${created}
  */
 class FilePickerModal extends SuggestModal<TFile> {
   files: TFile[];
+  result: TFile | null = null;
+  settings: GeckoTaskSettings;
 
   /**
    * Creates a new file picker modal.
    * @param app - Obsidian app instance
    * @param files - List of files to choose from
+   * @param settings - Plugin settings
    */
-  constructor(app: App, files: TFile[]) {
+  constructor(app: App, files: TFile[], settings: GeckoTaskSettings) {
     super(app);
     this.files = files;
+    this.settings = settings;
   }
+
   /**
-   * Filters files based on query string.
+   * Filters files based on query string (searches both path and display name).
    * @param query - Search query
    * @returns Filtered list of files
    */
   getSuggestions(query: string): TFile[] {
-    return this.files.filter(f => f.path.toLowerCase().includes(query.toLowerCase()));
+    if (!query) return this.files;
+    const q = query.toLowerCase();
+    return this.files.filter(f => {
+      const pathMatch = f.path.toLowerCase().includes(q);
+      const displayName = getProjectDisplayName(f.path, this.app, this.settings);
+      const displayMatch = displayName.toLowerCase().includes(q);
+      return pathMatch || displayMatch;
+    });
   }
 
   /**
-   * Renders a file suggestion in the list.
+   * Renders a file suggestion in the list using the project display name.
    * @param f - The file to render
    * @param el - The element to render into
    */
-  renderSuggestion(f: TFile, el: HTMLElement) { el.setText(f.path); }
+  renderSuggestion(f: TFile, el: HTMLElement) {
+    const displayName = getProjectDisplayName(f.path, this.app, this.settings);
+    el.setText(displayName);
+    
+    // Make the suggestion clickable - single click selects it
+    el.style.cursor = "pointer";
+    el.addEventListener("click", (e) => {
+      e.stopPropagation();
+      this.onChooseSuggestion(f);
+    });
+  }
 
   /**
    * Called when a file is chosen from the list.
    * @param f - The chosen file
    */
-  onChooseSuggestion(f: TFile) { this.result = f; this.close(); }
+  onChooseSuggestion(f: TFile) {
+    this.result = f;
+    this.close();
+  }
 
-  result: TFile | null = null;
+  private resolvePromise: ((value: TFile | null) => void) | null = null;
+
+  /**
+   * Override close to ensure promise resolves.
+   */
+  close(): void {
+    super.close();
+    // Ensure promise resolves when modal closes
+    if (this.resolvePromise) {
+      this.resolvePromise(this.result);
+      this.resolvePromise = null;
+    }
+  }
 
   /**
    * Opens the modal and returns the selected file.
    * @returns Selected file or null if cancelled
    */
-  async openAndGet(): Promise<TFile | null> { this.open(); return new Promise(res => {
-    const stop = () => { this.onClose = () => { res(this.result); }; };
-    stop();
-  }); }
+  async openAndGet(): Promise<TFile | null> {
+    this.result = null; // Reset result before opening
+    
+    return new Promise((resolve) => {
+      // Store the resolve function so we can call it when modal closes
+      this.resolvePromise = resolve;
+      
+      // Store the original onClose handler if it exists
+      const originalOnClose = this.onClose;
+      
+      // Set up our onClose handler
+      this.onClose = () => {
+        // Call original handler if it exists
+        if (originalOnClose) {
+          originalOnClose.call(this);
+        }
+        // Resolve with the result (will be null if cancelled)
+        if (this.resolvePromise) {
+          this.resolvePromise(this.result);
+          this.resolvePromise = null;
+        }
+      };
+      
+      // Open the modal
+      this.open();
+    });
+  }
 }
 
 /**

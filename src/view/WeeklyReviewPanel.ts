@@ -1705,7 +1705,7 @@ export class WeeklyReviewPanel extends ItemView {
       .filter(f => isInTasksFolder(f.path, this.settings))
       .filter(f => !isTasksFolderFile(f.path, this.settings));
 
-    const target = await new FilePickerModal(this.app, files).openAndGet();
+    const target = await new FilePickerModal(this.app, files, this.settings).openAndGet();
     if (!target) return;
 
     await this.moveTask(task, target.path);
@@ -1899,7 +1899,7 @@ export class WeeklyReviewPanel extends ItemView {
       return;
     }
 
-    const target = await new FilePickerModal(this.app, files).openAndGet();
+    const target = await new FilePickerModal(this.app, files, this.settings).openAndGet();
     if (!target) return;
 
     await this.moveTask(task, target.path);
@@ -1941,7 +1941,7 @@ export class WeeklyReviewPanel extends ItemView {
       return;
     }
 
-    const target = await new FilePickerModal(this.app, files).openAndGet();
+    const target = await new FilePickerModal(this.app, files, this.settings).openAndGet();
     if (!target) return;
 
     // Move all tasks from the Someday Maybe project to the target project
