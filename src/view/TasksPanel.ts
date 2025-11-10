@@ -140,6 +140,15 @@ export class TasksPanel extends ItemView {
       this.currentTab = "all";
       this.rerender();
     });
+
+    const waitingForTab = host.createDiv({ 
+      cls: `geckotask-tab ${this.currentTab === "waiting-for" ? "geckotask-tab-active" : ""}`
+    });
+    waitingForTab.setText("Waiting For");
+    waitingForTab.addEventListener("click", () => {
+      this.currentTab = "waiting-for";
+      this.rerender();
+    });
   }
 
   /**
@@ -581,6 +590,10 @@ export class TasksPanel extends ItemView {
     } else if (this.currentTab === "inbox") {
       // Show only tasks from the inbox file
       rows = rows.filter(t => t.path === normalizedInboxPath);
+    } else if (this.currentTab === "waiting-for") {
+      // Show only tasks with the WaitingFor tag
+      const waitingForTag = this.settings.waitingForTag;
+      rows = rows.filter(t => t.tags.includes(waitingForTag));
     } else {
       // Apply due filter only for "All Tasks" tab
       const moment = (window as any).moment;
@@ -659,6 +672,8 @@ export class TasksPanel extends ItemView {
         emptyMsg.setText("No tasks due today or overdue");
       } else if (this.currentTab === "inbox") {
         emptyMsg.setText("No tasks in inbox");
+      } else if (this.currentTab === "waiting-for") {
+        emptyMsg.setText(`No tasks with ${this.settings.waitingForTag} tag`);
       }
       return;
     }
