@@ -644,7 +644,7 @@ export class TasksPanel extends ItemView {
       rows = rows.filter(t => `${t.title} ${t.tags.join(" ")}`.toLowerCase().includes(q));
     }
 
-    // sort: due asc, priority rank, area, project, title
+    // sort: overdue first, then priority rank (for Today view), due asc, area, project, title
     // Priority rank based on order in settings (first = highest priority)
     const prioRank = (p?: string) => {
       if (!p) return 999;
@@ -652,11 +652,37 @@ export class TasksPanel extends ItemView {
       return idx >= 0 ? idx : 999;
     };
     rows.sort((a,b) => {
+      // For Today view: overdue first, then priority (urgent → high → med → low → no priority)
+      if (this.currentTab === "today-overdue") {
+        // First: overdue tasks come before non-overdue
+        const aOverdue = a.due && a.due < today;
+        const bOverdue = b.due && b.due < today;
+        if (aOverdue !== bOverdue) return aOverdue ? -1 : 1;
+        
+        // Second: sort by priority (descending index: urgent, high, med, low, then no priority)
+        const ap = prioRank(a.priority), bp = prioRank(b.priority);
+        // Handle no priority (999) to come after all valid priorities
+        if (ap === 999 && bp === 999) {
+          // Both no priority, continue to next sort
+        } else if (ap === 999) {
+          return 1; // a has no priority, b has priority, so b comes first
+        } else if (bp === 999) {
+          return -1; // b has no priority, a has priority, so a comes first
+        } else {
+          // Both have priorities, sort descending (higher index first)
+          if (ap !== bp) return bp - ap;
+        }
+      }
+      // Then sort by due date
       const ad = a.due || "9999-12-31";
       const bd = b.due || "9999-12-31";
       if (ad !== bd) return ad.localeCompare(bd);
-      const ap = prioRank(a.priority), bp = prioRank(b.priority);
-      if (ap !== bp) return ap - bp;
+      // For other tabs, also sort by priority after due date
+      if (this.currentTab !== "today-overdue") {
+        const ap = prioRank(a.priority), bp = prioRank(b.priority);
+        if (ap !== bp) return ap - bp;
+      }
+      // Then area, project, title
       if ((a.area||"") !== (b.area||"")) return (a.area||"").localeCompare(b.area||"");
       if ((a.project||"") !== (b.project||"")) return (a.project||"").localeCompare(b.project||"");
       return a.title.localeCompare(b.title);
