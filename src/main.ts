@@ -6,6 +6,7 @@ import { moveTaskAtCursorInteractive, createProjectFile } from "./services/Vault
 import { toggleCompleteAtCursor, setFieldAtCursor, addRemoveTagsAtCursor, normalizeTaskLine } from "./services/TaskOps";
 import { TasksPanel, VIEW_TYPE_TASKS } from "./view/TasksPanel";
 import { WeeklyReviewPanel, VIEW_TYPE_WEEKLY_REVIEW } from "./view/WeeklyReviewPanel";
+import { GTDHealthPanel, VIEW_TYPE_GTD_HEALTH } from "./view/GTDHealthPanel";
 import { isInTasksFolder, inferAreaFromPath, isSpecialFile } from "./utils/areaUtils";
 import { ViewPlugin, Decoration, DecorationSet, ViewUpdate, EditorView } from "@codemirror/view";
 import { RangeSetBuilder } from "@codemirror/state";
@@ -31,6 +32,7 @@ export default class GeckoTaskPlugin extends Plugin {
     // Register the side panel views
     this.registerView(VIEW_TYPE_TASKS, (leaf: WorkspaceLeaf) => new TasksPanel(leaf, this.settings));
     this.registerView(VIEW_TYPE_WEEKLY_REVIEW, (leaf: WorkspaceLeaf) => new WeeklyReviewPanel(leaf, this.settings, this));
+    this.registerView(VIEW_TYPE_GTD_HEALTH, (leaf: WorkspaceLeaf) => new GTDHealthPanel(leaf, this.settings, this));
 
     /**
      * Opens the Tasks side panel for task management.
@@ -50,6 +52,16 @@ export default class GeckoTaskPlugin extends Plugin {
       id: "weekly-review-open-panel",
       name: "Open Weekly Review Panel",
       callback: () => this.activateWeeklyReviewView()
+    });
+
+    /**
+     * Opens the GTD Health Check side panel.
+     * Unregistered automatically on plugin unload.
+     */
+    this.addCommand({
+      id: "gtd-health-open-panel",
+      name: "Open GTD Health Check Panel",
+      callback: () => this.activateGTDHealthView()
     });
 
     // Optional ribbon icon
@@ -358,6 +370,21 @@ export default class GeckoTaskPlugin extends Plugin {
       if (!rightLeaf) return; // Can't create view if no leaf available
       leaf = rightLeaf;
       await leaf.setViewState({ type: VIEW_TYPE_WEEKLY_REVIEW, active: true });
+    }
+    workspace.revealLeaf(leaf);
+  }
+
+  /**
+   * Activates or reveals the GTD Health Check panel view.
+   */
+  async activateGTDHealthView() {
+    const { workspace } = this.app;
+    let leaf = workspace.getLeavesOfType(VIEW_TYPE_GTD_HEALTH).first();
+    if (!leaf) {
+      const rightLeaf = workspace.getRightLeaf(false);
+      if (!rightLeaf) return; // Can't create view if no leaf available
+      leaf = rightLeaf;
+      await leaf.setViewState({ type: VIEW_TYPE_GTD_HEALTH, active: true });
     }
     workspace.revealLeaf(leaf);
   }
@@ -770,7 +797,8 @@ export default class GeckoTaskPlugin extends Plugin {
   }
 
   /**
-   * Handles checkbox toggle for recurring tasks.
+   * Handles checkbox toggle for all tasks.
+   * Adds/removes completed tag and handles recurring task next occurrences.
    * @param editor - The editor instance
    * @param view - The markdown view
    * @param lineNo - The line number (0-based)
@@ -787,61 +815,78 @@ export default class GeckoTaskPlugin extends Plugin {
     const { task: parsed, endLine } = parseTaskWithDescription(lines, lineNo);
     if (!parsed) return;
 
-    // Only handle if task is recurring and is now checked (completed)
-    if (parsed.recur && parsed.recur.length > 0 && parsed.checked) {
-      // Check if it already has a completed date (to avoid duplicate handling)
+    const today = new Date();
+    let needsUpdate = false;
+    let justAddedCompletedDate = false;
+
+    // Handle completion status changes
+    if (parsed.checked) {
+      // Task is checked - add completed date if not present
       if (!parsed.completed) {
-        // This is a newly completed recurring task
-        // Add completion date and create next occurrence
-        const today = new Date();
-        const completed = this.formatISODate(today);
+        parsed.completed = this.formatISODate(today);
+        needsUpdate = true;
+        justAddedCompletedDate = true;
+      }
+    } else {
+      // Task is unchecked - remove completed date if present
+      if (parsed.completed) {
+        parsed.completed = undefined;
+        needsUpdate = true;
+      }
+    }
+
+    // If we need to update the task, do so
+    let updatedLines: string[] | null = null;
+    if (needsUpdate) {
+      // Format the updated task with description
+      updatedLines = formatTaskWithDescription(parsed);
+      const updatedText = updatedLines.join("\n");
+      
+      // Get the start and end positions of the task block
+      const startLine = lineNo;
+      const endLineNo = endLine;
+      const startLineContent = editor.getLine(startLine);
+      const endLineContent = editor.getLine(endLineNo);
+      
+      // Calculate positions: start at beginning of task line, end at end of last description line
+      const startPos = { line: startLine, ch: 0 };
+      const endPos = { line: endLineNo, ch: endLineContent.length };
+      
+      // Replace the entire task block (including description) with the updated version
+      editor.replaceRange(updatedText, startPos, endPos);
+    }
+
+    // Handle recurring tasks: create next occurrence when completed
+    // Only create next occurrence if we just added the completed date (first time completing)
+    // This prevents duplicate occurrences when re-checking already completed recurring tasks
+    if (parsed.recur && parsed.recur.length > 0 && parsed.checked && parsed.completed && justAddedCompletedDate) {
+      const nextDue = calculateNextOccurrence(parsed.recur, today);
+      if (nextDue) {
+        // Create new task with next occurrence
+        const newTask: Task = {
+          ...parsed,
+          checked: false,
+          due: nextDue,
+          completed: undefined,
+          recur: parsed.recur,
+        };
         
-        // Update the task with completion date
-        parsed.completed = completed;
+        const newTaskLines = formatTaskWithDescription(newTask);
         
-        // Format the updated task with description
-        const updatedLines = formatTaskWithDescription(parsed);
-        const updatedText = updatedLines.join("\n");
+        // Insert on the line directly underneath the task
+        // If we updated the task, use the updated line count, otherwise use the original endLine
+        const taskEndLine = updatedLines 
+          ? lineNo + updatedLines.length - 1 
+          : endLine;
+        const taskEndLineContent = editor.getLine(taskEndLine);
+        const insertPos = { line: taskEndLine, ch: taskEndLineContent.length };
         
-        // Get the start and end positions of the task block
-        const startLine = lineNo;
-        const endLineNo = endLine;
-        const startLineContent = editor.getLine(startLine);
-        const endLineContent = editor.getLine(endLineNo);
+        // Insert the new task on the next line (directly underneath)
+        const insertText = "\n" + newTaskLines.join("\n");
         
-        // Calculate positions: start at beginning of task line, end at end of last description line
-        const startPos = { line: startLine, ch: 0 };
-        const endPos = { line: endLineNo, ch: endLineContent.length };
+        editor.replaceRange(insertText, insertPos, insertPos);
         
-        // Replace the entire task block (including description) with the updated version
-        editor.replaceRange(updatedText, startPos, endPos);
-        
-        // Create next occurrence
-        const nextDue = calculateNextOccurrence(parsed.recur, today);
-        if (nextDue) {
-          // Create new task with next occurrence
-          const newTask: Task = {
-            ...parsed,
-            checked: false,
-            due: nextDue,
-            completed: undefined,
-            recur: parsed.recur,
-          };
-          
-          const newTaskLines = formatTaskWithDescription(newTask);
-          
-          // Insert on the line directly underneath the task
-          const taskEndLine = startLine + updatedLines.length - 1;
-          const taskEndLineContent = editor.getLine(taskEndLine);
-          const insertPos = { line: taskEndLine, ch: taskEndLineContent.length };
-          
-          // Insert the new task on the next line (directly underneath)
-          const insertText = "\n" + newTaskLines.join("\n");
-          
-          editor.replaceRange(insertText, insertPos, insertPos);
-          
-          new Notice(`GeckoTask: Next occurrence scheduled for ${nextDue}`);
-        }
+        new Notice(`GeckoTask: Next occurrence scheduled for ${nextDue}`);
       }
     }
   }

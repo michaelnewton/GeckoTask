@@ -18,6 +18,16 @@ export interface GeckoTaskSettings {
   dueDateRanges: string[];            // Configurable due date ranges (e.g., ["7d", "14d", "30d", "60d"])
   customCollectionPoints: string[];   // Custom collection points for step 1A (e.g., ["Facebook", "Slack", "Twitter"])
   waitingForTag: string;              // Tag for waiting-for tasks (e.g., "#WaitingFor")
+  // Health check settings
+  healthCheckStaleFileDays: number;   // Files not modified in this time are considered stale (default: 90)
+  healthCheckStaleTaskDays: number;   // Tasks with no due date older than this (default: 90)
+  healthCheckUnmodifiedTaskDays: number; // Tasks not modified in this time (default: 60)
+  healthCheckQuickWinKeywords: string[]; // Keywords that indicate quick wins (default: ["message", "email", "call", "reply", "quick"])
+  healthCheckHighTaskCount: number;   // Threshold for high task count projects (default: 30)
+  healthCheckInboxThreshold: number;  // Threshold for inbox overflow (default: 20)
+  healthCheckCompletedArchiveDays: number; // Completed tasks older than this can be archived (default: 30)
+  healthCheckBreakdownTitleLength: number; // Titles longer than this may need breakdown (default: 100)
+  healthCheckBreakdownKeywords: string[]; // Keywords that suggest multiple actions (default: ["and", "then", "also", "plus"])
 }
 
 /**
@@ -35,7 +45,17 @@ export const DEFAULT_SETTINGS: GeckoTaskSettings = {
   nlDateParsing: true,
   dueDateRanges: ["7d", "14d", "30d", "60d", "90d"],  // Default configurable ranges
   customCollectionPoints: [],  // No custom collection points by default
-  waitingForTag: "#WaitingFor"  // Default tag for waiting-for tasks
+  waitingForTag: "#WaitingFor",  // Default tag for waiting-for tasks
+  // Health check defaults
+  healthCheckStaleFileDays: 90,
+  healthCheckStaleTaskDays: 90,
+  healthCheckUnmodifiedTaskDays: 60,
+  healthCheckQuickWinKeywords: ["order", "book", "cancel", "check", "confirm", "set up", "make", "appointment", "call", "email", "message", "reply", "buy", "refill"],
+  healthCheckHighTaskCount: 30,
+  healthCheckInboxThreshold: 20,
+  healthCheckCompletedArchiveDays: 30,
+  healthCheckBreakdownTitleLength: 100,
+  healthCheckBreakdownKeywords: ["and", "then", "also", "plus"]
 };
 
 /**
@@ -212,6 +232,114 @@ export class GeckoTaskSettingTab extends PluginSettingTab {
           this.plugin.settings.waitingForTag = trimmed && !trimmed.startsWith("#") 
             ? `#${trimmed}` 
             : trimmed || "#WaitingFor";
+          await this.plugin.saveSettings();
+        })
+      );
+
+    containerEl.createEl("h2", { text: "GTD Health Check" });
+
+    new Setting(containerEl)
+      .setName("Stale file threshold (days)")
+      .setDesc("Files not modified in this time are considered stale")
+      .addText(t => t
+        .setPlaceholder("90")
+        .setValue(String(this.plugin.settings.healthCheckStaleFileDays))
+        .onChange(async (v) => {
+          const n = Number(v);
+          if (!isNaN(n) && n > 0) this.plugin.settings.healthCheckStaleFileDays = n;
+          await this.plugin.saveSettings();
+        })
+      );
+
+    new Setting(containerEl)
+      .setName("Stale task threshold (days)")
+      .setDesc("Tasks with no due date older than this are considered stale")
+      .addText(t => t
+        .setPlaceholder("90")
+        .setValue(String(this.plugin.settings.healthCheckStaleTaskDays))
+        .onChange(async (v) => {
+          const n = Number(v);
+          if (!isNaN(n) && n > 0) this.plugin.settings.healthCheckStaleTaskDays = n;
+          await this.plugin.saveSettings();
+        })
+      );
+
+    new Setting(containerEl)
+      .setName("Unmodified task threshold (days)")
+      .setDesc("Tasks not modified in this time are flagged")
+      .addText(t => t
+        .setPlaceholder("60")
+        .setValue(String(this.plugin.settings.healthCheckUnmodifiedTaskDays))
+        .onChange(async (v) => {
+          const n = Number(v);
+          if (!isNaN(n) && n > 0) this.plugin.settings.healthCheckUnmodifiedTaskDays = n;
+          await this.plugin.saveSettings();
+        })
+      );
+
+    new Setting(containerEl)
+      .setName("Quick win keywords")
+      .setDesc("Comma-separated list of keywords that indicate quick wins")
+      .addText(t => t
+        .setValue(this.plugin.settings.healthCheckQuickWinKeywords.join(", "))
+        .onChange(async (v) => {
+          const keywords = v.split(",").map(k => k.trim()).filter(Boolean);
+          this.plugin.settings.healthCheckQuickWinKeywords = keywords.length > 0 
+            ? keywords 
+            : ["message", "email", "call", "reply", "quick"];
+          await this.plugin.saveSettings();
+        })
+      );
+
+    new Setting(containerEl)
+      .setName("High task count threshold")
+      .setDesc("Projects with more tasks than this are flagged")
+      .addText(t => t
+        .setPlaceholder("30")
+        .setValue(String(this.plugin.settings.healthCheckHighTaskCount))
+        .onChange(async (v) => {
+          const n = Number(v);
+          if (!isNaN(n) && n > 0) this.plugin.settings.healthCheckHighTaskCount = n;
+          await this.plugin.saveSettings();
+        })
+      );
+
+    new Setting(containerEl)
+      .setName("Inbox overflow threshold")
+      .setDesc("Inbox with more untriaged items than this is flagged")
+      .addText(t => t
+        .setPlaceholder("20")
+        .setValue(String(this.plugin.settings.healthCheckInboxThreshold))
+        .onChange(async (v) => {
+          const n = Number(v);
+          if (!isNaN(n) && n > 0) this.plugin.settings.healthCheckInboxThreshold = n;
+          await this.plugin.saveSettings();
+        })
+      );
+
+    new Setting(containerEl)
+      .setName("Breakdown title length threshold")
+      .setDesc("Titles longer than this may need breakdown")
+      .addText(t => t
+        .setPlaceholder("100")
+        .setValue(String(this.plugin.settings.healthCheckBreakdownTitleLength))
+        .onChange(async (v) => {
+          const n = Number(v);
+          if (!isNaN(n) && n > 0) this.plugin.settings.healthCheckBreakdownTitleLength = n;
+          await this.plugin.saveSettings();
+        })
+      );
+
+    new Setting(containerEl)
+      .setName("Breakdown keywords")
+      .setDesc("Comma-separated list of keywords that suggest multiple actions")
+      .addText(t => t
+        .setValue(this.plugin.settings.healthCheckBreakdownKeywords.join(", "))
+        .onChange(async (v) => {
+          const keywords = v.split(",").map(k => k.trim()).filter(Boolean);
+          this.plugin.settings.healthCheckBreakdownKeywords = keywords.length > 0 
+            ? keywords 
+            : ["and", "then", "also", "plus"];
           await this.plugin.saveSettings();
         })
       );
