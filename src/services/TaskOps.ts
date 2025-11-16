@@ -109,8 +109,18 @@ export async function toggleCompleteAtCursor(editor: Editor, view: MarkdownView,
  * @param settings - Plugin settings
  */
 export async function setFieldAtCursor(app: App, editor: Editor, key: "due"|"priority"|"recur", settings: GeckoTaskSettings) {
-  const ctx = getLineTask(editor);
-  if (!ctx) { new Notice("GeckoTask: No task on this line."); return; }
+  const currentLineNo = editor.getCursor().line;
+  
+  // Get all lines from the editor to parse task with description
+  const totalLines = editor.lineCount();
+  const lines: string[] = [];
+  for (let i = 0; i < totalLines; i++) {
+    lines.push(editor.getLine(i));
+  }
+  
+  // Parse the task with its description
+  const { task: parsed, endLine } = parseTaskWithDescription(lines, currentLineNo);
+  if (!parsed) { new Notice("GeckoTask: No task on this line."); return; }
 
   let promptText = `Set ${key}:`;
   let defaultValue = "";
@@ -133,11 +143,28 @@ export async function setFieldAtCursor(app: App, editor: Editor, key: "due"|"pri
     v = parseNLDate(v) ?? v;
   }
 
-  const updated = { ...ctx.task } as Task;
+  // Update the task
+  const updated = { ...parsed } as Task;
   // TypeScript doesn't support dynamic property assignment on typed objects,
   // but we know the key is valid (enforced by the function signature)
   (updated as any)[key] = v;
-  editor.setLine(ctx.lineNo!, formatTask(updated));
+
+  // Format the updated task with description
+  const updatedLines = formatTaskWithDescription(updated);
+  const updatedText = updatedLines.join("\n");
+  
+  // Get the start and end positions of the task block
+  const startLine = currentLineNo;
+  const endLineNo = endLine;
+  const startLineContent = editor.getLine(startLine);
+  const endLineContent = editor.getLine(endLineNo);
+  
+  // Calculate positions: start at beginning of task line, end at end of last description line
+  const startPos = { line: startLine, ch: 0 };
+  const endPos = { line: endLineNo, ch: endLineContent.length };
+  
+  // Replace the entire task block (including description) with the updated version
+  editor.replaceRange(updatedText, startPos, endPos);
 }
 
 /**
@@ -147,10 +174,20 @@ export async function setFieldAtCursor(app: App, editor: Editor, key: "due"|"pri
  * @param settings - Plugin settings
  */
 export async function addRemoveTagsAtCursor(app: App, editor: Editor, settings: GeckoTaskSettings) {
-  const ctx = getLineTask(editor);
-  if (!ctx) { new Notice("GeckoTask: No task on this line."); return; }
+  const currentLineNo = editor.getCursor().line;
+  
+  // Get all lines from the editor to parse task with description
+  const totalLines = editor.lineCount();
+  const lines: string[] = [];
+  for (let i = 0; i < totalLines; i++) {
+    lines.push(editor.getLine(i));
+  }
+  
+  // Parse the task with its description
+  const { task: parsed, endLine } = parseTaskWithDescription(lines, currentLineNo);
+  if (!parsed) { new Notice("GeckoTask: No task on this line."); return; }
 
-  const currentTags = ctx.task.tags.join(" ");
+  const currentTags = parsed.tags.join(" ");
   const modal = new PromptModal(app, "Add/remove tags (space-separated, prefix with - to remove):", currentTags);
   const input = await modal.prompt();
   if (input == null) return;
@@ -158,7 +195,7 @@ export async function addRemoveTagsAtCursor(app: App, editor: Editor, settings: 
   const tokens = input.trim().split(/\s+/).filter(Boolean);
   const tagsToAdd: string[] = [];
   const tagsToRemove: string[] = [];
-  const existingTags = new Set(ctx.task.tags);
+  const existingTags = new Set(parsed.tags);
 
   for (const tok of tokens) {
     if (tok.startsWith("-")) {
@@ -184,8 +221,25 @@ export async function addRemoveTagsAtCursor(app: App, editor: Editor, settings: 
     existingTags.add(tag);
   }
 
-  const updated = { ...ctx.task, tags: Array.from(existingTags) } as Task;
-  editor.setLine(ctx.lineNo!, formatTask(updated));
+  // Update the task
+  const updated = { ...parsed, tags: Array.from(existingTags) } as Task;
+  
+  // Format the updated task with description
+  const updatedLines = formatTaskWithDescription(updated);
+  const updatedText = updatedLines.join("\n");
+  
+  // Get the start and end positions of the task block
+  const startLine = currentLineNo;
+  const endLineNo = endLine;
+  const startLineContent = editor.getLine(startLine);
+  const endLineContent = editor.getLine(endLineNo);
+  
+  // Calculate positions: start at beginning of task line, end at end of last description line
+  const startPos = { line: startLine, ch: 0 };
+  const endPos = { line: endLineNo, ch: endLineContent.length };
+  
+  // Replace the entire task block (including description) with the updated version
+  editor.replaceRange(updatedText, startPos, endPos);
 }
 
 /**
@@ -193,11 +247,35 @@ export async function addRemoveTagsAtCursor(app: App, editor: Editor, settings: 
  * @param editor - The editor instance
  */
 export function normalizeTaskLine(editor: Editor) {
-  const ctx = getLineTask(editor);
-  if (!ctx) { new Notice("GeckoTask: No task on this line."); return; }
+  const currentLineNo = editor.getCursor().line;
+  
+  // Get all lines from the editor to parse task with description
+  const totalLines = editor.lineCount();
+  const lines: string[] = [];
+  for (let i = 0; i < totalLines; i++) {
+    lines.push(editor.getLine(i));
+  }
+  
+  // Parse the task with its description
+  const { task: parsed, endLine } = parseTaskWithDescription(lines, currentLineNo);
+  if (!parsed) { new Notice("GeckoTask: No task on this line."); return; }
 
-  const normalized = formatTask(ctx.task);
-  editor.setLine(ctx.lineNo!, normalized);
+  // Format the normalized task with description
+  const normalizedLines = formatTaskWithDescription(parsed);
+  const normalizedText = normalizedLines.join("\n");
+  
+  // Get the start and end positions of the task block
+  const startLine = currentLineNo;
+  const endLineNo = endLine;
+  const startLineContent = editor.getLine(startLine);
+  const endLineContent = editor.getLine(endLineNo);
+  
+  // Calculate positions: start at beginning of task line, end at end of last description line
+  const startPos = { line: startLine, ch: 0 };
+  const endPos = { line: endLineNo, ch: endLineContent.length };
+  
+  // Replace the entire task block (including description) with the normalized version
+  editor.replaceRange(normalizedText, startPos, endPos);
 }
 
 /**

@@ -1,6 +1,6 @@
 import { App, TFile, TFolder } from "obsidian";
 import { GeckoTaskSettings } from "../settings";
-import { parseTask } from "../models/TaskModel";
+import { parseTask, parseTaskWithDescription, formatTaskWithDescription, Task } from "../models/TaskModel";
 import { inferAreaFromPath } from "../utils/areaUtils";
 
 /**
@@ -53,15 +53,30 @@ export async function archiveCompletedInFile(app: App, file: TFile, settings: Ge
   const lines = src.split("\n");
   const keep: string[] = [];
   const move: string[] = [];
+  const processedLines = new Set<number>(); // Track lines we've already processed
 
-  for (const line of lines) {
-    const t = parseTask(line);
-    if (t?.checked && t.completed) {
-      // ensure origin metadata
-          const withOrigin = appendOrigin(line, file, app, settings);
-          move.push(withOrigin);
+  for (let i = 0; i < lines.length; i++) {
+    // Skip lines we've already processed (description lines)
+    if (processedLines.has(i)) continue;
+
+    const { task, endLine } = parseTaskWithDescription(lines, i);
+    
+    if (task?.checked && task.completed) {
+      // Mark all lines (task + description) as processed
+      for (let j = i; j <= endLine; j++) {
+        processedLines.add(j);
+      }
+      
+      // Ensure origin metadata and format with description
+      const taskWithOrigin = appendOriginToTask(task, file, app, settings);
+      const taskLines = formatTaskWithDescription(taskWithOrigin);
+      move.push(...taskLines);
     } else {
-      keep.push(line);
+      // Not a task to archive, keep all lines (task + description)
+      for (let j = i; j <= endLine; j++) {
+        processedLines.add(j);
+        keep.push(lines[j]);
+      }
     }
   }
 
@@ -109,19 +124,40 @@ export async function archiveAllCompletedInVault(app: App, settings: GeckoTaskSe
     let changed = false;
     const keep: string[] = [];
     const move: string[] = [];
+    const processedLines = new Set<number>(); // Track lines we've already processed
 
-    for (const line of lines) {
-      const t = parseTask(line);
-        if (t?.checked && t.completed) {
-          const dt = new Date(t.completed);
-          if (!isNaN(dt.getTime()) && dt <= cutoff) {
-            move.push(appendOrigin(line, file, app, settings));
-            changed = true;
+    for (let i = 0; i < lines.length; i++) {
+      // Skip lines we've already processed (description lines)
+      if (processedLines.has(i)) continue;
+
+      const { task, endLine } = parseTaskWithDescription(lines, i);
+      
+      if (task?.checked && task.completed) {
+        const dt = new Date(task.completed);
+        if (!isNaN(dt.getTime()) && dt <= cutoff) {
+          // Mark all lines (task + description) as processed
+          for (let j = i; j <= endLine; j++) {
+            processedLines.add(j);
+          }
+          
+          // Ensure origin metadata and format with description
+          const taskWithOrigin = appendOriginToTask(task, file, app, settings);
+          const taskLines = formatTaskWithDescription(taskWithOrigin);
+          move.push(...taskLines);
+          changed = true;
         } else {
-          keep.push(line);
+          // Task is completed but not old enough, keep all lines (task + description)
+          for (let j = i; j <= endLine; j++) {
+            processedLines.add(j);
+            keep.push(lines[j]);
+          }
         }
       } else {
-        keep.push(line);
+        // Not a task to archive, keep all lines (task + description)
+        for (let j = i; j <= endLine; j++) {
+          processedLines.add(j);
+          keep.push(lines[j]);
+        }
       }
     }
 
@@ -139,18 +175,24 @@ export async function archiveAllCompletedInVault(app: App, settings: GeckoTaskSe
 }
 
 /**
- * Appends origin metadata fields to a task line if not already present.
- * @param line - The task line
+ * Appends origin metadata fields to a task if not already present.
+ * @param task - The task object
  * @param file - The file the task is from
  * @param app - Obsidian app instance
  * @param settings - Plugin settings
- * @returns Task line with origin metadata appended
+ * @returns Task with origin metadata fields added
  */
-function appendOrigin(line: string, file: TFile, app: App, settings: GeckoTaskSettings): string {
+function appendOriginToTask(task: Task, file: TFile, app: App, settings: GeckoTaskSettings): Task {
   // If origin fields exist, return as-is; else append.
-  if (/\borigin_file::\b/.test(line)) return line;
+  if (task.origin_file) return task;
+  
   const project = file.basename;
   const area = inferAreaFromPath(file.path, app, settings) || "";
-  const suffix = `  origin_file:: ${file.path}  origin_project:: ${project}  origin_area:: ${area}`;
-  return line + suffix;
+  
+  return {
+    ...task,
+    origin_file: file.path,
+    origin_project: project,
+    origin_area: area
+  };
 }

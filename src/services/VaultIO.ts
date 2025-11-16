@@ -1,18 +1,26 @@
 import { App, TFile, SuggestModal, Notice, Editor, Modal, Setting } from "obsidian";
 import { GeckoTaskSettings } from "../settings";
-import { parseTask, formatTask, Task } from "../models/TaskModel";
+import { parseTask, formatTask, parseTaskWithDescription, formatTaskWithDescription, Task } from "../models/TaskModel";
 import { inferAreaFromPath, isInTasksFolder, getAreaPath, isSpecialFile, getAreas, isTasksFolderFile, getProjectDisplayName } from "../utils/areaUtils";
 
 /**
- * Gets the task at the current cursor line in the editor.
+ * Gets the task at the current cursor line in the editor, including description.
  * @param editor - The editor instance
- * @returns Task, line number, and raw line text
+ * @returns Task, line number, end line number, and all task lines
  */
 async function getActiveLineTask(editor: Editor) {
   const lineNo = editor.getCursor().line;
-  const line = editor.getLine(lineNo);
-  const task = parseTask(line);
-  return { task, lineNo, line };
+  
+  // Get all lines from the editor to parse task with description
+  const totalLines = editor.lineCount();
+  const lines: string[] = [];
+  for (let i = 0; i < totalLines; i++) {
+    lines.push(editor.getLine(i));
+  }
+  
+  // Parse the task with its description
+  const { task, endLine } = parseTaskWithDescription(lines, lineNo);
+  return { task, lineNo, endLine, lines };
 }
 
 /**
@@ -22,7 +30,7 @@ async function getActiveLineTask(editor: Editor) {
  * @param settings - Plugin settings
  */
 export async function moveTaskAtCursorInteractive(app: App, editor: Editor, settings: GeckoTaskSettings) {
-  const { task, lineNo, line } = await getActiveLineTask(editor);
+  const { task, lineNo, endLine, lines } = await getActiveLineTask(editor);
   if (!task) { new Notice("GeckoTask: No task on this line."); return; }
 
   // Filter files to only those in tasks folder structure, excluding tasks folder file
@@ -33,27 +41,32 @@ export async function moveTaskAtCursorInteractive(app: App, editor: Editor, sett
   const target = await new FilePickerModal(app, files, settings).openAndGet();
   if (!target) return;
 
-  // Infer new area and project from target file
-  const newArea = inferAreaFromPath(target.path, app, settings);
-  const newProject = target.basename;
-
   // Update task metadata (remove area:: and project:: since we're using folder/file-based structure)
   const updatedTask: Task = {
     ...task,
     area: undefined, // Don't store area in metadata, it's derived from folder
     project: undefined, // Don't store project in metadata, it's derived from file basename
   };
-  const updatedLine = formatTask(updatedTask);
+  
+  // Format task with description
+  const taskLines = formatTaskWithDescription(updatedTask);
 
-  // remove from current file
+  // Remove from current file (all lines including description)
   const curFile = app.workspace.getActiveFile();
   if (!curFile) return;
-  await replaceLineInFile(app, curFile, lineNo, ""); // delete line
+  
+  const curFileContent = await app.vault.read(curFile);
+  const curFileLines = curFileContent.split("\n");
+  
+  // Remove task line and all description lines
+  const numLinesToRemove = endLine - lineNo + 1;
+  curFileLines.splice(lineNo, numLinesToRemove);
+  await app.vault.modify(curFile, curFileLines.join("\n"));
 
-  // append to target
+  // Append to target file
   const content = await app.vault.read(target);
-  const finalLine = updatedLine;
-  const updated = content.trim().length ? content + "\n" + finalLine + "\n" : finalLine + "\n";
+  const finalLines = taskLines.join("\n");
+  const updated = content.trim().length ? content + "\n" + finalLines + "\n" : finalLines + "\n";
   await app.vault.modify(target, updated);
 
   new Notice(`GeckoTask: Moved task to ${target.path}`);
