@@ -1,62 +1,7 @@
 import { App, PluginSettingTab, Setting } from "obsidian";
-import GeckoTaskPlugin from "./main";
-import { normalizeInboxPath, getInboxDisplayPath } from "./utils/areaUtils";
-
-/**
- * Plugin settings interface defining all configuration options.
- */
-export interface GeckoTaskSettings {
-  tasksFolder: string;                // e.g., "tasks"
-  areasEnabled: boolean;              // When enabled, areas are auto-detected from first-level directories in tasksFolder
-  inboxPath: string;                  // e.g., "tasks/Inbox.md" - single inbox for all areas
-  generalTasksFile: string;            // e.g., "General" - file name for general tasks (no project shown)
-  somedayMaybeFolderName: string;      // e.g., "Someday Maybe" - folder name for someday/maybe items per area
-  archivePattern: string;             // "Archive/Completed-YYYY.md"
-  archiveOlderThanDays: number;       // 7
-  allowedPriorities: string[];        // ["low","med","high","urgent"]
-  nlDateParsing: boolean;
-  dueDateRanges: string[];            // Configurable due date ranges (e.g., ["7d", "14d", "30d", "60d"])
-  customCollectionPoints: string[];   // Custom collection points for step 1A (e.g., ["Facebook", "Slack", "Twitter"])
-  waitingForTag: string;              // Tag for waiting-for tasks (e.g., "#WaitingFor")
-  // Health check settings
-  healthCheckStaleFileDays: number;   // Files not modified in this time are considered stale (default: 90)
-  healthCheckStaleTaskDays: number;   // Tasks with no due date older than this (default: 90)
-  healthCheckUnmodifiedTaskDays: number; // Tasks not modified in this time (default: 60)
-  healthCheckQuickWinKeywords: string[]; // Keywords that indicate quick wins (default: ["message", "email", "call", "reply", "quick"])
-  healthCheckHighTaskCount: number;   // Threshold for high task count projects (default: 30)
-  healthCheckInboxThreshold: number;  // Threshold for inbox overflow (default: 20)
-  healthCheckCompletedArchiveDays: number; // Completed tasks older than this can be archived (default: 30)
-  healthCheckBreakdownTitleLength: number; // Titles longer than this may need breakdown (default: 100)
-  healthCheckBreakdownKeywords: string[]; // Keywords that suggest multiple actions (default: ["and", "then", "also", "plus"])
-}
-
-/**
- * Default settings values used when no saved settings exist.
- */
-export const DEFAULT_SETTINGS: GeckoTaskSettings = {
-  tasksFolder: "tasks",
-  areasEnabled: false, // Areas are auto-detected from first-level directories when enabled
-  inboxPath: "tasks/Inbox", // Without .md extension - will be normalized when used
-  generalTasksFile: "General", // File name for general tasks (no project shown, like Inbox)
-  somedayMaybeFolderName: "Someday Maybe", // Folder name for someday/maybe items per area
-  archivePattern: "Archive/Completed-YYYY.md",
-  archiveOlderThanDays: 7,
-  allowedPriorities: ["low","med","high","urgent"],
-  nlDateParsing: true,
-  dueDateRanges: ["7d", "14d", "30d", "60d", "90d"],  // Default configurable ranges
-  customCollectionPoints: [],  // No custom collection points by default
-  waitingForTag: "#WaitingFor",  // Default tag for waiting-for tasks
-  // Health check defaults
-  healthCheckStaleFileDays: 90,
-  healthCheckStaleTaskDays: 90,
-  healthCheckUnmodifiedTaskDays: 60,
-  healthCheckQuickWinKeywords: ["order", "book", "cancel", "check", "confirm", "set up", "make", "appointment", "call", "email", "message", "reply", "buy", "refill"],
-  healthCheckHighTaskCount: 30,
-  healthCheckInboxThreshold: 20,
-  healthCheckCompletedArchiveDays: 30,
-  healthCheckBreakdownTitleLength: 100,
-  healthCheckBreakdownKeywords: ["and", "then", "also", "plus"]
-};
+import GeckoTaskPlugin from "../main";
+import { normalizeInboxPath, getInboxDisplayPath } from "../utils/areaUtils";
+import { GeckoTaskSettings } from "./index";
 
 /**
  * Settings tab UI for configuring GeckoTask plugin options.
@@ -236,7 +181,7 @@ export class GeckoTaskSettingTab extends PluginSettingTab {
         })
       );
 
-    containerEl.createEl("h2", { text: "GTD Health Check" });
+    containerEl.createEl("h2", { text: "Health Check" });
 
     new Setting(containerEl)
       .setName("Stale file threshold (days)")
@@ -345,3 +290,4 @@ export class GeckoTaskSettingTab extends PluginSettingTab {
       );
   }
 }
+

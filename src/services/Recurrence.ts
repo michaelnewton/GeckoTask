@@ -1,3 +1,5 @@
+import { formatISODate } from "../utils/dateUtils";
+
 /**
  * Service for parsing and calculating recurrence patterns for tasks.
  * Supports natural language patterns compatible with the Tasks plugin format.
@@ -163,17 +165,6 @@ function getDaysInMonth(date: Date): number {
   return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
 }
 
-/**
- * Formats a date as ISO string (YYYY-MM-DD).
- * @param date - Date to format
- * @returns ISO date string
- */
-function formatISODate(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
 
 /**
  * Validates if a recurrence pattern is recognized.

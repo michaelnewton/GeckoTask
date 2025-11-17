@@ -1,6 +1,6 @@
 import { Plugin } from "obsidian";
 import { IndexedTask } from "../view/TasksPanelTypes";
-import { TaskTrackingData } from "../view/GTDHealthPanelTypes";
+import { TaskTrackingData } from "../view/HealthPanelTypes";
 import { canonicalizeTaskForHash } from "../models/TaskModel";
 
 const TRACKING_STORAGE_KEY = "geckotask-task-tracking";

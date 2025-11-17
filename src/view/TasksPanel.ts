@@ -3,11 +3,14 @@ import { parseTaskWithDescription, formatTaskWithDescription, Task } from "../mo
 import { GeckoTaskSettings } from "../settings";
 import { parseNLDate } from "../services/NLDate";
 import { calculateNextOccurrence } from "../services/Recurrence";
-import { inferAreaFromPath, isInTasksFolder, isSpecialFile, normalizeInboxPath, getAreas, isTasksFolderFile, getProjectDisplayName } from "../utils/areaUtils";
+import { inferAreaFromPath, isInTasksFolder, isSpecialFile, normalizeInboxPath, getAreas, isTasksFolderFile, getProjectDisplayName, getSortedProjectFiles } from "../utils/areaUtils";
 import { PromptModal } from "../ui/PromptModal";
 import { FilePickerModal } from "../ui/FilePickerModal";
 import { captureQuickTask } from "../ui/CaptureModal";
 import { DueWindow, TabType, FilterState, IndexedTask } from "./TasksPanelTypes";
+import { loadTasksFromFile } from "../utils/taskUtils";
+import { formatISODate, formatDate, diffInDays, startOf, endOf, add } from "../utils/dateUtils";
+import { getTasksFolderFiles } from "../utils/fileUtils";
 
 /**
  * View type identifier for the Tasks panel.
@@ -350,72 +353,16 @@ export class TasksPanel extends ItemView {
    * Reindexes all tasks in the vault and updates the task list.
    */
   private async reindex() {
-    const files = this.app.vault.getMarkdownFiles();
     const tasks: IndexedTask[] = [];
-    const projectPathsSet = new Set<string>();
 
-    for (const file of files) {
-      const path = file.path;
-      
-      // Only index files in tasks folder structure
-      if (!isInTasksFolder(path, this.settings)) continue;
-      
-      // Exclude tasks folder file from project paths
-      if (isTasksFolderFile(path, this.settings)) continue;
-      
-      // Add all project files to the set (not just those with tasks)
-      projectPathsSet.add(path);
-      
-      const cache = this.app.metadataCache.getCache(path);
-      const lists = cache?.listItems;         // works for checkboxes
-      if (!lists || lists.length === 0) continue;
+    // Filter files in tasks folder (excluding tasks folder file)
+    const tasksFolderFiles = getTasksFolderFiles(this.app, this.settings)
+      .filter(f => !isTasksFolderFile(f.path, this.settings));
 
-      // Check if file has any tasks before reading
-      const hasTasks = lists.some(li => li.task);
-      if (!hasTasks) continue;
-
-      // Read file content to get actual line text (only for files with tasks)
-      let fileContent: string;
-      try {
-        fileContent = await this.app.vault.read(file);
-      } catch {
-        continue;
-      }
-      const lines = fileContent.split("\n");
-
-      for (const li of lists) {
-        if (!li.task) continue;               // only task items
-        const lineNo = li.position?.start?.line ?? 0;
-        if (lineNo < 0 || lineNo >= lines.length) continue;
-        
-        // Parse task with description (reads subsequent indented lines)
-        const { task: parsed, endLine } = parseTaskWithDescription(lines, lineNo);
-        if (!parsed) continue;
-
-        // Get raw task line (first line only)
-        const raw = lines[lineNo].trim();
-
-        // Infer area from folder path (not from metadata)
-        const area = inferAreaFromPath(path, this.app, this.settings);
-        // Project is derived from file basename, not stored in metadata
-        const project = isSpecialFile(path, this.settings) ? undefined : file.basename;
-
-        tasks.push({
-          path,
-          line: lineNo + 1, // 1-based task line
-          raw,
-          title: parsed.title,
-          description: parsed.description,
-          tags: parsed.tags || [],
-          area,
-          project,
-          priority: parsed.priority,
-          due: parsed.due,
-          recur: parsed.recur,
-          checked: parsed.checked,
-          descriptionEndLine: endLine + 1 // 1-based, inclusive
-        });
-      }
+    // Load tasks from all files and collect project paths
+    for (const file of tasksFolderFiles) {
+      const fileTasks = await loadTasksFromFile(this.app, file, this.settings);
+      tasks.push(...fileTasks);
     }
 
     // Get sorted project files (Inbox first, then areas alphabetically)
@@ -433,10 +380,7 @@ export class TasksPanel extends ItemView {
    * @returns True if the date is overdue
    */
   private isOverdue(dueDate: string): boolean {
-    const moment = (window as any).moment;
-    const due = moment(dueDate);
-    const today = moment().startOf("day");
-    return due.diff(today, "days") < 0;
+    return diffInDays(dueDate) < 0;
   }
 
   /**
@@ -446,22 +390,19 @@ export class TasksPanel extends ItemView {
    * @returns Formatted date string
    */
   private formatDueDate(dueDate: string): string {
-    const moment = (window as any).moment;
-    const due = moment(dueDate);
-    const today = moment().startOf("day");
-    const daysDiff = due.diff(today, "days");
+    const daysDiff = diffInDays(dueDate);
     
     if (daysDiff < 0) {
       // Overdue - show shortened format
-      return due.format("Do MMM");
+      return formatDate(dueDate, "Do MMM");
     } else if (daysDiff === 0) {
       return "Today";
     } else if (daysDiff <= 7) {
       // Within next 7 days - show day name
-      return due.format("dddd");
+      return formatDate(dueDate, "dddd");
     } else {
       // Beyond 7 days - show shortened format
-      return due.format("Do MMM");
+      return formatDate(dueDate, "Do MMM");
     }
   }
 
@@ -555,7 +496,7 @@ export class TasksPanel extends ItemView {
     // filter
     let rows = this.tasks.filter(t => !t.checked); // open only
     const f = this.filters;
-    const today = (window as any).moment().format("YYYY-MM-DD");
+    const today = formatISODate(new Date());
     const normalizedInboxPath = normalizeInboxPath(this.settings.inboxPath);
     
     // Apply tab-specific filtering
@@ -571,8 +512,6 @@ export class TasksPanel extends ItemView {
       rows = rows.filter(t => t.tags.includes(waitingForTag));
     } else {
       // Apply due filter only for "All Tasks" tab
-      const moment = (window as any).moment;
-      
       if (f.due === "today") {
         rows = rows.filter(t => t.due === today);
       } else if (f.due === "overdue") {
@@ -583,24 +522,24 @@ export class TasksPanel extends ItemView {
         // Configurable day range (e.g., "7d", "14d", "30d")
         const days = parseInt(f.due.replace("d", ""), 10);
         if (!isNaN(days)) {
-          const endDate = moment(today).add(days, "days").format("YYYY-MM-DD");
+          const endDate = add(days, "days", today);
           rows = rows.filter(t => t.due && t.due >= today && t.due <= endDate);
         }
       } else if (f.due === "this-week") {
-        const weekStart = moment().startOf("week").format("YYYY-MM-DD");
-        const weekEnd = moment().endOf("week").format("YYYY-MM-DD");
+        const weekStart = startOf("week");
+        const weekEnd = endOf("week");
         rows = rows.filter(t => t.due && t.due >= weekStart && t.due <= weekEnd);
       } else if (f.due === "next-week") {
-        const nextWeekStart = moment().add(1, "week").startOf("week").format("YYYY-MM-DD");
-        const nextWeekEnd = moment().add(1, "week").endOf("week").format("YYYY-MM-DD");
+        const nextWeekStart = startOf("week", add(1, "weeks"));
+        const nextWeekEnd = endOf("week", add(1, "weeks"));
         rows = rows.filter(t => t.due && t.due >= nextWeekStart && t.due <= nextWeekEnd);
       } else if (f.due === "this-month") {
-        const monthStart = moment().startOf("month").format("YYYY-MM-DD");
-        const monthEnd = moment().endOf("month").format("YYYY-MM-DD");
+        const monthStart = startOf("month");
+        const monthEnd = endOf("month");
         rows = rows.filter(t => t.due && t.due >= monthStart && t.due <= monthEnd);
       } else if (f.due === "next-month") {
-        const nextMonthStart = moment().add(1, "month").startOf("month").format("YYYY-MM-DD");
-        const nextMonthEnd = moment().add(1, "month").endOf("month").format("YYYY-MM-DD");
+        const nextMonthStart = startOf("month", add(1, "months"));
+        const nextMonthEnd = endOf("month", add(1, "months"));
         rows = rows.filter(t => t.due && t.due >= nextMonthStart && t.due <= nextMonthEnd);
       }
     }
@@ -942,7 +881,7 @@ export class TasksPanel extends ItemView {
       let nextOccurrenceTask: Task | null = null;
       if (checked) {
         if (!parsed.completion) {
-          const today = (window as any).moment().format("YYYY-MM-DD");
+          const today = formatISODate(new Date());
           parsed.completion = today;
         }
         

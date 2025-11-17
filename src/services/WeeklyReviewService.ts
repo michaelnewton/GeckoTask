@@ -11,6 +11,9 @@ import {
   getAreaPath,
   getAreas
 } from "../utils/areaUtils";
+import { loadTasksFromFile } from "../utils/taskUtils";
+import { getSomedayMaybePath, isInSomedayMaybeFolder } from "../utils/somedayMaybeUtils";
+import { getTasksFolderFiles } from "../utils/fileUtils";
 
 /**
  * Fetches all uncompleted tasks from the Inbox file.
@@ -26,7 +29,7 @@ export async function fetchInboxTasks(app: App, settings: GeckoTaskSettings): Pr
     return [];
   }
 
-  return await fetchTasksFromFile(app, inboxFile, settings);
+  return await loadTasksFromFile(app, inboxFile, settings);
 }
 
 /**
@@ -41,14 +44,13 @@ export async function fetchTasksByTag(
   settings: GeckoTaskSettings, 
   tag: string
 ): Promise<IndexedTask[]> {
-  const files = app.vault.getMarkdownFiles()
-    .filter(f => isInTasksFolder(f.path, settings));
+  const files = getTasksFolderFiles(app, settings);
   
   const tasks: IndexedTask[] = [];
   const normalizedTag = tag.startsWith("#") ? tag : `#${tag}`;
 
   for (const file of files) {
-    const fileTasks = await fetchTasksFromFile(app, file, settings);
+    const fileTasks = await loadTasksFromFile(app, file, settings);
     const taggedTasks = fileTasks.filter(t => t.tags.includes(normalizedTag));
     tasks.push(...taggedTasks);
   }
@@ -72,12 +74,12 @@ export async function fetchSomedayMaybeTasks(
   // Check each area for a Someday Maybe folder
   const areas = getAreas(app, settings);
   for (const area of areas) {
-    const somedayMaybePath = `${getAreaPath(area, settings)}/${somedayMaybeFolderName}`;
+    const somedayMaybePath = getSomedayMaybePath(area, settings);
     const somedayMaybeFolder = app.vault.getAbstractFileByPath(somedayMaybePath);
     
     if (somedayMaybeFolder && somedayMaybeFolder instanceof TFile) {
       // If it's a file, read it
-      const fileTasks = await fetchTasksFromFile(app, somedayMaybeFolder, settings);
+      const fileTasks = await loadTasksFromFile(app, somedayMaybeFolder, settings);
       tasks.push(...fileTasks);
     } else if (somedayMaybeFolder) {
       // If it's a folder, get all markdown files in it
@@ -85,7 +87,7 @@ export async function fetchSomedayMaybeTasks(
         .filter(f => f.path.startsWith(somedayMaybePath + "/") && f.path.endsWith(".md"));
       
       for (const file of files) {
-        const fileTasks = await fetchTasksFromFile(app, file, settings);
+        const fileTasks = await loadTasksFromFile(app, file, settings);
         tasks.push(...fileTasks);
       }
     }
@@ -108,8 +110,7 @@ export async function fetchSomedayMaybeProjects(
   const somedayMaybeFolderName = settings.somedayMaybeFolderName;
 
   // Get all markdown files in the tasks folder
-  const files = app.vault.getMarkdownFiles()
-    .filter(f => isInTasksFolder(f.path, settings));
+  const files = getTasksFolderFiles(app, settings);
   
   for (const file of files) {
     const path = file.path;
@@ -160,7 +161,7 @@ export async function fetchSomedayMaybeProjects(
     
     if (!isSomedayMaybeFile && !isProjectInSomedayMaybe) continue;
     
-    const tasks = await fetchTasksFromFile(app, file, settings);
+    const tasks = await loadTasksFromFile(app, file, settings);
     const uncompletedTasks = tasks.filter(t => !t.checked);
     const hasNextAction = uncompletedTasks.length > 0;
 
@@ -194,29 +195,17 @@ export async function fetchNextActions(
   app: App, 
   settings: GeckoTaskSettings
 ): Promise<IndexedTask[]> {
-  const files = app.vault.getMarkdownFiles()
-    .filter(f => isInTasksFolder(f.path, settings));
+  const files = getTasksFolderFiles(app, settings);
   
   const tasks: IndexedTask[] = [];
   const somedayMaybeFolderName = settings.somedayMaybeFolderName;
   const waitingForTag = settings.waitingForTag;
 
   for (const file of files) {
-    const path = file.path;
-    
     // Skip Someday Maybe folders
-    let isSomedayMaybe = false;
-    const areas = getAreas(app, settings);
-    for (const area of areas) {
-      const somedayMaybePath = `${getAreaPath(area, settings)}/${somedayMaybeFolderName}`;
-      if (path.startsWith(somedayMaybePath + "/") || path === somedayMaybePath + ".md") {
-        isSomedayMaybe = true;
-        break;
-      }
-    }
-    if (isSomedayMaybe) continue;
+    if (isInSomedayMaybeFolder(file.path, settings, app)) continue;
 
-    const fileTasks = await fetchTasksFromFile(app, file, settings);
+    const fileTasks = await loadTasksFromFile(app, file, settings);
     // Filter out completed tasks and Waiting For tasks
     const actionableTasks = fileTasks.filter(t => 
       !t.checked && !t.tags.includes(waitingForTag)
@@ -237,8 +226,7 @@ export async function fetchProjectsWithTasks(
   app: App, 
   settings: GeckoTaskSettings
 ): Promise<ProjectReviewInfo[]> {
-  const files = app.vault.getMarkdownFiles()
-    .filter(f => isInTasksFolder(f.path, settings));
+  const files = getTasksFolderFiles(app, settings);
   
   const projects: ProjectReviewInfo[] = [];
   const somedayMaybeFolderName = settings.somedayMaybeFolderName;
@@ -251,23 +239,14 @@ export async function fetchProjectsWithTasks(
     if (path === inboxPath) continue;
     if (isSpecialFile(path, settings)) continue;
     
-    let isSomedayMaybe = false;
-    const areas = getAreas(app, settings);
-    for (const area of areas) {
-      const somedayMaybePath = `${getAreaPath(area, settings)}/${somedayMaybeFolderName}`;
-      if (path.startsWith(somedayMaybePath + "/") || path === somedayMaybePath + ".md") {
-        isSomedayMaybe = true;
-        break;
-      }
-    }
-    if (isSomedayMaybe) continue;
+    if (isInSomedayMaybeFolder(path, settings, app)) continue;
 
     const area = inferAreaFromPath(path, app, settings);
     const projectName = isSpecialFile(path, settings) ? undefined : file.basename;
     
     if (!projectName) continue; // Skip if no project name
 
-    const tasks = await fetchTasksFromFile(app, file, settings);
+    const tasks = await loadTasksFromFile(app, file, settings);
     const uncompletedTasks = tasks.filter(t => !t.checked);
     const hasNextAction = uncompletedTasks.length > 0;
 
@@ -291,69 +270,4 @@ export async function fetchProjectsWithTasks(
   return projects;
 }
 
-/**
- * Fetches all tasks from a specific file.
- * @param app - Obsidian app instance
- * @param file - File to read tasks from
- * @param settings - Plugin settings
- * @returns Array of indexed tasks from the file
- */
-async function fetchTasksFromFile(
-  app: App, 
-  file: TFile, 
-  settings: GeckoTaskSettings
-): Promise<IndexedTask[]> {
-  const path = file.path;
-  const tasks: IndexedTask[] = [];
-
-  const cache = app.metadataCache.getCache(path);
-  const lists = cache?.listItems;
-  if (!lists || lists.length === 0) return tasks;
-
-  // Check if file has any tasks before reading
-  const hasTasks = lists.some(li => li.task);
-  if (!hasTasks) return tasks;
-
-  // Read file content to get actual line text
-  let fileContent: string;
-  try {
-    fileContent = await app.vault.read(file);
-  } catch {
-    return tasks;
-  }
-  const lines = fileContent.split("\n");
-
-  for (const li of lists) {
-    if (!li.task) continue;
-    const lineNo = li.position?.start?.line ?? 0;
-    if (lineNo < 0 || lineNo >= lines.length) continue;
-    
-    // Parse task with description
-    const { task: parsed, endLine } = parseTaskWithDescription(lines, lineNo);
-    if (!parsed) continue;
-
-    const raw = lines[lineNo].trim();
-    const area = inferAreaFromPath(path, app, settings);
-    // Project is derived from file basename, not stored in metadata
-    const project = isSpecialFile(path, settings) ? undefined : file.basename;
-
-    tasks.push({
-      path,
-      line: lineNo + 1,
-      raw,
-      title: parsed.title,
-      description: parsed.description,
-      tags: parsed.tags || [],
-      area,
-      project,
-      priority: parsed.priority,
-      due: parsed.due,
-      recur: parsed.recur,
-      checked: parsed.checked,
-      descriptionEndLine: endLine + 1
-    });
-  }
-
-  return tasks;
-}
 

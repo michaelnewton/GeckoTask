@@ -18,37 +18,44 @@ export class FilePickerModal extends SuggestModal<TFile | typeof CREATE_NEW_PROJ
 
   /**
    * Creates a new file picker modal.
-   * Note: The files parameter is ignored - files are retrieved and sorted automatically.
    * @param app - Obsidian app instance
-   * @param files - List of files to choose from (ignored, will be retrieved automatically)
+   * @param files - List of files to choose from. If empty array, files are retrieved and sorted automatically.
    * @param settings - Plugin settings
    */
   constructor(app: App, files: TFile[], settings: GeckoTaskSettings) {
     super(app);
     this.app = app;
     this.settings = settings;
+    // Store files if provided, otherwise will auto-retrieve in getSuggestions
+    this.files = files;
   }
+
+  private files: TFile[];
 
   /**
    * Filters files based on query string (searches both path and display name).
    * Always includes "Create new project" option at the top.
-   * Files are sorted: Inbox first, then areas alphabetically.
+   * If files array is empty, automatically retrieves and sorts files (Inbox first, then areas alphabetically).
+   * Otherwise, uses the provided files array.
    * @param query - Search query
    * @returns Filtered list of files with "Create new project" option
    */
   getSuggestions(query: string): (TFile | typeof CREATE_NEW_PROJECT_MARKER)[] {
     const suggestions: (TFile | typeof CREATE_NEW_PROJECT_MARKER)[] = [CREATE_NEW_PROJECT_MARKER];
     
-    // Get sorted files (Inbox first, then areas alphabetically)
-    const sortedFiles = getSortedProjectFiles(this.app, this.settings);
+    // If files array is empty, auto-retrieve and sort files
+    // Otherwise, use the provided files (for filtered use cases)
+    const filesToUse = this.files.length === 0 
+      ? getSortedProjectFiles(this.app, this.settings)
+      : this.files;
     
     if (!query) {
-      suggestions.push(...sortedFiles);
+      suggestions.push(...filesToUse);
       return suggestions;
     }
     
     const q = query.toLowerCase();
-    const filtered = sortedFiles.filter(f => {
+    const filtered = filesToUse.filter(f => {
       const pathMatch = f.path.toLowerCase().includes(q);
       const displayName = getProjectDisplayName(f.path, this.app, this.settings);
       const displayMatch = displayName.toLowerCase().includes(q);

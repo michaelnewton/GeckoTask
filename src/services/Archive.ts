@@ -81,22 +81,21 @@ async function ensureDirectoryExists(app: App, filePath: string): Promise<void> 
 }
 
 /**
- * Archives all completed tasks from a single file.
- * @param app - Obsidian app instance
- * @param file - The file to archive tasks from
+ * Processes lines to separate tasks into keep/move arrays based on archive criteria.
+ * @param lines - All lines from the file
  * @param settings - Plugin settings
- * @returns Number of tasks archived
+ * @param filePath - Current file path
+ * @param shouldArchive - Function that determines if a completed task should be archived
+ * @returns Object with keep array (lines to keep), move array (tasks to archive), and count
  */
-export async function archiveCompletedInFile(app: App, file: TFile, settings: GeckoTaskSettings): Promise<number> {
-  // Skip if this file is already in the archive directory or is the archive file itself
-  if (isArchiveFile(file.path, settings)) {
-    return 0;
-  }
-  
-  const src = await app.vault.read(file);
-  const lines = src.split("\n");
+function processTasksForArchive(
+  lines: string[],
+  settings: GeckoTaskSettings,
+  filePath: string,
+  shouldArchive: (task: Task) => boolean
+): { keep: string[]; move: Array<{ task: Task; startLine: number; endLine: number }>; count: number } {
   const keep: string[] = [];
-  const move: string[] = [];
+  const move: Array<{ task: Task; startLine: number; endLine: number }> = [];
   const processedLines = new Set<number>(); // Track lines we've already processed
 
   for (let i = 0; i < lines.length; i++) {
@@ -115,16 +114,14 @@ export async function archiveCompletedInFile(app: App, file: TFile, settings: Ge
       continue;
     }
     
-    if (task?.checked && task.completion) {
+    if (task && task.checked && task.completion && shouldArchive(task)) {
       // Mark all lines (task + description) as processed
       for (let j = i; j <= endLine; j++) {
         processedLines.add(j);
       }
       
-      // Ensure origin metadata and format with description
-      const taskWithOrigin = appendOriginToTask(task, file, app, settings);
-      const taskLines = formatTaskWithDescription(taskWithOrigin);
-      move.push(...taskLines);
+      // Task will be moved - we'll format it later with origin metadata
+      move.push({ task, startLine: i, endLine });
     } else {
       // Not a task to archive, keep all lines (task + description)
       for (let j = i; j <= endLine; j++) {
@@ -134,12 +131,22 @@ export async function archiveCompletedInFile(app: App, file: TFile, settings: Ge
     }
   }
 
-  if (move.length === 0) return 0;
+  return { keep, move, count: move.length };
+}
 
-  // Write source (kept lines)
-  await app.vault.modify(file, keep.join("\n").replace(/\n+$/,"") + "\n");
-
-  // Append to archive file
+/**
+ * Writes tasks to the archive file, ensuring the archive file exists.
+ * @param app - Obsidian app instance
+ * @param settings - Plugin settings
+ * @param tasksToArchive - Array of tasks to archive (with origin metadata already added)
+ * @returns The archive file that was written to
+ */
+async function writeToArchive(
+  app: App,
+  settings: GeckoTaskSettings,
+  tasksToArchive: { task: Task; startLine: number; endLine: number }[],
+  file: TFile
+): Promise<TFile> {
   const archivePath = archivePathFor(settings);
   
   // Ensure the archive directory exists before creating the file
@@ -149,11 +156,56 @@ export async function archiveCompletedInFile(app: App, file: TFile, settings: Ge
   if (!archiveFile) {
     archiveFile = await app.vault.create(archivePath, "# Completed Tasks\n\n");
   }
-  const prev = await app.vault.read(archiveFile);
-  const next = prev + move.join("\n") + "\n";
-  await app.vault.modify(archiveFile, next);
 
-  return move.length;
+  // Format tasks with origin metadata and append to archive
+  const taskLines: string[] = [];
+  for (const item of tasksToArchive) {
+    const taskWithOrigin = appendOriginToTask(item.task, file, app, settings);
+    taskLines.push(...formatTaskWithDescription(taskWithOrigin));
+  }
+
+  if (taskLines.length > 0) {
+    const prev = await app.vault.read(archiveFile);
+    const next = prev + taskLines.join("\n") + "\n";
+    await app.vault.modify(archiveFile, next);
+  }
+
+  return archiveFile;
+}
+
+/**
+ * Archives all completed tasks from a single file.
+ * @param app - Obsidian app instance
+ * @param file - The file to archive tasks from
+ * @param settings - Plugin settings
+ * @returns Number of tasks archived
+ */
+export async function archiveCompletedInFile(app: App, file: TFile, settings: GeckoTaskSettings): Promise<number> {
+  // Skip if this file is already in the archive directory or is the archive file itself
+  if (isArchiveFile(file.path, settings)) {
+    return 0;
+  }
+  
+  const src = await app.vault.read(file);
+  const lines = src.split("\n");
+  
+  // Archive all completed tasks (no date filter)
+  const { keep, move, count } = processTasksForArchive(
+    lines,
+    settings,
+    file.path,
+    () => true // Archive all completed tasks
+  );
+
+  if (count === 0) return 0;
+
+  // Write source (kept lines)
+  await app.vault.modify(file, keep.join("\n").replace(/\n+$/,"") + "\n");
+
+  // Append to archive file
+  await writeToArchive(app, settings, move, file);
+
+  return count;
 }
 
 /**
@@ -180,65 +232,25 @@ export async function archiveAllCompletedInVault(app: App, settings: GeckoTaskSe
     
     const content = await app.vault.read(file);
     const lines = content.split("\n");
-    let changed = false;
-    const keep: string[] = [];
-    const move: string[] = [];
-    const processedLines = new Set<number>(); // Track lines we've already processed
-
-    for (let i = 0; i < lines.length; i++) {
-      // Skip lines we've already processed (description lines)
-      if (processedLines.has(i)) continue;
-
-      const { task, endLine } = parseTaskWithDescription(lines, i);
-      
-      // Skip tasks that are already archived (have origin_file pointing to archive)
-      if (task?.origin_file && isArchiveFile(task.origin_file, settings)) {
-        // Keep already-archived tasks in place
-        for (let j = i; j <= endLine; j++) {
-          processedLines.add(j);
-          keep.push(lines[j]);
-        }
-        continue;
-      }
-      
-      if (task?.checked && task.completion) {
+    
+    // Archive completed tasks older than cutoff date
+    const { keep, move, count } = processTasksForArchive(
+      lines,
+      settings,
+      file.path,
+      (task) => {
+        if (!task.completion) return false;
         const dt = new Date(task.completion);
-        if (!isNaN(dt.getTime()) && dt <= cutoff) {
-          // Mark all lines (task + description) as processed
-          for (let j = i; j <= endLine; j++) {
-            processedLines.add(j);
-          }
-          
-          // Ensure origin metadata and format with description
-          const taskWithOrigin = appendOriginToTask(task, file, app, settings);
-          const taskLines = formatTaskWithDescription(taskWithOrigin);
-          move.push(...taskLines);
-          changed = true;
-        } else {
-          // Task is completed but not old enough, keep all lines (task + description)
-          for (let j = i; j <= endLine; j++) {
-            processedLines.add(j);
-            keep.push(lines[j]);
-          }
-        }
-      } else {
-        // Not a task to archive, keep all lines (task + description)
-        for (let j = i; j <= endLine; j++) {
-          processedLines.add(j);
-          keep.push(lines[j]);
-        }
+        return !isNaN(dt.getTime()) && dt <= cutoff;
       }
-    }
+    );
 
-    if (!changed) continue;
+    if (count === 0) continue;
 
     await app.vault.modify(file, keep.join("\n").replace(/\n+$/,"") + "\n");
 
-    let archiveFile = app.vault.getAbstractFileByPath(archivePath) as TFile | null;
-    if (!archiveFile) archiveFile = await app.vault.create(archivePath, "# Completed Tasks\n\n");
-    const prev = await app.vault.read(archiveFile);
-    await app.vault.modify(archiveFile, prev + move.join("\n") + "\n");
-    total += move.length;
+    await writeToArchive(app, settings, move, file);
+    total += count;
   }
   return total;
 }

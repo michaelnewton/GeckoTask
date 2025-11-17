@@ -4,6 +4,8 @@ import { GeckoTaskSettings } from "../settings";
 import { parseNLDate } from "./NLDate";
 import { PromptModal } from "../ui/PromptModal";
 import { calculateNextOccurrence } from "./Recurrence";
+import { formatISODate } from "../utils/dateUtils";
+import { getAllEditorLines, replaceTaskBlock } from "../utils/editorUtils";
 
 
 /**
@@ -33,11 +35,7 @@ export async function toggleCompleteAtCursor(editor: Editor, view: MarkdownView,
   const currentLineNo = ctx.lineNo!;
   
   // Get all lines from the editor to parse task with description
-  const totalLines = editor.lineCount();
-  const lines: string[] = [];
-  for (let i = 0; i < totalLines; i++) {
-    lines.push(editor.getLine(i));
-  }
+  const lines = getAllEditorLines(editor);
   
   // Parse the task with its description
   const { task: parsed, endLine } = parseTaskWithDescription(lines, currentLineNo);
@@ -45,7 +43,7 @@ export async function toggleCompleteAtCursor(editor: Editor, view: MarkdownView,
   
   const checked = !parsed.checked;
   const today = new Date();
-  const completion = checked ? iso(today) : undefined;
+  const completion = checked ? formatISODate(today) : undefined;
 
   // Update the task
   parsed.checked = checked;
@@ -55,18 +53,8 @@ export async function toggleCompleteAtCursor(editor: Editor, view: MarkdownView,
   const updatedLines = formatTaskWithDescription(parsed);
   const updatedText = updatedLines.join("\n");
   
-  // Get the start and end positions of the task block
-  const startLine = currentLineNo;
-  const endLineNo = endLine;
-  const startLineContent = editor.getLine(startLine);
-  const endLineContent = editor.getLine(endLineNo);
-  
-  // Calculate positions: start at beginning of task line, end at end of last description line
-  const startPos = { line: startLine, ch: 0 };
-  const endPos = { line: endLineNo, ch: endLineContent.length };
-  
   // Replace the entire task block (including description) with the updated version
-  editor.replaceRange(updatedText, startPos, endPos);
+  replaceTaskBlock(editor, currentLineNo, endLine, updatedText);
 
   // If completing a recurring task, create the next occurrence
   if (checked && parsed.recur && parsed.recur.length > 0) {
@@ -84,8 +72,8 @@ export async function toggleCompleteAtCursor(editor: Editor, view: MarkdownView,
       const newTaskLines = formatTaskWithDescription(newTask);
       
       // Insert on the line directly underneath the task
-      // After replacing the task, the task ends at startLine + updatedLines.length - 1
-      const taskEndLine = startLine + updatedLines.length - 1;
+      // After replacing the task, the task ends at currentLineNo + updatedLines.length - 1
+      const taskEndLine = currentLineNo + updatedLines.length - 1;
       const taskEndLineContent = editor.getLine(taskEndLine);
       const insertPos = { line: taskEndLine, ch: taskEndLineContent.length };
       
@@ -112,11 +100,7 @@ export async function setFieldAtCursor(app: App, editor: Editor, key: "due"|"pri
   const currentLineNo = editor.getCursor().line;
   
   // Get all lines from the editor to parse task with description
-  const totalLines = editor.lineCount();
-  const lines: string[] = [];
-  for (let i = 0; i < totalLines; i++) {
-    lines.push(editor.getLine(i));
-  }
+  const lines = getAllEditorLines(editor);
   
   // Parse the task with its description
   const { task: parsed, endLine } = parseTaskWithDescription(lines, currentLineNo);
@@ -143,28 +127,22 @@ export async function setFieldAtCursor(app: App, editor: Editor, key: "due"|"pri
     v = parseNLDate(v) ?? v;
   }
 
-  // Update the task
-  const updated = { ...parsed } as Task;
-  // TypeScript doesn't support dynamic property assignment on typed objects,
-  // but we know the key is valid (enforced by the function signature)
-  (updated as any)[key] = v;
+  // Update the task with type-safe field assignment
+  const updated: Task = { ...parsed };
+  if (key === "due") {
+    updated.due = v || undefined;
+  } else if (key === "priority") {
+    updated.priority = v || undefined;
+  } else if (key === "recur") {
+    updated.recur = v || undefined;
+  }
 
   // Format the updated task with description
   const updatedLines = formatTaskWithDescription(updated);
   const updatedText = updatedLines.join("\n");
   
-  // Get the start and end positions of the task block
-  const startLine = currentLineNo;
-  const endLineNo = endLine;
-  const startLineContent = editor.getLine(startLine);
-  const endLineContent = editor.getLine(endLineNo);
-  
-  // Calculate positions: start at beginning of task line, end at end of last description line
-  const startPos = { line: startLine, ch: 0 };
-  const endPos = { line: endLineNo, ch: endLineContent.length };
-  
   // Replace the entire task block (including description) with the updated version
-  editor.replaceRange(updatedText, startPos, endPos);
+  replaceTaskBlock(editor, currentLineNo, endLine, updatedText);
 }
 
 /**
@@ -177,11 +155,7 @@ export async function addRemoveTagsAtCursor(app: App, editor: Editor, settings: 
   const currentLineNo = editor.getCursor().line;
   
   // Get all lines from the editor to parse task with description
-  const totalLines = editor.lineCount();
-  const lines: string[] = [];
-  for (let i = 0; i < totalLines; i++) {
-    lines.push(editor.getLine(i));
-  }
+  const lines = getAllEditorLines(editor);
   
   // Parse the task with its description
   const { task: parsed, endLine } = parseTaskWithDescription(lines, currentLineNo);
@@ -228,18 +202,8 @@ export async function addRemoveTagsAtCursor(app: App, editor: Editor, settings: 
   const updatedLines = formatTaskWithDescription(updated);
   const updatedText = updatedLines.join("\n");
   
-  // Get the start and end positions of the task block
-  const startLine = currentLineNo;
-  const endLineNo = endLine;
-  const startLineContent = editor.getLine(startLine);
-  const endLineContent = editor.getLine(endLineNo);
-  
-  // Calculate positions: start at beginning of task line, end at end of last description line
-  const startPos = { line: startLine, ch: 0 };
-  const endPos = { line: endLineNo, ch: endLineContent.length };
-  
   // Replace the entire task block (including description) with the updated version
-  editor.replaceRange(updatedText, startPos, endPos);
+  replaceTaskBlock(editor, currentLineNo, endLine, updatedText);
 }
 
 /**
@@ -250,11 +214,7 @@ export function normalizeTaskLine(editor: Editor) {
   const currentLineNo = editor.getCursor().line;
   
   // Get all lines from the editor to parse task with description
-  const totalLines = editor.lineCount();
-  const lines: string[] = [];
-  for (let i = 0; i < totalLines; i++) {
-    lines.push(editor.getLine(i));
-  }
+  const lines = getAllEditorLines(editor);
   
   // Parse the task with its description
   const { task: parsed, endLine } = parseTaskWithDescription(lines, currentLineNo);
@@ -264,27 +224,7 @@ export function normalizeTaskLine(editor: Editor) {
   const normalizedLines = formatTaskWithDescription(parsed);
   const normalizedText = normalizedLines.join("\n");
   
-  // Get the start and end positions of the task block
-  const startLine = currentLineNo;
-  const endLineNo = endLine;
-  const startLineContent = editor.getLine(startLine);
-  const endLineContent = editor.getLine(endLineNo);
-  
-  // Calculate positions: start at beginning of task line, end at end of last description line
-  const startPos = { line: startLine, ch: 0 };
-  const endPos = { line: endLineNo, ch: endLineContent.length };
-  
   // Replace the entire task block (including description) with the normalized version
-  editor.replaceRange(normalizedText, startPos, endPos);
+  replaceTaskBlock(editor, currentLineNo, endLine, normalizedText);
 }
 
-/**
- * Formats a date as ISO string (YYYY-MM-DD).
- * @param d - The date to format
- * @returns ISO date string
- */
-function iso(d: Date): string {
-  const m = String(d.getMonth()+1).padStart(2,"0");
-  const day = String(d.getDate()).padStart(2,"0");
-  return `${d.getFullYear()}-${m}-${day}`;
-}
