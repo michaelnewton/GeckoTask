@@ -115,7 +115,10 @@ export function parseTask(line: string): Task | null {
         }
       }
       
-      fields[key] = val;
+      // Only set field if it doesn't already exist (keep first occurrence, ignore duplicates)
+      if (!(key in fields)) {
+        fields[key] = val;
+      }
       i++;
       continue;
     }

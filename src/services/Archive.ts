@@ -15,6 +15,45 @@ function archivePathFor(settings: GeckoTaskSettings, date = new Date()): string 
 }
 
 /**
+ * Gets the archive directory path from the archive pattern.
+ * @param settings - Plugin settings
+ * @returns Archive directory path (e.g., "Archive" from "Archive/Completed-YYYY.md")
+ */
+function archiveDirectoryFor(settings: GeckoTaskSettings): string | null {
+  const archivePath = archivePathFor(settings);
+  const pathParts = archivePath.split("/");
+  if (pathParts.length <= 1) {
+    // Archive is at root, no directory
+    return null;
+  }
+  // Return the directory part (everything except the filename)
+  return pathParts.slice(0, -1).join("/");
+}
+
+/**
+ * Checks if a file path is in the archive directory or is the archive file itself.
+ * @param filePath - The file path to check
+ * @param settings - Plugin settings
+ * @returns True if the file is in the archive directory or is the archive file
+ */
+function isArchiveFile(filePath: string, settings: GeckoTaskSettings): boolean {
+  const archivePath = archivePathFor(settings);
+  const archiveDir = archiveDirectoryFor(settings);
+  
+  // Check if this is the archive file itself
+  if (filePath === archivePath) {
+    return true;
+  }
+  
+  // Check if the file is in the archive directory
+  if (archiveDir && filePath.startsWith(archiveDir + "/")) {
+    return true;
+  }
+  
+  return false;
+}
+
+/**
  * Ensures the directory for the given file path exists, creating it if necessary.
  * @param app - Obsidian app instance
  * @param filePath - The file path (e.g., "Archive/Completed-2024.md")
@@ -49,6 +88,11 @@ async function ensureDirectoryExists(app: App, filePath: string): Promise<void> 
  * @returns Number of tasks archived
  */
 export async function archiveCompletedInFile(app: App, file: TFile, settings: GeckoTaskSettings): Promise<number> {
+  // Skip if this file is already in the archive directory or is the archive file itself
+  if (isArchiveFile(file.path, settings)) {
+    return 0;
+  }
+  
   const src = await app.vault.read(file);
   const lines = src.split("\n");
   const keep: string[] = [];
@@ -60,6 +104,16 @@ export async function archiveCompletedInFile(app: App, file: TFile, settings: Ge
     if (processedLines.has(i)) continue;
 
     const { task, endLine } = parseTaskWithDescription(lines, i);
+    
+    // Skip tasks that are already archived (have origin_file pointing to archive)
+    if (task?.origin_file && isArchiveFile(task.origin_file, settings)) {
+      // Keep already-archived tasks in place
+      for (let j = i; j <= endLine; j++) {
+        processedLines.add(j);
+        keep.push(lines[j]);
+      }
+      continue;
+    }
     
     if (task?.checked && task.completed) {
       // Mark all lines (task + description) as processed
@@ -119,6 +173,11 @@ export async function archiveAllCompletedInVault(app: App, settings: GeckoTaskSe
   await ensureDirectoryExists(app, archivePath);
 
   for (const file of files) {
+    // Skip files that are already in the archive directory or is the archive file itself
+    if (isArchiveFile(file.path, settings)) {
+      continue;
+    }
+    
     const content = await app.vault.read(file);
     const lines = content.split("\n");
     let changed = false;
@@ -131,6 +190,16 @@ export async function archiveAllCompletedInVault(app: App, settings: GeckoTaskSe
       if (processedLines.has(i)) continue;
 
       const { task, endLine } = parseTaskWithDescription(lines, i);
+      
+      // Skip tasks that are already archived (have origin_file pointing to archive)
+      if (task?.origin_file && isArchiveFile(task.origin_file, settings)) {
+        // Keep already-archived tasks in place
+        for (let j = i; j <= endLine; j++) {
+          processedLines.add(j);
+          keep.push(lines[j]);
+        }
+        continue;
+      }
       
       if (task?.checked && task.completed) {
         const dt = new Date(task.completed);
@@ -183,8 +252,11 @@ export async function archiveAllCompletedInVault(app: App, settings: GeckoTaskSe
  * @returns Task with origin metadata fields added
  */
 function appendOriginToTask(task: Task, file: TFile, app: App, settings: GeckoTaskSettings): Task {
-  // If origin fields exist, return as-is; else append.
-  if (task.origin_file) return task;
+  // If origin fields already exist, return as-is to prevent duplicates.
+  // Check all origin fields to be safe - if any exist, don't overwrite.
+  if (task.origin_file || task.origin_project || task.origin_area) {
+    return task;
+  }
   
   const project = file.basename;
   const area = inferAreaFromPath(file.path, app, settings) || "";
