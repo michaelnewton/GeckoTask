@@ -1,6 +1,6 @@
 import { App, SuggestModal, TFile } from "obsidian";
 import { GeckoTaskSettings } from "../settings";
-import { getProjectDisplayName } from "../utils/areaUtils";
+import { getProjectDisplayName, getSortedProjectFiles } from "../utils/areaUtils";
 import { createProjectFile } from "../services/VaultIO";
 
 /**
@@ -12,38 +12,43 @@ const CREATE_NEW_PROJECT_MARKER = "__CREATE_NEW_PROJECT__" as any;
  * Modal for picking a file from a list of suggestions.
  */
 export class FilePickerModal extends SuggestModal<TFile | typeof CREATE_NEW_PROJECT_MARKER> {
-  files: TFile[];
+  app: App;
   result: TFile | null = null;
   settings: GeckoTaskSettings;
 
   /**
    * Creates a new file picker modal.
+   * Note: The files parameter is ignored - files are retrieved and sorted automatically.
    * @param app - Obsidian app instance
-   * @param files - List of files to choose from
+   * @param files - List of files to choose from (ignored, will be retrieved automatically)
    * @param settings - Plugin settings
    */
   constructor(app: App, files: TFile[], settings: GeckoTaskSettings) {
     super(app);
-    this.files = files;
+    this.app = app;
     this.settings = settings;
   }
 
   /**
    * Filters files based on query string (searches both path and display name).
    * Always includes "Create new project" option at the top.
+   * Files are sorted: Inbox first, then areas alphabetically.
    * @param query - Search query
    * @returns Filtered list of files with "Create new project" option
    */
   getSuggestions(query: string): (TFile | typeof CREATE_NEW_PROJECT_MARKER)[] {
     const suggestions: (TFile | typeof CREATE_NEW_PROJECT_MARKER)[] = [CREATE_NEW_PROJECT_MARKER];
     
+    // Get sorted files (Inbox first, then areas alphabetically)
+    const sortedFiles = getSortedProjectFiles(this.app, this.settings);
+    
     if (!query) {
-      suggestions.push(...this.files);
+      suggestions.push(...sortedFiles);
       return suggestions;
     }
     
     const q = query.toLowerCase();
-    const filtered = this.files.filter(f => {
+    const filtered = sortedFiles.filter(f => {
       const pathMatch = f.path.toLowerCase().includes(q);
       const displayName = getProjectDisplayName(f.path, this.app, this.settings);
       const displayMatch = displayName.toLowerCase().includes(q);

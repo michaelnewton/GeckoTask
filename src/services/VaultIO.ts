@@ -33,12 +33,8 @@ export async function moveTaskAtCursorInteractive(app: App, editor: Editor, sett
   const { task, lineNo, endLine, lines } = await getActiveLineTask(editor);
   if (!task) { new Notice("GeckoTask: No task on this line."); return; }
 
-  // Filter files to only those in tasks folder structure, excluding tasks folder file
-  const files = app.vault.getMarkdownFiles()
-    .filter(f => isInTasksFolder(f.path, settings))
-    .filter(f => !isTasksFolderFile(f.path, settings));
-
-  const target = await new FilePickerModal(app, files, settings).openAndGet();
+  // FilePickerModal will automatically get and sort files, so we can pass empty array
+  const target = await new FilePickerModal(app, [], settings).openAndGet();
   if (!target) return;
 
   // Update task metadata (remove area:: and project:: since we're using folder/file-based structure)

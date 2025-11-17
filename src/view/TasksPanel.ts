@@ -284,28 +284,11 @@ export class TasksPanel extends ItemView {
      * Refreshes the project dropdown options by updating projectPaths and re-rendering options.
      */
     const refreshProjectOptions = () => {
-      // Update projectPaths from current vault state
-      const files = this.app.vault.getMarkdownFiles();
-      const projectPathsSet = new Set<string>();
-      
-      for (const file of files) {
-        const path = file.path;
-        if (!isInTasksFolder(path, this.settings)) continue;
-        if (isTasksFolderFile(path, this.settings)) continue;
-        projectPathsSet.add(path);
-      }
-      
-      // Sort project paths (inbox first, then alphabetically)
-      const normalizedInboxPath = normalizeInboxPath(this.settings.inboxPath);
-      const projectPathsList = Array.from(projectPathsSet);
-      projectPathsList.sort((a, b) => {
-        if (a === normalizedInboxPath) return -1;
-        if (b === normalizedInboxPath) return 1;
-        return a.localeCompare(b);
-      });
+      // Get sorted project files (Inbox first, then areas alphabetically)
+      const sortedFiles = getSortedProjectFiles(this.app, this.settings);
       
       // Update the stored projectPaths
-      this.projectPaths = projectPathsList;
+      this.projectPaths = sortedFiles.map(f => f.path);
       
       // Clear and rebuild dropdown options
       const currentValue = projSelect.value;
@@ -435,17 +418,9 @@ export class TasksPanel extends ItemView {
       }
     }
 
-    // Sort project paths (inbox first, then alphabetically)
-    const normalizedInboxPath = normalizeInboxPath(this.settings.inboxPath);
-    const projectPathsList = Array.from(projectPathsSet);
-    projectPathsList.sort((a, b) => {
-      // Put inbox first
-      if (a === normalizedInboxPath) return -1;
-      if (b === normalizedInboxPath) return 1;
-      // Then sort alphabetically
-      return a.localeCompare(b);
-    });
-    this.projectPaths = projectPathsList;
+    // Get sorted project files (Inbox first, then areas alphabetically)
+    const sortedFiles = getSortedProjectFiles(this.app, this.settings);
+    this.projectPaths = sortedFiles.map(f => f.path);
     this.tasks = tasks;
     // re-render filters project dropdown
     const filtersHost = this.container.find(".geckotask-filters") as HTMLElement;
@@ -1215,16 +1190,8 @@ export class TasksPanel extends ItemView {
    */
   private async moveTask(t: IndexedTask) {
     try {
-      const files = this.app.vault.getMarkdownFiles()
-        .filter(f => isInTasksFolder(f.path, this.settings))
-        .filter(f => !isTasksFolderFile(f.path, this.settings));
-
-      if (files.length === 0) {
-        new Notice("GeckoTask: No files available to move task to.");
-        return;
-      }
-
-      const modal = new FilePickerModal(this.app, files, this.settings);
+      // FilePickerModal will automatically get and sort files
+      const modal = new FilePickerModal(this.app, [], this.settings);
       const target = await modal.openAndGet();
       if (!target) {
         // User cancelled - this is fine, just return

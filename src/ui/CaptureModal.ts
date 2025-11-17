@@ -2,7 +2,7 @@ import { App, Modal, Setting, Notice, TFile } from "obsidian";
 import { GeckoTaskSettings } from "../settings";
 import { parseNLDate } from "../services/NLDate";
 import { formatTask, formatTaskWithDescription, Task, parseTaskWithDescription } from "../models/TaskModel";
-import { isInTasksFolder, normalizeInboxPath, isSpecialFile, isTasksFolderFile, getProjectDisplayName } from "../utils/areaUtils";
+import { isInTasksFolder, normalizeInboxPath, isSpecialFile, isTasksFolderFile, getProjectDisplayName, getSortedProjectFiles } from "../utils/areaUtils";
 import { IndexedTask } from "../view/TasksPanelTypes";
 import { createProjectFile } from "../services/VaultIO";
 
@@ -99,12 +99,6 @@ export async function captureQuickTask(app: App, settings: GeckoTaskSettings, ex
         });
 
         const normalizedInboxPath = normalizeInboxPath(settings.inboxPath);
-        
-        // Get initial files in tasks folder structure, excluding tasks folder file
-        const projectPaths = mdFiles
-          .map(f => f.path)
-          .filter(p => isInTasksFolder(p, settings))
-          .filter(p => !isTasksFolderFile(p, settings));
 
         new Setting(contentEl).setName("Project").addDropdown(d => {
           const CREATE_NEW_PROJECT_VALUE = "__CREATE_NEW_PROJECT__";
@@ -113,11 +107,8 @@ export async function captureQuickTask(app: App, settings: GeckoTaskSettings, ex
            * Populates the dropdown with current project options.
            */
           const populateOptions = () => {
-            const currentFiles = app.vault.getMarkdownFiles();
-            const currentProjectPaths = currentFiles
-              .map(f => f.path)
-              .filter(p => isInTasksFolder(p, settings))
-              .filter(p => !isTasksFolderFile(p, settings));
+            // Get sorted project files (Inbox first, then areas alphabetically)
+            const sortedFiles = getSortedProjectFiles(app, settings);
             
             // Clear existing options
             const currentValue = d.selectEl.value || this.draft.projectPath;
@@ -126,30 +117,27 @@ export async function captureQuickTask(app: App, settings: GeckoTaskSettings, ex
             // Add "Create new project" option first
             d.addOption(CREATE_NEW_PROJECT_VALUE, "➕ Create new project");
             
-            // Add inbox as default option
-            d.addOption(normalizedInboxPath, getProjectDisplayName(normalizedInboxPath, app, settings));
-            
-            // Add other project files
-            for (const p of currentProjectPaths) {
-              if (p !== normalizedInboxPath) {
-                d.addOption(p, getProjectDisplayName(p, app, settings));
-              }
+            // Add files in sorted order (Inbox first, then areas alphabetically)
+            for (const file of sortedFiles) {
+              d.addOption(file.path, getProjectDisplayName(file.path, app, settings));
             }
             
             // Restore the selected value if it still exists, otherwise use draft path or inbox
+            const sortedPaths = sortedFiles.map(f => f.path);
             if (currentValue === CREATE_NEW_PROJECT_VALUE) {
               // If "Create new project" was selected, keep it selected
               d.setValue(CREATE_NEW_PROJECT_VALUE);
-            } else if (currentProjectPaths.includes(currentValue) || currentValue === normalizedInboxPath) {
+            } else if (sortedPaths.includes(currentValue)) {
               d.setValue(currentValue);
             } else {
               // If draft path exists and is valid, use it; otherwise use inbox
-              const valueToUse = this.draft.projectPath && 
-                (currentProjectPaths.includes(this.draft.projectPath) || this.draft.projectPath === normalizedInboxPath)
+              const valueToUse = this.draft.projectPath && sortedPaths.includes(this.draft.projectPath)
                 ? this.draft.projectPath 
-                : normalizedInboxPath;
-              d.setValue(valueToUse);
-              this.draft.projectPath = valueToUse;
+                : (normalizedInboxPath && sortedPaths.includes(normalizedInboxPath) ? normalizedInboxPath : sortedPaths[0] || "");
+              if (valueToUse) {
+                d.setValue(valueToUse);
+                this.draft.projectPath = valueToUse;
+              }
             }
           };
           

@@ -1700,11 +1700,8 @@ export class WeeklyReviewPanel extends ItemView {
    * Moves a task to a project.
    */
   private async moveTaskToProject(task: IndexedTask) {
-    const files = this.app.vault.getMarkdownFiles()
-      .filter(f => isInTasksFolder(f.path, this.settings))
-      .filter(f => !isTasksFolderFile(f.path, this.settings));
-
-    const target = await new FilePickerModal(this.app, files, this.settings).openAndGet();
+    // FilePickerModal will automatically get and sort files
+    const target = await new FilePickerModal(this.app, [], this.settings).openAndGet();
     if (!target) return;
 
     await this.moveTask(task, target.path);

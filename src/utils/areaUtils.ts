@@ -1,4 +1,4 @@
-import { App, TFolder } from "obsidian";
+import { App, TFolder, TFile } from "obsidian";
 import { GeckoTaskSettings } from "../settings";
 
 /**
@@ -192,5 +192,108 @@ export function getProjectDisplayName(filePath: string, app: App, settings: Geck
   const relativePath = filePath.substring(settings.tasksFolder.length + 1);
   // Remove .md extension
   return relativePath.endsWith(".md") ? relativePath.slice(0, -3) : relativePath;
+}
+
+/**
+ * Checks if a file path is in the Archive directory (for filtering project files).
+ * Archive directory is determined from the archive pattern (e.g., "Archive" from "Archive/Completed-YYYY.md").
+ * @param filePath - The file path to check
+ * @param settings - Plugin settings
+ * @returns True if the file is in the Archive directory
+ */
+export function isInArchiveDirectory(filePath: string, settings: GeckoTaskSettings): boolean {
+  // Extract archive directory from archive pattern
+  // Pattern format: "Archive/Completed-YYYY.md" -> directory is "Archive"
+  const archivePattern = settings.archivePattern;
+  const archiveDirMatch = archivePattern.match(/^([^\/]+)\//);
+  if (!archiveDirMatch) {
+    // Archive is at root level, check if file matches pattern
+    const archivePatternWithoutExt = archivePattern.replace(/\.md$/, "").replace("YYYY", "\\d{4}");
+    const archiveRegex = new RegExp(`^${settings.tasksFolder}/${archivePatternWithoutExt}\\.md$`);
+    return archiveRegex.test(filePath);
+  }
+  
+  const archiveDir = archiveDirMatch[1];
+  const archiveDirPath = `${settings.tasksFolder}/${archiveDir}`;
+  
+  // Check if file is in the archive directory
+  return filePath.startsWith(archiveDirPath + "/") || filePath === archiveDirPath;
+}
+
+/**
+ * Gets project files sorted in the correct order:
+ * 1. Inbox (if exists)
+ * 2. Areas and their subfiles/folders in alphabetical order
+ * Archive is excluded if it exists in the Tasks directory.
+ * @param app - Obsidian app instance
+ * @param settings - Plugin settings
+ * @returns Array of TFile objects sorted in the correct order
+ */
+export function getSortedProjectFiles(app: App, settings: GeckoTaskSettings): TFile[] {
+  const allFiles = app.vault.getMarkdownFiles();
+  const normalizedInboxPath = normalizeInboxPath(settings.inboxPath);
+  
+  // Filter files: must be in tasks folder, not tasks folder file, and not in Archive
+  const projectFiles = allFiles.filter(f => {
+    const path = f.path;
+    if (!isInTasksFolder(path, settings)) return false;
+    if (isTasksFolderFile(path, settings)) return false;
+    if (isInArchiveDirectory(path, settings)) return false;
+    return true;
+  });
+  
+  // Separate inbox from other files
+  const inboxFile = projectFiles.find(f => f.path === normalizedInboxPath);
+  const otherFiles = projectFiles.filter(f => f.path !== normalizedInboxPath);
+  
+  // Get areas and sort alphabetically
+  const areas = getAreas(app, settings);
+  const sortedAreas = [...areas].sort();
+  
+  // Group files by area
+  const filesByArea = new Map<string, TFile[]>();
+  const filesWithoutArea: TFile[] = [];
+  
+  for (const file of otherFiles) {
+    const area = inferAreaFromPath(file.path, app, settings);
+    if (area) {
+      if (!filesByArea.has(area)) {
+        filesByArea.set(area, []);
+      }
+      filesByArea.get(area)!.push(file);
+    } else {
+      // File is directly in tasks folder (not in an area)
+      filesWithoutArea.push(file);
+    }
+  }
+  
+  // Sort files within each area alphabetically by path
+  for (const [area, files] of filesByArea.entries()) {
+    files.sort((a, b) => a.path.localeCompare(b.path));
+  }
+  
+  // Sort files without area alphabetically
+  filesWithoutArea.sort((a, b) => a.path.localeCompare(b.path));
+  
+  // Build result array: inbox first, then areas in alphabetical order with their files
+  const result: TFile[] = [];
+  
+  // Add inbox if it exists
+  if (inboxFile) {
+    result.push(inboxFile);
+  }
+  
+  // Add files from each area in alphabetical order
+  for (const area of sortedAreas) {
+    const areaFiles = filesByArea.get(area);
+    if (areaFiles) {
+      result.push(...areaFiles);
+    }
+  }
+  
+  // Add files without area at the end
+  result.push(...filesWithoutArea);
+  
+  return result;
 }
 
