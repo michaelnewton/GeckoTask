@@ -14,7 +14,7 @@ export interface Task {
   recur?: string; // Recurrence pattern (e.g., "every Tuesday", "every 10 days")
   project?: string;
   area?: string;
-  completed?: string;
+  completion?: string;
   origin_file?: string;
   origin_project?: string;
   origin_area?: string;
@@ -23,7 +23,7 @@ export interface Task {
 }
 
 const FIELD_KEYS = new Set([
-  "due","scheduled","priority","recur","area","completed","origin_file","origin_project","origin_area"
+  "due","scheduled","priority","recur","area","completion","origin_file","origin_project","origin_area"
 ]);
 
 /**
@@ -48,7 +48,7 @@ export function parseTask(line: string): Task | null {
     const emojiLength = "🔁".length;
     const afterEmoji = rest.substring(recurEmojiIndex + emojiLength).trim();
     // Find where the recurrence pattern ends (before a field or tag)
-    const fieldOrTagMatch = afterEmoji.match(/^([^#]+?)(?:\s+(?:#|due::|scheduled::|priority::|recur::|area::|completed::|origin_file::|origin_project::|origin_area::)|$)/i);
+    const fieldOrTagMatch = afterEmoji.match(/^([^#]+?)(?:\s+(?:#|due::|scheduled::|priority::|recur::|area::|completion::|origin_file::|origin_project::|origin_area::)|$)/i);
     if (fieldOrTagMatch) {
       recurPattern = fieldOrTagMatch[1].trim();
       // Remove the emoji and pattern from the rest string for further parsing
@@ -144,7 +144,7 @@ export function parseTask(line: string): Task | null {
     // Note: project is not stored in metadata, it's derived from file basename
     // project: fields["project"],
     area: fields["area"],
-    completed: fields["completed"],
+    completion: fields["completion"],
     origin_file: fields["origin_file"],
     origin_project: fields["origin_project"],
     origin_area: fields["origin_area"],
@@ -178,7 +178,7 @@ export function formatTask(t: Task): string {
   // f("project", t.project); // Removed - projects are file-based
   // Note: area is not stored in metadata, it's derived from folder structure
   // f("area", t.area); // Removed - areas are folder-based
-  f("completed", t.completed);
+  f("completion", t.completion);
   f("origin_file", t.origin_file);
   f("origin_project", t.origin_project);
   f("origin_area", t.origin_area);
@@ -212,8 +212,8 @@ export function canonicalizeTaskForHash(t: Task): string {
   const recur = t.recur ?? "";
   const proj = t.project ?? "";
   const area = t.area ?? "";
-  const completed = t.completed ?? ""; // include for archive uniqueness.
-  return `${t.checked?'1':'0'}|${t.title.trim()}|${tagStr}|${priority}|${due}|${sched}|${recur}|${proj}|${area}|${completed}`;
+  const completion = t.completion ?? ""; // include for archive uniqueness.
+  return `${t.checked?'1':'0'}|${t.title.trim()}|${tagStr}|${priority}|${due}|${sched}|${recur}|${proj}|${area}|${completion}`;
 }
 
 /**

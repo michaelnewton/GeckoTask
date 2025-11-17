@@ -115,7 +115,7 @@ export async function archiveCompletedInFile(app: App, file: TFile, settings: Ge
       continue;
     }
     
-    if (task?.checked && task.completed) {
+    if (task?.checked && task.completion) {
       // Mark all lines (task + description) as processed
       for (let j = i; j <= endLine; j++) {
         processedLines.add(j);
@@ -201,8 +201,8 @@ export async function archiveAllCompletedInVault(app: App, settings: GeckoTaskSe
         continue;
       }
       
-      if (task?.checked && task.completed) {
-        const dt = new Date(task.completed);
+      if (task?.checked && task.completion) {
+        const dt = new Date(task.completion);
         if (!isNaN(dt.getTime()) && dt <= cutoff) {
           // Mark all lines (task + description) as processed
           for (let j = i; j <= endLine; j++) {

@@ -45,11 +45,11 @@ export async function toggleCompleteAtCursor(editor: Editor, view: MarkdownView,
   
   const checked = !parsed.checked;
   const today = new Date();
-  const completed = checked ? iso(today) : undefined;
+  const completion = checked ? iso(today) : undefined;
 
   // Update the task
   parsed.checked = checked;
-  parsed.completed = completed;
+  parsed.completion = completion;
 
   // Format the updated task with description
   const updatedLines = formatTaskWithDescription(parsed);
@@ -77,7 +77,7 @@ export async function toggleCompleteAtCursor(editor: Editor, view: MarkdownView,
         ...parsed,
         checked: false,
         due: nextDue,
-        completed: undefined,
+        completion: undefined,
         recur: parsed.recur, // Keep the recurrence pattern
       };
 

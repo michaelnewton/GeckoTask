@@ -524,7 +524,7 @@ export default class GeckoTaskPlugin extends Plugin {
     // Pattern to match task fields like "priority:: urgent", "due:: 2025-11-07", "recur:: every Tuesday", etc.
     // Matches: fieldname:: value (where fieldname is one of the allowed field keys)
     // Value can be single word or multiple words, but stops at next field, tag, newline, or end
-    const fieldKeys = "(?:due|scheduled|priority|recur|area|completed|origin_file|origin_project|origin_area)";
+    const fieldKeys = "(?:due|scheduled|priority|recur|area|completion|origin_file|origin_project|origin_area)";
     // Pattern: fieldname:: value (value stops at newline, next field/tag, or end)
     // Match value as one or more words (non-whitespace, non-hash, non-newline), separated by single spaces
     // Stop before newline, next field, tag, or end
@@ -663,7 +663,7 @@ export default class GeckoTaskPlugin extends Plugin {
           // Matches: fieldname:: value (where fieldname is one of the allowed field keys)
           // Value can be single word or multiple words, but stops at next field, tag, newline, or end
           // Match each field separately - value stops at whitespace before next field/tag or newline
-          const fieldKeys = "(?:due|scheduled|priority|recur|area|completed|origin_file|origin_project|origin_area)";
+          const fieldKeys = "(?:due|scheduled|priority|recur|area|completion|origin_file|origin_project|origin_area)";
           // Pattern: fieldname:: value (value stops at newline, next field/tag, or end)
           // Match value as one or more words (non-whitespace, non-hash, non-newline), separated by single spaces
           // Stop before newline, next field, tag, or end
@@ -822,15 +822,15 @@ export default class GeckoTaskPlugin extends Plugin {
     // Handle completion status changes
     if (parsed.checked) {
       // Task is checked - add completed date if not present
-      if (!parsed.completed) {
-        parsed.completed = this.formatISODate(today);
+      if (!parsed.completion) {
+        parsed.completion = this.formatISODate(today);
         needsUpdate = true;
         justAddedCompletedDate = true;
       }
     } else {
       // Task is unchecked - remove completed date if present
-      if (parsed.completed) {
-        parsed.completed = undefined;
+      if (parsed.completion) {
+        parsed.completion = undefined;
         needsUpdate = true;
       }
     }
@@ -859,7 +859,7 @@ export default class GeckoTaskPlugin extends Plugin {
     // Handle recurring tasks: create next occurrence when completed
     // Only create next occurrence if we just added the completed date (first time completing)
     // This prevents duplicate occurrences when re-checking already completed recurring tasks
-    if (parsed.recur && parsed.recur.length > 0 && parsed.checked && parsed.completed && justAddedCompletedDate) {
+    if (parsed.recur && parsed.recur.length > 0 && parsed.checked && parsed.completion && justAddedCompletedDate) {
       const nextDue = calculateNextOccurrence(parsed.recur, today);
       if (nextDue) {
         // Create new task with next occurrence
@@ -867,7 +867,7 @@ export default class GeckoTaskPlugin extends Plugin {
           ...parsed,
           checked: false,
           due: nextDue,
-          completed: undefined,
+          completion: undefined,
           recur: parsed.recur,
         };
         

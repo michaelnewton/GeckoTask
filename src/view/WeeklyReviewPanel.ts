@@ -1636,9 +1636,9 @@ export class WeeklyReviewPanel extends ItemView {
       if (!parsed) return data;
 
       parsed.checked = true;
-      if (!parsed.completed) {
+      if (!parsed.completion) {
         const today = (window as any).moment().format("YYYY-MM-DD");
-        parsed.completed = today;
+        parsed.completion = today;
       }
 
       // Handle recurring tasks

@@ -70,7 +70,7 @@
 * **@ Labels:** Tasks can include @ labels (e.g., `@ppl/Libby`, `@person/Name`) in titles or descriptions. These are automatically styled in markdown preview and extracted for display in the GeckoTask Panel.
 * **Area is NOT stored in metadata** — it's derived from folder structure.
 * **Project is NOT stored in metadata for regular project files** — it's derived from the file basename (e.g., `tasks/Work/RouterRevamp.md` → project: `RouterRevamp`). For special files (Inbox, General), project is undefined.
-* On completion, append `completed:: YYYY-MM-DD`.
+* On completion, append `completion:: YYYY-MM-DD`.
 * **Recurring tasks:** When a recurring task is completed, the plugin automatically creates the next occurrence with an updated due date.
 * **Multi-line descriptions** are stored as indented lines (2+ spaces) below the task line.
 
@@ -103,12 +103,12 @@
 
 ### C) Complete & Archive
 
-* **Complete:** Toggle `[ ]` → `[x]` via command or GeckoTask Panel checkbox. Plugin appends `completed:: YYYY-MM-DD`.
+* **Complete:** Toggle `[ ]` → `[x]` via command or GeckoTask Panel checkbox. Plugin appends `completion:: YYYY-MM-DD`.
 * **Recurring tasks:** When a recurring task is completed, the plugin automatically creates the next occurrence with the calculated next due date based on the recurrence pattern.
 * **Archive policy:**
   * **Manual:** "GeckoTask: Archive Completed in Current File"
   * **Global:** "GeckoTask: Archive All Completed (older than N days)" (configurable)
-* **Archive requirements:** Only tasks that are both checked (`[x]`) and have a `completed::` field are archived.
+* **Archive requirements:** Only tasks that are both checked (`[x]`) and have a `completion::` field are archived.
 * **Archive format:** Move lines to `Archive/Completed-YYYY.md`, append `origin_file::`, `origin_project::`, `origin_area::` if missing.
 
 ### D) Edit Metadata Quickly
@@ -178,7 +178,7 @@ group by project
 
 * **GeckoTask: Open GeckoTask Panel** (opens side panel)
 * **GeckoTask: Quick Add Task** (modal)
-* **GeckoTask: Complete/Uncomplete Task at Cursor** (toggle + add `completed::`)
+* **GeckoTask: Complete/Uncomplete Task at Cursor** (toggle + add `completion::`)
 * **GeckoTask: Move Task (pick project)** (quick picker)
 * **GeckoTask: Set Due (at cursor)** (natural-language parse → ISO date)
 * **GeckoTask: Set Priority (at cursor)**
@@ -332,9 +332,9 @@ created: 2025-11-07
 ## 10) Archiving Details
 
 * Archive file chosen via pattern `Archive/Completed-YYYY.md` (YYYY replaced with current year).
-* **Archive requirements:** Only tasks that are both checked (`[x]`) and have a `completed::` field are archived.
+* **Archive requirements:** Only tasks that are both checked (`[x]`) and have a `completion::` field are archived.
 * When archiving a task, ensure it includes:
-  * `completed:: YYYY-MM-DD` (if missing, set now)
+  * `completion:: YYYY-MM-DD` (if missing, set now)
   * `origin_file:: <path>`
   * `origin_project:: <project>`
   * `origin_area:: <area>` (inferred from folder)
@@ -372,7 +372,7 @@ created: 2025-11-07
 
 * Capture modal creates tasks with requested fields in the correct file.
 * Move command relocates the exact task (by position) preserving metadata and description.
-* Complete command toggles checkbox and sets `completed::` date if newly completed.
+* Complete command toggles checkbox and sets `completion::` date if newly completed.
 * Archive (file & global) moves completed tasks and appends origin fields.
 * GeckoTask Panel displays all open tasks with filtering and editing capabilities.
 * Dataview examples in §5 render correctly with no extra configuration.
@@ -387,7 +387,7 @@ created: 2025-11-07
 1. Plugin entry, settings tab, commands
 2. `TaskModel`, `VaultIO`, `TaskOps`, `Archive`, `NLDate`, `Recurrence`, `areaUtils`
 3. Capture modal → append to inbox/project
-4. Complete toggle → add `completed::` date
+4. Complete toggle → add `completion::` date
 5. Recurring tasks → automatic next occurrence generation on completion
 6. Move by position → target project
 7. Archive in current file → archive all

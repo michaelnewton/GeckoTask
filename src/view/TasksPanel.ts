@@ -966,9 +966,9 @@ export class TasksPanel extends ItemView {
       // Update completed date
       let nextOccurrenceTask: Task | null = null;
       if (checked) {
-        if (!parsed.completed) {
+        if (!parsed.completion) {
           const today = (window as any).moment().format("YYYY-MM-DD");
-          parsed.completed = today;
+          parsed.completion = today;
         }
         
         // If recurring task, create next occurrence
@@ -981,13 +981,13 @@ export class TasksPanel extends ItemView {
               ...parsed,
               checked: false,
               due: nextDue,
-              completed: undefined,
+              completion: undefined,
               recur: parsed.recur,
             };
           }
         }
       } else {
-        parsed.completed = undefined;
+        parsed.completion = undefined;
       }
 
       // Format task with description
