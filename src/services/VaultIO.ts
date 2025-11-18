@@ -137,10 +137,11 @@ created: ${created}
 
 # ${this.projectName.trim()}
 
+**Outcome:** 
+
 > Project notes here.
 
 ## Tasks
-<!-- New tasks appended below -->
 `;
 
               try {

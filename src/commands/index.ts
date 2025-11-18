@@ -1,7 +1,7 @@
 import { Editor, MarkdownFileInfo, MarkdownView, Notice } from "obsidian";
 import { GeckoTaskSettings } from "../settings";
 import { captureQuickTask } from "../ui/CaptureModal";
-import { archiveAllCompletedInVault, archiveCompletedInFile } from "../services/Archive";
+import { archiveAllCompletedInVault } from "../services/Archive";
 import { moveTaskAtCursorInteractive, createProjectFile } from "../services/VaultIO";
 import { toggleCompleteAtCursor, setFieldAtCursor, addRemoveTagsAtCursor, normalizeTaskLine } from "../services/TaskOps";
 import type { GeckoTaskPlugin } from "../main";
@@ -182,21 +182,6 @@ export function registerCommands(plugin: GeckoTaskPlugin) {
     name: "Normalize Task Line (at cursor)",
     editorCallback: (editor: Editor, _ctx: MarkdownView | MarkdownFileInfo) => {
       normalizeTaskLine(editor);
-    }
-  });
-
-  /**
-   * Archives all completed tasks in the current file.
-   * Unregistered automatically on plugin unload.
-   */
-  plugin.addCommand({
-    id: "geckotask-archive-file",
-    name: "Archive Completed in Current File",
-    editorCallback: async (_ed: Editor, ctx: MarkdownView | MarkdownFileInfo) => {
-      const file = ctx instanceof MarkdownView ? ctx.file : ctx.file;
-      if (!file) return new Notice("GeckoTask: No file in context.");
-      const moved = await archiveCompletedInFile(app, file, settings);
-      new Notice(`GeckoTask: Archived ${moved} completed task(s) from ${file.name}.`);
     }
   });
 
