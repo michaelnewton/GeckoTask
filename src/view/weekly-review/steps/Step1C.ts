@@ -1,6 +1,6 @@
 import { App } from "obsidian";
 import { GeckoTaskSettings } from "../../../settings";
-import { IndexedTask } from "../../TasksPanelTypes";
+import { IndexedTask } from "../../tasks/TasksPanelTypes";
 import { fetchInboxTasks } from "../../../services/WeeklyReviewService";
 import { renderTaskCard, TaskCardCallbacks } from "../components/TaskCard";
 

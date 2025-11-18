@@ -105,7 +105,7 @@ export function getInboxDisplayPath(path: string): string {
 
 /**
  * Checks if a file path is a special file that shouldn't show a project name
- * (e.g., the configured inbox file or the general tasks file)
+ * (e.g., the configured inbox file or the single action file)
  */
 export function isSpecialFile(filePath: string, settings: GeckoTaskSettings): boolean {
   const normalizedInboxPath = normalizeInboxPath(settings.inboxPath);
@@ -113,9 +113,9 @@ export function isSpecialFile(filePath: string, settings: GeckoTaskSettings): bo
   if (filePath === normalizedInboxPath) {
     return true;
   }
-  // Check if basename matches the general tasks file
+  // Check if basename matches the single action file
   const basename = filePath.split("/").pop()?.replace(/\.md$/, "") || "";
-  return basename === settings.generalTasksFile;
+  return basename === settings.singleActionFile;
 }
 
 /**
@@ -150,7 +150,7 @@ export function isTasksFolderFile(filePath: string, settings: GeckoTaskSettings)
 
 /**
  * Gets the display name for a project path in dropdowns.
- * For General tasks files, returns the Area name instead of the file path.
+ * For Single Action files, returns the Area name instead of the file path.
  * For other files, shows the relative path from the tasks folder (e.g., "Work/Project" or just "Project").
  * Tasks folder files should never be passed to this function, but we check anyway for safety.
  * @param filePath - The file path
@@ -164,9 +164,9 @@ export function getProjectDisplayName(filePath: string, app: App, settings: Geck
     return "";
   }
   
-  // Check if this is the General tasks file
+  // Check if this is the Single Action file
   const basename = filePath.split("/").pop()?.replace(/\.md$/, "") || "";
-  if (basename === settings.generalTasksFile) {
+  if (basename === settings.singleActionFile) {
     // Return the Area name instead of the file path
     const area = inferAreaFromPath(filePath, app, settings);
     if (area) {

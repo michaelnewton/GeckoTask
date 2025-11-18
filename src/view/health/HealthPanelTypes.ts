@@ -1,4 +1,4 @@
-import { IndexedTask } from "./TasksPanelTypes";
+import { IndexedTask } from "../tasks/TasksPanelTypes";
 import { TFile } from "obsidian";
 
 /**

@@ -1,8 +1,8 @@
 import { App, TFile } from "obsidian";
 import { GeckoTaskSettings } from "../settings";
 import { parseTaskWithDescription, Task } from "../models/TaskModel";
-import { IndexedTask } from "../view/TasksPanelTypes";
-import { TaskReviewItem, ProjectReviewInfo } from "../view/WeeklyReviewPanelTypes";
+import { IndexedTask } from "../view/tasks/TasksPanelTypes";
+import { TaskReviewItem, ProjectReviewInfo } from "../view/weekly-review/WeeklyReviewPanelTypes";
 import { 
   isInTasksFolder, 
   normalizeInboxPath, 
@@ -235,7 +235,7 @@ export async function fetchProjectsWithTasks(
   for (const file of files) {
     const path = file.path;
     
-    // Skip Inbox, General, and Someday Maybe folders
+    // Skip Inbox, Single Action, and Someday Maybe folders
     if (path === inboxPath) continue;
     if (isSpecialFile(path, settings)) continue;
     

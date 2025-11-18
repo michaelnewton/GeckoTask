@@ -72,14 +72,14 @@ export class GeckoTaskSettingTab extends PluginSettingTab {
         })
       );
 
-    // General tasks file name
+    // Single Action file name
     new Setting(containerEl)
-      .setName("General tasks file")
-      .setDesc("File name for general tasks (without .md extension). Tasks in this file won't show a project name, similar to Inbox.")
+      .setName("Single Action file")
+      .setDesc("File name for single action tasks (without .md extension). Tasks in this file won't show a project name, similar to Inbox.")
       .addText(t => t
-        .setValue(this.plugin.settings.generalTasksFile)
+        .setValue(this.plugin.settings.singleActionFile)
         .onChange(async (v) => {
-          this.plugin.settings.generalTasksFile = v.trim() || "General";
+          this.plugin.settings.singleActionFile = v.trim() || "Single Action";
           await this.plugin.saveSettings();
         })
       );
@@ -177,6 +177,21 @@ export class GeckoTaskSettingTab extends PluginSettingTab {
           this.plugin.settings.waitingForTag = trimmed && !trimmed.startsWith("#") 
             ? `#${trimmed}` 
             : trimmed || "#WaitingFor";
+          await this.plugin.saveSettings();
+        })
+      );
+
+    new Setting(containerEl)
+      .setName("Now tag")
+      .setDesc("Tag used to identify 'now' tasks shown in the Today view (e.g., '#t/now'). Include the '#' symbol.")
+      .addText(t => t
+        .setValue(this.plugin.settings.nowTag)
+        .onChange(async (v) => {
+          // Ensure tag starts with # if not empty
+          const trimmed = v.trim();
+          this.plugin.settings.nowTag = trimmed && !trimmed.startsWith("#") 
+            ? `#${trimmed}` 
+            : trimmed || "#t/now";
           await this.plugin.saveSettings();
         })
       );

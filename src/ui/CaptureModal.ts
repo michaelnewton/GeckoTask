@@ -3,7 +3,7 @@ import { GeckoTaskSettings } from "../settings";
 import { parseNLDate } from "../services/NLDate";
 import { formatTask, formatTaskWithDescription, Task, parseTaskWithDescription } from "../models/TaskModel";
 import { isInTasksFolder, normalizeInboxPath, isSpecialFile, isTasksFolderFile, getProjectDisplayName, getSortedProjectFiles } from "../utils/areaUtils";
-import { IndexedTask } from "../view/TasksPanelTypes";
+import { IndexedTask } from "../view/tasks/TasksPanelTypes";
 import { createProjectFile } from "../services/VaultIO";
 
 
@@ -73,25 +73,6 @@ export async function captureQuickTask(app: App, settings: GeckoTaskSettings, ex
           // Handle Enter key to save
           t.inputEl.addEventListener("keydown", (evt) => {
             if (evt.key === "Enter") {
-              evt.preventDefault();
-              this.handleSave();
-            }
-          });
-        });
-
-        // Description field (textarea for multi-line)
-        // Use fewer rows on mobile for more compact display
-        const isMobile = "ontouchstart" in window || navigator.maxTouchPoints > 0 || 
-                        (window.matchMedia && window.matchMedia("(pointer: coarse)").matches);
-        new Setting(contentEl).setName("Description (optional)").addTextArea(t => {
-          t.setPlaceholder("Multi-line description...");
-          t.setValue(this.draft.description || "");
-          t.inputEl.rows = isMobile ? 2 : 4; // Reduced rows on mobile
-          t.inputEl.style.width = "100%";
-          t.onChange(v => this.draft.description = v.trim() || undefined);
-          // Handle Ctrl+Enter (or Cmd+Enter on Mac) to save, Enter alone creates new line
-          t.inputEl.addEventListener("keydown", (evt) => {
-            if (evt.key === "Enter" && (evt.ctrlKey || evt.metaKey)) {
               evt.preventDefault();
               this.handleSave();
             }
@@ -171,6 +152,144 @@ export async function captureQuickTask(app: App, settings: GeckoTaskSettings, ex
           d.selectEl.addEventListener("focus", populateOptions);
         });
 
+        // Description field (textarea for multi-line)
+        // Use fewer rows on mobile for more compact display
+        const isMobile = "ontouchstart" in window || navigator.maxTouchPoints > 0 || 
+                        (window.matchMedia && window.matchMedia("(pointer: coarse)").matches);
+        new Setting(contentEl).setName("Description (optional)").addTextArea(t => {
+          t.setPlaceholder("Multi-line description...");
+          t.setValue(this.draft.description || "");
+          t.inputEl.rows = isMobile ? 2 : 4; // Reduced rows on mobile
+          t.inputEl.style.width = "100%";
+          t.onChange(v => this.draft.description = v.trim() || undefined);
+          // Handle Ctrl+Enter (or Cmd+Enter on Mac) to save, Enter alone creates new line
+          t.inputEl.addEventListener("keydown", (evt) => {
+            if (evt.key === "Enter" && (evt.ctrlKey || evt.metaKey)) {
+              evt.preventDefault();
+              this.handleSave();
+            }
+          });
+        });
+
+        // Helper function to check if a tag is present
+        const hasTag = (tag: string): boolean => {
+          const normalizedTag = tag.startsWith("#") ? tag : `#${tag}`;
+          return (this.draft.tags || []).some(t => t.toLowerCase() === normalizedTag.toLowerCase());
+        };
+
+        // Helper function to toggle a tag
+        const toggleTag = (tag: string) => {
+          const currentTags = this.draft.tags || [];
+          const normalizedTag = tag.startsWith("#") ? tag : `#${tag}`;
+          const tagIndex = currentTags.findIndex(t => t.toLowerCase() === normalizedTag.toLowerCase());
+          
+          if (tagIndex >= 0) {
+            // Remove tag
+            currentTags.splice(tagIndex, 1);
+          } else {
+            // Add tag
+            currentTags.push(normalizedTag);
+          }
+          
+          this.draft.tags = currentTags;
+        };
+
+        const tagsSetting = new Setting(contentEl).setName("Tags (space-separated)");
+        let tagsInputElement: HTMLInputElement | null = null;
+        tagsSetting.addText(t => {
+          t.setPlaceholder("#work #bug");
+          t.setValue((this.draft.tags || []).join(" "));
+          t.inputEl.style.width = "100%";
+          tagsInputElement = t.inputEl;
+          t.onChange(v => {
+            this.draft.tags = v.split(/\s+/).filter(Boolean);
+            // Update button states when tags change
+            updateButtonStates();
+          });
+          // Handle Enter key to save
+          t.inputEl.addEventListener("keydown", (evt) => {
+            if (evt.key === "Enter") {
+              evt.preventDefault();
+              this.handleSave();
+            }
+          });
+        });
+
+        // Quick add buttons for plugin-defined tags (placed after tags input)
+        const quickTagButtonsContainer = contentEl.createDiv({ cls: "geckotask-quick-tag-buttons" });
+        quickTagButtonsContainer.style.marginTop = "8px";
+        quickTagButtonsContainer.style.marginBottom = "8px";
+        quickTagButtonsContainer.style.display = "flex";
+        quickTagButtonsContainer.style.gap = "8px";
+        quickTagButtonsContainer.style.flexWrap = "wrap";
+
+        // Helper function to create a tag chip button
+        const createTagChip = (tag: string): HTMLElement => {
+          const tagContainer = quickTagButtonsContainer.createEl("span", { 
+            cls: "task-tag-container geckotask-quick-tag-chip" 
+          });
+          tagContainer.style.cursor = "pointer";
+          
+          const tagIcon = tagContainer.createEl("span", { cls: "task-tag-icon" });
+          tagIcon.textContent = "🏷️";
+          
+          const tagText = tagContainer.createEl("span", { cls: "task-tag-text" });
+          tagText.textContent = tag;
+          
+          return tagContainer;
+        };
+
+        // Create tag chips for "now" and "waiting for" tags
+        const nowTagChip = createTagChip(settings.nowTag);
+        const waitingForTagChip = createTagChip(settings.waitingForTag);
+
+        // Function to update button states
+        const updateButtonStates = () => {
+          const nowActive = hasTag(settings.nowTag);
+          if (nowActive) {
+            nowTagChip.style.background = "var(--interactive-active)";
+            nowTagChip.style.color = "var(--text-on-accent)";
+          } else {
+            nowTagChip.style.background = "var(--background-modifier-border)";
+            nowTagChip.style.color = "var(--text-muted)";
+          }
+
+          const waitingActive = hasTag(settings.waitingForTag);
+          if (waitingActive) {
+            waitingForTagChip.style.background = "var(--interactive-active)";
+            waitingForTagChip.style.color = "var(--text-on-accent)";
+          } else {
+            waitingForTagChip.style.background = "var(--background-modifier-border)";
+            waitingForTagChip.style.color = "var(--text-muted)";
+          }
+        };
+
+        // Set initial button states
+        updateButtonStates();
+
+        // Add click handlers
+        nowTagChip.addEventListener("click", () => {
+          toggleTag(settings.nowTag);
+          // Update the input field
+          if (tagsInputElement) {
+            tagsInputElement.value = (this.draft.tags || []).join(" ");
+            // Trigger onChange to update draft
+            tagsInputElement.dispatchEvent(new Event("input"));
+          }
+          updateButtonStates();
+        });
+
+        waitingForTagChip.addEventListener("click", () => {
+          toggleTag(settings.waitingForTag);
+          // Update the input field
+          if (tagsInputElement) {
+            tagsInputElement.value = (this.draft.tags || []).join(" ");
+            // Trigger onChange to update draft
+            tagsInputElement.dispatchEvent(new Event("input"));
+          }
+          updateButtonStates();
+        });
+
         new Setting(contentEl).setName("Due").addText(t => {
           t.setPlaceholder("today / 2025-11-15");
           t.setValue(this.draft.due || "");
@@ -192,15 +311,6 @@ export async function captureQuickTask(app: App, settings: GeckoTaskSettings, ex
           });
         });
 
-        new Setting(contentEl).setName("Priority").addDropdown(d => {
-          // Add empty option for "none"
-          d.addOption("", "(none)");
-          for (const p of settings.allowedPriorities) d.addOption(p, p);
-          d.setValue(this.draft.priority || "");
-          d.selectEl.style.width = "100%";
-          d.onChange(v => this.draft.priority = v || undefined);
-        });
-
         new Setting(contentEl).setName("Recurrence (optional)").addText(t => {
           t.setPlaceholder("every Tuesday / every 10 days");
           t.setValue(this.draft.recur || "");
@@ -215,18 +325,13 @@ export async function captureQuickTask(app: App, settings: GeckoTaskSettings, ex
           });
         });
 
-        new Setting(contentEl).setName("Tags (space-separated)").addText(t => {
-          t.setPlaceholder("#work #bug");
-          t.setValue((this.draft.tags || []).join(" "));
-          t.inputEl.style.width = "100%";
-          t.onChange(v => this.draft.tags = v.split(/\s+/).filter(Boolean));
-          // Handle Enter key to save
-          t.inputEl.addEventListener("keydown", (evt) => {
-            if (evt.key === "Enter") {
-              evt.preventDefault();
-              this.handleSave();
-            }
-          });
+        new Setting(contentEl).setName("Priority").addDropdown(d => {
+          // Add empty option for "none"
+          d.addOption("", "(none)");
+          for (const p of settings.allowedPriorities) d.addOption(p, p);
+          d.setValue(this.draft.priority || "");
+          d.selectEl.style.width = "100%";
+          d.onChange(v => this.draft.priority = v || undefined);
         });
 
         new Setting(contentEl)
@@ -255,7 +360,7 @@ async function appendTask(app: App, d: Draft, settings: GeckoTaskSettings) {
   }
   const prev = await app.vault.read(file);
 
-  // Infer project name from file path (basename, unless it's a special file like Inbox or General)
+  // Infer project name from file path (basename, unless it's a special file like Inbox or Single Action)
   const projectName = isSpecialFile(d.projectPath, settings) ? undefined : file.basename;
   
   // Normalize tags (ensure they start with #)

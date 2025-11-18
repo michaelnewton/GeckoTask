@@ -1,5 +1,5 @@
 import { App, Notice, TFile } from "obsidian";
-import { IndexedTask } from "../../TasksPanelTypes";
+import { IndexedTask } from "../../tasks/TasksPanelTypes";
 import { formatISODate } from "../../../utils/dateUtils";
 import { parseTaskWithDescription, formatTaskWithDescription, Task } from "../../../models/TaskModel";
 import { calculateNextOccurrence } from "../../../services/Recurrence";

@@ -1,6 +1,6 @@
 import { App, ItemView, WorkspaceLeaf, TFile, Notice, Plugin, MarkdownView } from "obsidian";
-import { GeckoTaskSettings } from "../settings";
-import { IndexedTask } from "./TasksPanelTypes";
+import { GeckoTaskSettings } from "../../settings";
+import { IndexedTask } from "../tasks/TasksPanelTypes";
 import {
   HealthReport,
   StaleTask,
@@ -11,18 +11,18 @@ import {
   RecurringIssue,
   CleanupSuggestion
 } from "./HealthPanelTypes";
-import { analyzeAllTasks } from "../services/HealthService";
-import { updateTaskTracking, getTaskId, markTaskReviewed, updateTaskPath } from "../services/TaskTrackingService";
-import { parseTaskWithDescription, formatTaskWithDescription, Task } from "../models/TaskModel";
-import { calculateNextOccurrence } from "../services/Recurrence";
-import { parseNLDate } from "../services/NLDate";
-import { captureQuickTask } from "../ui/CaptureModal";
-import { FilePickerModal } from "../ui/FilePickerModal";
-import { PromptModal } from "../ui/PromptModal";
-import { ConfirmationModal } from "../ui/ConfirmationModal";
-import { isInTasksFolder, isTasksFolderFile, inferAreaFromPath, isSpecialFile } from "../utils/areaUtils";
-import { loadTasksFromFiles } from "../utils/taskUtils";
-import { formatISODate } from "../utils/dateUtils";
+import { analyzeAllTasks } from "../../services/HealthService";
+import { updateTaskTracking, getTaskId, markTaskReviewed, updateTaskPath } from "../../services/TaskTrackingService";
+import { parseTaskWithDescription, formatTaskWithDescription, Task } from "../../models/TaskModel";
+import { calculateNextOccurrence } from "../../services/Recurrence";
+import { parseNLDate } from "../../services/NLDate";
+import { captureQuickTask } from "../../ui/CaptureModal";
+import { FilePickerModal } from "../../ui/FilePickerModal";
+import { PromptModal } from "../../ui/PromptModal";
+import { ConfirmationModal } from "../../ui/ConfirmationModal";
+import { isInTasksFolder, isTasksFolderFile, inferAreaFromPath, isSpecialFile } from "../../utils/areaUtils";
+import { loadTasksFromFiles } from "../../utils/taskUtils";
+import { formatISODate } from "../../utils/dateUtils";
 
 /**
  * View type identifier for the Health Panel.

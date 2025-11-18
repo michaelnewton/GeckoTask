@@ -1,6 +1,6 @@
 import { App, setIcon, Notice } from "obsidian";
 import { GeckoTaskSettings } from "../../../settings";
-import { IndexedTask } from "../../TasksPanelTypes";
+import { IndexedTask } from "../../tasks/TasksPanelTypes";
 import { captureQuickTask } from "../../../ui/CaptureModal";
 import { formatISODate } from "../../../utils/dateUtils";
 import { parseTaskWithDescription, formatTaskWithDescription, Task } from "../../../models/TaskModel";

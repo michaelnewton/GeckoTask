@@ -1,6 +1,6 @@
 import { App } from "obsidian";
 import { GeckoTaskSettings } from "../../../settings";
-import { WizardState } from "../../WeeklyReviewPanelTypes";
+import { WizardState } from "../WeeklyReviewPanelTypes";
 
 /**
  * Renders Step 3A: Brainstorm / Creative Sweep.

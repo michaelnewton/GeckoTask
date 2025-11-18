@@ -1,7 +1,7 @@
 import { App, ItemView, WorkspaceLeaf, Plugin } from "obsidian";
-import { GeckoTaskSettings } from "../settings";
+import { GeckoTaskSettings } from "../../settings";
 import { ReviewStep, WizardState, SerializedWizardState, ProjectReviewInfo } from "./WeeklyReviewPanelTypes";
-import { IndexedTask } from "./TasksPanelTypes";
+import { IndexedTask } from "../tasks/TasksPanelTypes";
 import { 
   ALL_STEPS,
   createDefaultState,
@@ -9,8 +9,8 @@ import {
   deserializeState,
   getStepPhase,
   getStepTitle
-} from "./weekly-review/utils/stateManagement";
-import { completeTask, deleteTask } from "./weekly-review/utils/taskOperations";
+} from "./utils/stateManagement";
+import { completeTask, deleteTask } from "./utils/taskOperations";
 import {
   addTasksToInbox,
   moveTaskToProject,
@@ -22,18 +22,18 @@ import {
   addTaskToProject,
   openTaskInNote,
   openProjectFile
-} from "./weekly-review/utils/taskHelpers";
-import { renderTaskCard, TaskCardCallbacks } from "./weekly-review/components/TaskCard";
-import { renderStep1A } from "./weekly-review/steps/Step1A";
-import { renderStep1B } from "./weekly-review/steps/Step1B";
-import { renderStep1C } from "./weekly-review/steps/Step1C";
-import { renderStep2A } from "./weekly-review/steps/Step2A";
-import { renderStep2B } from "./weekly-review/steps/Step2B";
-import { renderStep2C } from "./weekly-review/steps/Step2C";
-import { renderStep2D } from "./weekly-review/steps/Step2D";
-import { renderStep2E } from "./weekly-review/steps/Step2E";
-import { renderStep2F } from "./weekly-review/steps/Step2F";
-import { renderStep3A } from "./weekly-review/steps/Step3A";
+} from "./utils/taskHelpers";
+import { renderTaskCard, TaskCardCallbacks } from "./components/TaskCard";
+import { renderStep1A } from "./steps/Step1A";
+import { renderStep1B } from "./steps/Step1B";
+import { renderStep1C } from "./steps/Step1C";
+import { renderStep2A } from "./steps/Step2A";
+import { renderStep2B } from "./steps/Step2B";
+import { renderStep2C } from "./steps/Step2C";
+import { renderStep2D } from "./steps/Step2D";
+import { renderStep2E } from "./steps/Step2E";
+import { renderStep2F } from "./steps/Step2F";
+import { renderStep3A } from "./steps/Step3A";
 
 export const VIEW_TYPE_WEEKLY_REVIEW = "weekly-review-view";
 
@@ -498,3 +498,4 @@ export class WeeklyReviewPanel extends ItemView {
     }) as unknown as T;
   }
 }
+

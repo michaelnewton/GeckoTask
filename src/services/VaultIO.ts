@@ -128,14 +128,10 @@ export async function createProjectFile(app: App, settings: GeckoTaskSettings): 
                 return;
               }
 
-              // Create file with frontmatter
+              // Create file
               const today = new Date();
               const created = formatISODate(today);
-              const frontmatter = this.area 
-                ? `area: ${this.area}\n`
-                : "";
               const content = `---
-${frontmatter}project: ${this.projectName.trim()}
 created: ${created}
 ---
 

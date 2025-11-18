@@ -94,7 +94,7 @@ Open **Settings → GeckoTask** to configure:
 - **Tasks folder**: Base folder for all tasks (default: `tasks`)
 - **Areas**: Comma-separated list of area folder names (e.g., `Work, Personal`)
 - **Inbox path**: Path to the single inbox file (default: `tasks/Inbox`)
-- **General tasks file**: File name for general tasks without a project (default: `General`)
+- **Single Action file**: File name for single action tasks without a project (default: `Single Action`)
 - **Archive pattern**: Pattern for archive files (default: `Archive/Completed-YYYY.md`)
 - **Archive older than (days)**: Days before archiving completed tasks (default: 7)
 - **Natural language due parsing**: Enable parsing of dates like "today", "tomorrow" (default: on)
@@ -116,7 +116,7 @@ GeckoTask organizes tasks in a folder structure:
 │   │   └── ProjectB.md
 │   ├── Personal/
 │   │   └── ProjectX.md
-│   └── General.md                 # General tasks (no project shown)
+│   └── Single Action.md           # Single action tasks (no project shown)
 ├── Archive/
 │   └── Completed-YYYY.md           # Archived tasks
 └── Dashboards/

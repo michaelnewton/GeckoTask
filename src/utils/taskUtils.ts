@@ -1,6 +1,6 @@
 import { App, TFile } from "obsidian";
 import { GeckoTaskSettings } from "../settings";
-import { IndexedTask } from "../view/TasksPanelTypes";
+import { IndexedTask } from "../view/tasks/TasksPanelTypes";
 import { parseTaskWithDescription } from "../models/TaskModel";
 import { inferAreaFromPath, isSpecialFile } from "./areaUtils";
 

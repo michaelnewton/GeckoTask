@@ -1,4 +1,4 @@
-import { WizardState, SerializedWizardState, ReviewStep } from "../../WeeklyReviewPanelTypes";
+import { WizardState, SerializedWizardState, ReviewStep } from "../WeeklyReviewPanelTypes";
 
 /**
  * All review steps in order.

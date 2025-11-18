@@ -14,7 +14,7 @@ export type DueWindow =
 /**
  * Tab type for the panel view.
  */
-export type TabType = "all" | "today-overdue" | "inbox" | "waiting-for";
+export type TabType = "all" | "today-overdue" | "inbox" | "waiting-for" | "next-actions";
 
 /**
  * Filter state for task filtering in the panel.

@@ -1,6 +1,6 @@
 import { App, setIcon } from "obsidian";
 import { GeckoTaskSettings } from "../../../settings";
-import { ProjectReviewInfo, WizardState } from "../../WeeklyReviewPanelTypes";
+import { ProjectReviewInfo, WizardState } from "../WeeklyReviewPanelTypes";
 import { fetchSomedayMaybeProjects } from "../../../services/WeeklyReviewService";
 import { renderTaskCard, TaskCardCallbacks } from "../components/TaskCard";
 

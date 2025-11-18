@@ -7,7 +7,7 @@ export const DEFAULT_SETTINGS: GeckoTaskSettings = {
   tasksFolder: "tasks",
   areasEnabled: false, // Areas are auto-detected from first-level directories when enabled
   inboxPath: "tasks/Inbox", // Without .md extension - will be normalized when used
-  generalTasksFile: "General", // File name for general tasks (no project shown, like Inbox)
+  singleActionFile: "Single Action", // File name for single action tasks (no project shown, like Inbox)
   somedayMaybeFolderName: "Someday Maybe", // Folder name for someday/maybe items per area
   archivePattern: "Archive/Completed-YYYY.md",
   archiveOlderThanDays: 7,
@@ -16,6 +16,7 @@ export const DEFAULT_SETTINGS: GeckoTaskSettings = {
   dueDateRanges: ["7d", "14d", "30d", "60d", "90d"],  // Default configurable ranges
   customCollectionPoints: [],  // No custom collection points by default
   waitingForTag: "#WaitingFor",  // Default tag for waiting-for tasks
+  nowTag: "#t/now",  // Default tag for "now" tasks shown in today view
   // Health check defaults
   healthCheckStaleFileDays: 90,
   healthCheckStaleTaskDays: 90,

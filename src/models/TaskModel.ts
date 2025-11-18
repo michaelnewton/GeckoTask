@@ -23,7 +23,7 @@ export interface Task {
 }
 
 const FIELD_KEYS = new Set([
-  "due","scheduled","priority","recur","area","completion","origin_file","origin_project","origin_area"
+  "due","scheduled","priority","recur","completion","origin_file","origin_project","origin_area"
 ]);
 
 /**
@@ -47,8 +47,8 @@ export function parseTask(line: string): Task | null {
     // Use the emoji length to properly skip it (handles surrogate pairs correctly)
     const emojiLength = "🔁".length;
     const afterEmoji = rest.substring(recurEmojiIndex + emojiLength).trim();
-    // Find where the recurrence pattern ends (before a field or tag)
-    const fieldOrTagMatch = afterEmoji.match(/^([^#]+?)(?:\s+(?:#|due::|scheduled::|priority::|recur::|area::|completion::|origin_file::|origin_project::|origin_area::)|$)/i);
+      // Find where the recurrence pattern ends (before a field or tag)
+      const fieldOrTagMatch = afterEmoji.match(/^([^#]+?)(?:\s+(?:#|due::|scheduled::|priority::|recur::|completion::|origin_file::|origin_project::|origin_area::)|$)/i);
     if (fieldOrTagMatch) {
       recurPattern = fieldOrTagMatch[1].trim();
       // Remove the emoji and pattern from the rest string for further parsing
@@ -143,7 +143,8 @@ export function parseTask(line: string): Task | null {
     recur: recurPattern || fields["recur"], // Prefer emoji format if found, otherwise field format
     // Note: project is not stored in metadata, it's derived from file basename
     // project: fields["project"],
-    area: fields["area"],
+    // Note: area is not stored in metadata, it's derived from folder structure
+    // area: fields["area"],
     completion: fields["completion"],
     origin_file: fields["origin_file"],
     origin_project: fields["origin_project"],

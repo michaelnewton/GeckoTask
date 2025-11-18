@@ -1,12 +1,12 @@
 import { App, Editor, MarkdownFileInfo, MarkdownView, Notice, Plugin, TFile, WorkspaceLeaf } from "obsidian";
 import { GeckoTaskSettings, DEFAULT_SETTINGS, GeckoTaskSettingTab } from "./settings";
-import { TasksPanel, VIEW_TYPE_TASKS } from "./view/TasksPanel";
-import { WeeklyReviewPanel, VIEW_TYPE_WEEKLY_REVIEW } from "./view/WeeklyReviewPanel";
-import { HealthPanel, VIEW_TYPE_HEALTH } from "./view/HealthPanel";
+import { TasksPanel, VIEW_TYPE_TASKS } from "./view/tasks/TasksPanel";
+import { WeeklyReviewPanel, VIEW_TYPE_WEEKLY_REVIEW } from "./view/weekly-review/WeeklyReviewPanel";
+import { HealthPanel, VIEW_TYPE_HEALTH } from "./view/health/HealthPanel";
 import { isInTasksFolder, inferAreaFromPath, isSpecialFile } from "./utils/areaUtils";
 import { parseTaskWithDescription, formatTaskWithDescription, Task } from "./models/TaskModel";
 import { calculateNextOccurrence } from "./services/Recurrence";
-import { IndexedTask } from "./view/TasksPanelTypes";
+import { IndexedTask } from "./view/tasks/TasksPanelTypes";
 import { formatISODate } from "./utils/dateUtils";
 import { getAllEditorLines, replaceTaskBlock } from "./utils/editorUtils";
 import { registerCommands } from "./commands";
@@ -125,25 +125,10 @@ export default class GeckoTaskPlugin extends Plugin {
 
   /**
    * Loads settings from storage, merging with defaults.
-   * Handles migration from old areas array to areasEnabled boolean.
    */
   async loadSettings() {
     const loadedData = await this.loadData();
     this.settings = Object.assign({}, DEFAULT_SETTINGS, loadedData);
-    
-    // Migration: If old areas array exists and has items, enable areas
-    // Remove the old areas property from settings
-    if (loadedData && 'areas' in loadedData && Array.isArray(loadedData.areas) && loadedData.areas.length > 0) {
-      this.settings.areasEnabled = true;
-      // Remove old areas property
-      delete (this.settings as any).areas;
-      // Save migrated settings
-      await this.saveSettings();
-    } else if (loadedData && 'areas' in loadedData) {
-      // Remove old areas property even if empty
-      delete (this.settings as any).areas;
-      await this.saveSettings();
-    }
   }
 
   /**

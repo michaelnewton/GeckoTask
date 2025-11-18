@@ -1,7 +1,7 @@
 import { App, WorkspaceLeaf } from "obsidian";
-import { VIEW_TYPE_TASKS } from "../view/TasksPanel";
-import { VIEW_TYPE_WEEKLY_REVIEW } from "../view/WeeklyReviewPanel";
-import { VIEW_TYPE_HEALTH } from "../view/HealthPanel";
+import { VIEW_TYPE_TASKS } from "../view/tasks/TasksPanel";
+import { VIEW_TYPE_WEEKLY_REVIEW } from "../view/weekly-review/WeeklyReviewPanel";
+import { VIEW_TYPE_HEALTH } from "../view/health/HealthPanel";
 
 /**
  * Activates or reveals the Tasks panel view.

@@ -1,7 +1,7 @@
 import { App, TFile } from "obsidian";
 import { Plugin } from "obsidian";
 import { GeckoTaskSettings } from "../settings";
-import { IndexedTask } from "../view/TasksPanelTypes";
+import { IndexedTask } from "../view/tasks/TasksPanelTypes";
 import {
   HealthReport,
   HealthMetrics,
@@ -14,7 +14,7 @@ import {
   CleanupSuggestion,
   ProjectInfo,
   TaskTrackingData
-} from "../view/HealthPanelTypes";
+} from "../view/health/HealthPanelTypes";
 import {
   getTaskTracking,
   getTaskId,

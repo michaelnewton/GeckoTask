@@ -1,7 +1,7 @@
 import { App, Notice, TFile, MarkdownView } from "obsidian";
 import { GeckoTaskSettings } from "../../../settings";
-import { IndexedTask } from "../../TasksPanelTypes";
-import { ProjectReviewInfo } from "../../WeeklyReviewPanelTypes";
+import { IndexedTask } from "../../tasks/TasksPanelTypes";
+import { ProjectReviewInfo } from "../WeeklyReviewPanelTypes";
 import { Task, parseTaskWithDescription, formatTaskWithDescription } from "../../../models/TaskModel";
 import { formatISODate } from "../../../utils/dateUtils";
 import { calculateNextOccurrence } from "../../../services/Recurrence";
