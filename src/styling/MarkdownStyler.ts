@@ -4,76 +4,6 @@ import { GeckoTaskSettings } from "../settings";
 import { isInTasksFolder } from "../utils/areaUtils";
 
 /**
- * Styles @ labels in markdown preview by wrapping them in spans.
- * Only processes text nodes that aren't already inside a geckotask-label span.
- * @param element - The markdown preview element
- */
-export function styleLabelsInMarkdown(element: HTMLElement): void {
-  // Pattern to match labels like @ppl/Libby, @person/Name, @label, etc.
-  const labelPattern = /(@[\w/-]+)/g;
-  
-  // Walk through all text nodes in the element
-  const walker = document.createTreeWalker(
-    element,
-    NodeFilter.SHOW_TEXT,
-    null
-  );
-  
-  const textNodes: Text[] = [];
-  let node;
-  while ((node = walker.nextNode())) {
-    // Skip if already inside a geckotask-label span or inside a tag/link
-    const parent = node.parentElement;
-    if (parent?.classList.contains("geckotask-label") || 
-        parent?.classList.contains("tag") ||
-        parent?.classList.contains("geckotask-field") ||
-        parent?.tagName === "A") {
-      continue;
-    }
-    textNodes.push(node as Text);
-  }
-  
-  // Process each text node
-  textNodes.forEach((textNode) => {
-    const text = textNode.textContent || "";
-    const matches = Array.from(text.matchAll(labelPattern));
-    
-    if (matches.length === 0) return;
-    
-    // Create a document fragment to hold the replacements
-    const fragment = document.createDocumentFragment();
-    let lastIndex = 0;
-    
-    matches.forEach((match) => {
-      // Add text before the label
-      if (match.index !== undefined && match.index > lastIndex) {
-        fragment.appendChild(
-          document.createTextNode(text.substring(lastIndex, match.index))
-        );
-      }
-      
-      // Create span for the label
-      const labelSpan = document.createElement("span");
-      labelSpan.className = "geckotask-label";
-      labelSpan.textContent = match[0];
-      fragment.appendChild(labelSpan);
-      
-      lastIndex = (match.index || 0) + match[0].length;
-    });
-    
-    // Add remaining text after the last label
-    if (lastIndex < text.length) {
-      fragment.appendChild(document.createTextNode(text.substring(lastIndex)));
-    }
-    
-    // Replace the text node with the fragment
-    if (textNode.parentNode) {
-      textNode.parentNode.replaceChild(fragment, textNode);
-    }
-  });
-}
-
-/**
  * Updates the styling class on markdown views based on whether the file is in the tasks folder.
  * @param app - The Obsidian app instance
  * @param settings - Plugin settings
@@ -160,7 +90,6 @@ export function styleTaskFieldsInMarkdown(element: HTMLElement): void {
     const parent = node.parentElement;
     if (parent?.classList.contains("geckotask-field") ||
         parent?.classList.contains("tag") ||
-        parent?.classList.contains("geckotask-label") ||
         parent?.tagName === "A") {
       continue;
     }

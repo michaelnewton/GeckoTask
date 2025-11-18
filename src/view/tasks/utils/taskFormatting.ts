@@ -88,83 +88,21 @@ export function getPriorityColorClass(priority: string | undefined, settings: Ge
 }
 
 /**
- * Extracts all labels from a task (hashtags and @ labels from description).
+ * Extracts all tags from a task (hashtags only).
  * @param task - The indexed task
- * @returns Array of label strings
+ * @returns Array of tag strings
  */
 export function extractLabels(task: IndexedTask): string[] {
-  const labels: string[] = [];
-  
-  // Add hashtags from task tags
-  labels.push(...task.tags);
-  
-  // Extract @ labels from description
-  if (task.description) {
-    const labelPattern = /@[\w/-]+/g;
-    const descLabels = task.description.match(labelPattern);
-    if (descLabels) {
-      // Add unique labels only
-      descLabels.forEach((label: string) => {
-        if (!labels.includes(label)) {
-          labels.push(label);
-        }
-      });
-    }
-  }
-  
-  return labels;
+  // Return only hashtags from task tags
+  return [...task.tags];
 }
 
 /**
- * Renders a description line, converting labels like "@ppl/Libby" into badges.
+ * Renders a description line as plain text.
  * @param container - Container element to render into
  * @param line - Description line text
- * @param renderLabelsAsBadges - Whether to render labels as badges (default: true for titles, false for descriptions)
  */
-export function renderDescriptionLine(container: HTMLElement, line: string, renderLabelsAsBadges: boolean = true): void {
-  // Pattern to match labels like @ppl/Libby, @person/Name, @label, etc.
-  // Matches @ followed by word characters, slashes, hyphens, and underscores
-  const labelPattern = /(@[\w/-]+)/g;
-  const parts: Array<{ text: string; isLabel: boolean }> = [];
-  let lastIndex = 0;
-  let match;
-
-  while ((match = labelPattern.exec(line)) !== null) {
-    // Add text before the label
-    if (match.index > lastIndex) {
-      parts.push({ text: line.substring(lastIndex, match.index), isLabel: false });
-    }
-    // Add the label
-    parts.push({ text: match[1], isLabel: true });
-    lastIndex = match.index + match[0].length;
-  }
-
-  // Add remaining text after the last label
-  if (lastIndex < line.length) {
-    parts.push({ text: line.substring(lastIndex), isLabel: false });
-  }
-
-  // If no labels found, just add the text as-is
-  if (parts.length === 0) {
-    container.textContent = line;
-    return;
-  }
-
-  // Render parts
-  parts.forEach(part => {
-    if (part.isLabel && renderLabelsAsBadges) {
-      // Create a badge for the label (only in titles)
-      container.createEl("span", { 
-        text: part.text, 
-        cls: "task-description-label" 
-      });
-    } else if (part.isLabel && !renderLabelsAsBadges) {
-      // Just show label as plain text in descriptions (since they're shown in bottom left)
-      container.appendText(part.text);
-    } else if (part.text.length > 0) {
-      // Add regular text (only if not empty)
-      container.appendText(part.text);
-    }
-  });
+export function renderDescriptionLine(container: HTMLElement, line: string): void {
+  container.textContent = line;
 }
 

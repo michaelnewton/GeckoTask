@@ -1035,22 +1035,6 @@ If your plugin does not need CSS, delete this file.
   text-decoration: none !important;
 }
 
-/* Style @ labels in markdown view to match TasksPanel */
-.mod-geckotask-styled .geckotask-label,
-.markdown-source-view.mod-geckotask-styled .geckotask-label,
-.markdown-preview-view.mod-geckotask-styled .geckotask-label,
-.markdown-reading-view.mod-geckotask-styled .geckotask-label {
-  display: inline-block !important;
-  padding: 2px 8px !important;
-  border-radius: 12px !important;
-  font-size: 11px !important;
-  background: var(--background-modifier-border) !important;
-  color: var(--text-normal) !important;
-  margin: 0 2px !important;
-  vertical-align: baseline !important;
-  font-weight: 500 !important;
-  white-space: nowrap !important;
-}
 
 /* Style task metadata fields (priority::, due::, etc.) in markdown view */
 .mod-geckotask-styled .geckotask-field,

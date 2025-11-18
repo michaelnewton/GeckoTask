@@ -196,6 +196,19 @@ export class GeckoTaskSettingTab extends PluginSettingTab {
         })
       );
 
+    new Setting(containerEl)
+      .setName("Next actions due days")
+      .setDesc("Number of days ahead to show tasks in the next actions list (default: 3). Only tasks with due dates within this window will appear.")
+      .addText(t => t
+        .setPlaceholder("3")
+        .setValue(String(this.plugin.settings.nextActionsDueDays))
+        .onChange(async (v) => {
+          const n = Number(v);
+          if (!isNaN(n) && n > 0) this.plugin.settings.nextActionsDueDays = n;
+          await this.plugin.saveSettings();
+        })
+      );
+
     containerEl.createEl("h2", { text: "Health Check" });
 
     new Setting(containerEl)

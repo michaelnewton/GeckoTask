@@ -17,7 +17,6 @@ A complete task line can include:
 - **Checkbox**: `[ ]` (incomplete) or `[x]` (complete)
 - **Title**: Free text describing the task
 - **Tags**: Hashtags like `#work`, `#personal`, `#urgent`
-- **Labels**: @ labels like `@ppl/Libby`, `@person/Name`, `@label` (styled in markdown preview)
 - **Fields**: Key-value pairs in the format `key:: value`
 
 ### Field Types
@@ -29,7 +28,7 @@ The following fields are supported:
 | `due` | `due:: YYYY-MM-DD` | Due date in ISO format | `due:: 2025-11-15` |
 | `scheduled` | `scheduled:: YYYY-MM-DD` | Scheduled date (optional, not used in UI) | `scheduled:: 2025-11-10` |
 | `priority` | `priority:: <value>` | Priority level | `priority:: high` |
-| `recur` | `🔁 <pattern>` or `recur:: <pattern>` | Recurrence pattern (Tasks plugin compatible) | `🔁 every Tuesday` |
+| `recur` | `🔁 <pattern>` or `recur:: <pattern>` | Recurrence pattern (both formats supported) | `🔁 every Tuesday` or `recur:: every Tuesday` |
 | `completion` | `completion:: YYYY-MM-DD` | Completion date (auto-added) | `completion:: 2025-11-14` |
 | `origin_file` | `origin_file:: <path>` | Original file path (archive only) | `origin_file:: tasks/Work/Project.md` |
 | `origin_project` | `origin_project:: <name>` | Original project (archive only) | `origin_project:: RouterRevamp` |
@@ -37,9 +36,9 @@ The following fields are supported:
 
 **Note:** 
 - The `area` field is **not** stored in task metadata. Areas are derived from the folder structure (e.g., `tasks/Work/` → area: `Work`).
-- The `project` field is **not** stored in task metadata for regular project files. Projects are derived from the file basename (e.g., `tasks/Work/RouterRevamp.md` → project: `RouterRevamp`). For special files (Inbox, General), project is undefined.
+- The `project` field is **not** stored in task metadata for regular project files. Projects are derived from the file basename (e.g., `tasks/Work/RouterRevamp.md` → project: `RouterRevamp`). For special files (Inbox, Single Action), project is undefined.
 - The `scheduled` field is supported in the format but is not currently used in the UI (no way to set or filter by it in the plugin interface).
-- The `recur` field uses the 🔁 emoji format for compatibility with the Tasks plugin. When a recurring task is completed, the plugin automatically creates the next occurrence with an updated due date.
+- The `recur` field supports both the 🔁 emoji format (for Tasks plugin compatibility) and the `recur::` field format. When a recurring task is completed, the plugin automatically creates the next occurrence with an updated due date.
 - The `origin_*` fields are only added when tasks are archived. They preserve the original location of the task.
 
 ## Examples
@@ -56,17 +55,6 @@ The following fields are supported:
 - [ ] Review pull request #work #code-review
 ```
 
-### Task with Labels
-
-Tasks can include @ labels in the title or description:
-
-```markdown
-- [ ] Follow up with @ppl/Libby about the design
-- [ ] Schedule meeting with @person/John and @person/Sarah
-```
-
-**Note:** @ labels are automatically styled in markdown preview and can be extracted from task descriptions for display in the GeckoTask Panel.
-
 ### Task with Due Date
 
 ```markdown
@@ -81,10 +69,13 @@ Tasks can include @ labels in the title or description:
 
 ### Task with Recurrence
 
+Recurrence can be specified using either the 🔁 emoji format (Tasks plugin compatible) or the `recur::` field format:
+
 ```markdown
 - [ ] Weekly team meeting 🔁 every Tuesday due:: 2025-11-11
 - [ ] Backup files 🔁 every 10 days due:: 2025-11-07
 - [ ] Bi-weekly report 🔁 every 2 weeks on Tuesday due:: 2025-11-11
+- [ ] Monthly review recur:: every month due:: 2025-12-01
 ```
 
 **Recurrence Patterns Supported:**
@@ -166,10 +157,11 @@ When natural language date parsing is enabled in settings, you can use:
 
 - `today` → Current date
 - `tomorrow` → Next day
-- `next monday` → Next Monday (or any day of week)
-- `in 3 days` → 3 days from now
+- `next [day]` → Next occurrence of a day (e.g., `next monday`, `next tuesday`)
+- `[day]` → This week's occurrence if not yet passed, otherwise next week's (e.g., `sunday`, `friday`)
+- `in N days` → N days from now (e.g., `in 3 days`, `in 10 days`)
 
-**Note:** Natural language dates are automatically converted to ISO format when the task is saved.
+**Note:** Natural language dates are automatically converted to ISO format (YYYY-MM-DD) when the task is saved.
 
 ## Priority Values
 
@@ -188,12 +180,12 @@ Priority values are configurable in plugin settings. Default values are:
 
 ## Field Order
 
-Fields can appear in any order on the task line. The plugin will normalize the order when using the "Normalize Task Line" command. The typical order is:
+Fields can appear in any order on the task line. The plugin will normalize the order when using the "Normalize Task Line" command. The normalized order is:
 
 1. Checkbox and title
 2. Tags (all `#hashtag` values)
-3. Recurrence pattern (🔁 emoji format)
-4. Fields (in order: `priority`, `due`, `scheduled`, `completed`, `origin_*`)
+3. Recurrence pattern (🔁 emoji format, if present)
+4. Fields (in order: `priority`, `due`, `scheduled`, `completion`, `origin_file`, `origin_project`, `origin_area`)
 
 ## Field Formatting
 
@@ -206,8 +198,8 @@ Fields can appear in any order on the task line. The plugin will normalize the o
 
 Tasks in certain special files behave differently:
 
-- **Inbox** (`tasks/Inbox.md`): Tasks don't require a project
-- **General** (`tasks/General.md`): Tasks don't show a project name (similar to Inbox)
+- **Inbox** (`tasks/Inbox.md` by default, configurable in settings): Tasks don't require a project and don't show a project name
+- **Single Action** (file name configurable in settings, default: `Single Action`): Tasks don't show a project name (similar to Inbox). The area name is shown instead of the project name.
 
 ## Archive Format
 

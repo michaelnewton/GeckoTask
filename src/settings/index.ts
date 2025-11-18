@@ -15,6 +15,7 @@ export interface GeckoTaskSettings {
   customCollectionPoints: string[];   // Custom collection points for step 1A (e.g., ["Facebook", "Slack", "Twitter"])
   waitingForTag: string;              // Tag for waiting-for tasks (e.g., "#WaitingFor")
   nowTag: string;                      // Tag for "now" tasks shown in today view (e.g., "#t/now")
+  nextActionsDueDays: number;          // Number of days ahead to show tasks in next actions list (default: 3)
   // Health check settings
   healthCheckStaleFileDays: number;   // Files not modified in this time are considered stale (default: 90)
   healthCheckStaleTaskDays: number;   // Tasks with no due date older than this (default: 90)

@@ -209,12 +209,11 @@ export function renderTaskItem(
     const descRow = card.createDiv({ cls: "task-card-description task-description-hidden" });
     const descEl = descRow.createDiv({ cls: "task-description" });
     // Preserve line breaks - split by newlines and render each line
-    // Don't render labels as badges in description (they're shown in bottom left)
     const descLines = task.description.split("\n");
     descLines.forEach((line, idx) => {
       if (line.trim().length > 0) {
         const lineEl = descEl.createDiv({ cls: "task-description-line" });
-        renderDescriptionLine(lineEl, line, false); // false = don't render labels as badges
+        renderDescriptionLine(lineEl, line);
       } else if (idx < descLines.length - 1) {
         // Empty line for spacing
         descEl.createEl("div", { cls: "task-description-empty" });

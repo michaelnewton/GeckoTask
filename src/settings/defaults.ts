@@ -17,6 +17,7 @@ export const DEFAULT_SETTINGS: GeckoTaskSettings = {
   customCollectionPoints: [],  // No custom collection points by default
   waitingForTag: "#WaitingFor",  // Default tag for waiting-for tasks
   nowTag: "#t/now",  // Default tag for "now" tasks shown in today view
+  nextActionsDueDays: 3,  // Default number of days ahead to show tasks in next actions list
   // Health check defaults
   healthCheckStaleFileDays: 90,
   healthCheckStaleTaskDays: 90,

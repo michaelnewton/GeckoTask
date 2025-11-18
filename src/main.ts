@@ -15,7 +15,7 @@ import {
   activateWeeklyReviewView as activateWeeklyReviewViewUtil, 
   activateHealthView as activateHealthViewUtil 
 } from "./utils/viewUtils";
-import { styleLabelsInMarkdown, styleTaskFieldsInMarkdown, updateMarkdownViewStyling } from "./styling/MarkdownStyler";
+import { styleTaskFieldsInMarkdown, updateMarkdownViewStyling } from "./styling/MarkdownStyler";
 import { createTaskFieldDecorator } from "./extensions/TaskFieldDecorator";
 import { createCheckboxClickHandler } from "./extensions/CheckboxClickHandler";
 
@@ -41,12 +41,10 @@ export default class GeckoTaskPlugin extends Plugin {
     // Register all commands
     registerCommands(this);
 
-    // Style @ labels and task metadata fields in markdown preview (only for files in tasks folder)
+    // Style task metadata fields in markdown preview (only for files in tasks folder)
     this.registerMarkdownPostProcessor((element, context) => {
       // Check if the file is in the tasks folder
       if (context.sourcePath && isInTasksFolder(context.sourcePath, this.settings)) {
-        // Style @ labels by wrapping them in spans
-        styleLabelsInMarkdown(element);
         // Style task metadata fields (priority::, due::, etc.)
         // Use a small delay to ensure DOM is fully rendered
         this.registerInterval(window.setTimeout(() => {

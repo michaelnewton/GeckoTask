@@ -3,6 +3,7 @@ import { GeckoTaskSettings } from "../../../settings";
 import { TabType, FilterState, IndexedTask } from "../TasksPanelTypes";
 import { formatISODate, startOf, endOf, add } from "../../../utils/dateUtils";
 import { isInTasksFolder, isSpecialFile, normalizeInboxPath, getSortedProjectFiles } from "../../../utils/areaUtils";
+import { isInSomedayMaybeFolder } from "../../../utils/somedayMaybeUtils";
 
 /**
  * Filters tasks based on tab type and filter state.
@@ -48,6 +49,10 @@ export function filterTasks(
     const singleActionTasks: IndexedTask[] = [];
     const projectFirstTasks: IndexedTask[] = [];
     
+    // Calculate due date window
+    const endDate = add(settings.nextActionsDueDays, "days", today);
+    const waitingForTag = settings.waitingForTag;
+    
     // Group all uncompleted tasks by file path first
     const tasksByFile = new Map<string, IndexedTask[]>();
     for (const task of allUncompletedTasks) {
@@ -64,22 +69,43 @@ export function filterTasks(
       if (isSpecialFile(filePath, settings) && 
           filePath !== normalizedInboxPath &&
           isInTasksFolder(filePath, settings)) {
-        // Add ALL tasks from this Single Action file
-        singleActionTasks.push(...fileTasks);
+        // Filter out tasks with waiting tag and filter by due date window (only for single actions)
+        const filteredTasks = fileTasks.filter(t => {
+          // Exclude single action tasks with waiting tag
+          if (t.tags.includes(waitingForTag)) return false;
+          // For single action items, include if no due date OR due date is within the next X days
+          return !t.due || (t.due >= today && t.due <= endDate);
+        });
+        singleActionTasks.push(...filteredTasks);
       }
     }
     
     // Get first uncompleted task from each project file
+    // Exclude project files in someday/maybe folders
     const projectFiles = getSortedProjectFiles(app, settings)
-      .filter(f => !isSpecialFile(f.path, settings)); // Exclude Inbox and Single Action files
+      .filter(f => {
+        // Exclude Inbox and Single Action files
+        if (isSpecialFile(f.path, settings)) return false;
+        // Exclude project files in someday/maybe folders
+        if (isInSomedayMaybeFolder(f.path, settings, app)) return false;
+        return true;
+      });
     
     // For each project file, get the first uncompleted task (sorted by line number)
     for (const projectFile of projectFiles) {
       const fileTasks = tasksByFile.get(projectFile.path) || [];
       if (fileTasks.length > 0) {
-        // Sort by line number and take the first one
-        const sortedTasks = [...fileTasks].sort((a, b) => a.line - b.line);
-        projectFirstTasks.push(sortedTasks[0]);
+        // Filter out tasks in someday/maybe folders
+        const filteredTasks = fileTasks.filter(t => {
+          // Exclude tasks from files in someday/maybe folders
+          if (isInSomedayMaybeFolder(t.path, settings, app)) return false;
+          return true;
+        });
+        if (filteredTasks.length > 0) {
+          // Sort by line number and take the first one
+          const sortedTasks = [...filteredTasks].sort((a, b) => a.line - b.line);
+          projectFirstTasks.push(sortedTasks[0]);
+        }
       }
     }
     
@@ -192,16 +218,58 @@ export function sortTasks(tasks: IndexedTask[], currentTab: TabType, settings: G
       if (aHasPriority && bHasPriority && ap !== bp) {
         return bp - ap;
       }
+    } else if (currentTab === "next-actions") {
+      // For Next Actions view: now tag → due dates → prioritized → unprioritized
+      const nowTag = settings.nowTag;
+      const endDate = add(settings.nextActionsDueDays, "days", today);
+      const aHasNowTag = a.tags.includes(nowTag);
+      const bHasNowTag = b.tags.includes(nowTag);
+      
+      // Group 1: Tasks with now tag (highest priority)
+      if (aHasNowTag !== bHasNowTag) {
+        return aHasNowTag ? -1 : 1;
+      }
+      
+      // Group 2: Tasks due today or within next X days (without now tag)
+      if (!aHasNowTag && !bHasNowTag) {
+        const aDueInWindow = !!(a.due && a.due >= today && a.due <= endDate);
+        const bDueInWindow = !!(b.due && b.due >= today && b.due <= endDate);
+        if (aDueInWindow !== bDueInWindow) {
+          return aDueInWindow ? -1 : 1;
+        }
+      }
+      
+      // Group 3: Tasks with priority (sorted by priority rank)
+      // Group 4: Tasks without priority
+      const ap = prioRank(a.priority), bp = prioRank(b.priority);
+      const aHasPriority = ap !== 999;
+      const bHasPriority = bp !== 999;
+      if (aHasPriority !== bHasPriority) {
+        return aHasPriority ? -1 : 1;
+      }
+      
+      // If both have priorities, sort by priority rank (lower index = higher priority)
+      if (aHasPriority && bHasPriority && ap !== bp) {
+        return ap - bp;
+      }
+      
+      // Within same priority group, sort by due date
+      const ad = a.due || "9999-12-31";
+      const bd = b.due || "9999-12-31";
+      if (ad !== bd) return ad.localeCompare(bd);
     }
-    // Then sort by due date
-    const ad = a.due || "9999-12-31";
-    const bd = b.due || "9999-12-31";
-    if (ad !== bd) return ad.localeCompare(bd);
-    // For other tabs, also sort by priority after due date
-    if (currentTab !== "today-overdue") {
+    
+    // For other tabs, sort by due date first
+    if (currentTab !== "today-overdue" && currentTab !== "next-actions") {
+      const ad = a.due || "9999-12-31";
+      const bd = b.due || "9999-12-31";
+      if (ad !== bd) return ad.localeCompare(bd);
+      
+      // Then by priority
       const ap = prioRank(a.priority), bp = prioRank(b.priority);
       if (ap !== bp) return ap - bp;
     }
+    
     // Then area, project, title
     if ((a.area||"") !== (b.area||"")) return (a.area||"").localeCompare(b.area||"");
     if ((a.project||"") !== (b.project||"")) return (a.project||"").localeCompare(b.project||"");
