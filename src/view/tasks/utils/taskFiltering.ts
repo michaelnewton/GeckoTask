@@ -74,6 +74,8 @@ export function filterTasks(
         const filteredTasks = fileTasks.filter(t => {
           // Exclude single action tasks with waiting tag
           if (t.tags.includes(waitingForTag)) return false;
+          // Exclude tasks with scheduled date in the future
+          if (t.scheduled && t.scheduled > today) return false;
           // For single action items, include if no due date OR due date is within the next X days
           return !t.due || (t.due >= today && t.due <= endDate);
         });
@@ -105,7 +107,13 @@ export function filterTasks(
         if (filteredTasks.length > 0) {
           // Sort by line number and take the first one
           const sortedTasks = [...filteredTasks].sort((a, b) => a.line - b.line);
-          projectFirstTasks.push(sortedTasks[0]);
+          const firstTask = sortedTasks[0];
+          
+          // Exclude entire project if first task is waiting for or scheduled in the future
+          if (firstTask.tags.includes(waitingForTag)) continue;
+          if (firstTask.scheduled && firstTask.scheduled > today) continue;
+          
+          projectFirstTasks.push(firstTask);
         }
       }
     }

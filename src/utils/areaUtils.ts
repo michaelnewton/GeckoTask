@@ -4,6 +4,7 @@ import { GeckoTaskSettings } from "../settings";
 /**
  * Gets the list of areas by detecting first-level directories in the tasks folder.
  * Returns empty array if areasEnabled is false, otherwise scans the filesystem.
+ * Archive directory is excluded from areas.
  * @param app - Obsidian app instance
  * @param settings - Plugin settings
  * @returns Array of area names (sorted alphabetically)
@@ -24,12 +25,16 @@ export function getAreas(app: App, settings: GeckoTaskSettings): string[] {
   const areas: string[] = [];
   for (const child of tasksFolder.children) {
     if (child instanceof TFolder) {
-      // Filter out common non-area directories like "Archive"
+      // Filter out Archive directory and other non-area directories
       // Only include if it's a direct child folder
       if (child.path.startsWith(settings.tasksFolder + "/")) {
         const relativePath = child.path.substring(settings.tasksFolder.length + 1);
         // Check if it's a first-level directory (no slashes in relative path)
         if (!relativePath.includes("/")) {
+          // Exclude Archive directory using the same logic as isInArchiveDirectory
+          if (isInArchiveDirectory(child.path, settings)) {
+            continue;
+          }
           areas.push(child.name);
         }
       }
@@ -197,27 +202,41 @@ export function getProjectDisplayName(filePath: string, app: App, settings: Geck
 /**
  * Checks if a file path is in the Archive directory (for filtering project files).
  * Archive directory is determined from the archive pattern (e.g., "Archive" from "Archive/Completed-YYYY.md").
+ * This excludes both the archive file itself and any project files in the archive directory.
  * @param filePath - The file path to check
  * @param settings - Plugin settings
  * @returns True if the file is in the Archive directory
  */
 export function isInArchiveDirectory(filePath: string, settings: GeckoTaskSettings): boolean {
   // Extract archive directory from archive pattern
-  // Pattern format: "Archive/Completed-YYYY.md" -> directory is "Archive"
+  // Pattern format can be:
+  // - "Archive/Completed-YYYY.md" -> directory is "Archive"
+  // - "Tasks/Archive/Completed-YYYY.md" -> directory is "Archive" (tasks folder included)
   const archivePattern = settings.archivePattern;
-  const archiveDirMatch = archivePattern.match(/^([^\/]+)\//);
+  
+  // Remove tasks folder prefix if present to get the relative pattern
+  let relativePattern = archivePattern;
+  if (archivePattern.startsWith(settings.tasksFolder + "/")) {
+    relativePattern = archivePattern.substring(settings.tasksFolder.length + 1);
+  }
+  
+  // Extract archive directory from relative pattern
+  const archiveDirMatch = relativePattern.match(/^([^\/]+)\//);
+  
   if (!archiveDirMatch) {
-    // Archive is at root level, check if file matches pattern
-    const archivePatternWithoutExt = archivePattern.replace(/\.md$/, "").replace("YYYY", "\\d{4}");
+    // Archive is at root level (no directory), check if file matches the archive pattern exactly
+    const archivePatternWithoutExt = relativePattern.replace(/\.md$/, "").replace("YYYY", "\\d{4}");
     const archiveRegex = new RegExp(`^${settings.tasksFolder}/${archivePatternWithoutExt}\\.md$`);
     return archiveRegex.test(filePath);
   }
   
+  // Extract the archive directory name from the relative pattern
   const archiveDir = archiveDirMatch[1];
   const archiveDirPath = `${settings.tasksFolder}/${archiveDir}`;
   
   // Check if file is in the archive directory
-  return filePath.startsWith(archiveDirPath + "/") || filePath === archiveDirPath;
+  // This catches files directly in archive, in subdirectories, and the archive file itself
+  return filePath === archiveDirPath || filePath.startsWith(archiveDirPath + "/");
 }
 
 /**
