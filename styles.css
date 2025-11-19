@@ -1605,3 +1605,28 @@ If your plugin does not need CSS, delete this file.
   margin-top: 2px;
   opacity: 0.8;
 }
+
+/* Warning box for "Now" tab when there are more than 5 tasks */
+.geckotask-warning-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  background-color: var(--background-secondary);
+  border: 1px solid var(--text-warning, #d19a66);
+  border-left-width: 3px;
+  border-radius: 6px;
+  font-size: 0.9em;
+  color: var(--text-normal);
+}
+
+.geckotask-warning-icon {
+  flex-shrink: 0;
+  font-size: 1.1em;
+}
+
+.geckotask-warning-text {
+  flex: 1;
+  line-height: 1.4;
+}

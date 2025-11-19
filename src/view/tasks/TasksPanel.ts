@@ -183,6 +183,14 @@ export class TasksPanel extends ItemView {
     // list (card-based layout)
     const list = host.createDiv({ cls: "geckotask-rows" });
     
+    // Show warning box for "Now" tab when there are more than 5 tasks
+    if (this.currentTab === "today-overdue" && rows.length > 5) {
+      const warningBox = list.createDiv({ cls: "geckotask-warning-box" });
+      const warningIcon = warningBox.createSpan({ cls: "geckotask-warning-icon", text: "⚠️" });
+      const warningText = warningBox.createSpan({ cls: "geckotask-warning-text" });
+      warningText.setText(`You have ${rows.length} tasks. Daily review tip: Choose 3–5 key tasks as today's focus.`);
+    }
+    
     // Show empty state messages for tabs when no tasks
     if (rows.length === 0) {
       const emptyMsg = list.createDiv({ cls: "geckotask-empty-message" });
