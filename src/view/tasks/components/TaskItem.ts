@@ -30,41 +30,16 @@ export interface TaskItemCallbacks {
  * @param settings - Plugin settings
  * @param task - The task to render
  * @param callbacks - Callbacks for task actions
- * @param isTouchDevice - Whether the device supports touch input
  */
 export function renderTaskItem(
   host: HTMLElement,
   app: App,
   settings: GeckoTaskSettings,
   task: IndexedTask,
-  callbacks: TaskItemCallbacks,
-  isTouchDevice: boolean
+  callbacks: TaskItemCallbacks
 ): void {
   const card = host.createDiv({ cls: "geckotask-card" });
   
-  // Mobile tap-to-reveal: toggle action buttons on card tap
-  // Only add this on touch devices (mobile)
-  if (isTouchDevice) {
-    card.addEventListener("click", (e) => {
-      // Don't toggle if clicking on interactive elements
-      const target = e.target as HTMLElement;
-      const isInteractive = target.closest("input, button, .task-checkbox, .task-recur-icon, .task-scheduled-container, .task-due-container, .task-description-icon, .task-priority-container, .geckotask-action-btn, .task-title, .task-title-container");
-      
-      if (!isInteractive) {
-        // Toggle this card and close others
-        const wasExpanded = card.classList.contains("task-card-expanded");
-        // Close all cards first
-        host.querySelectorAll(".geckotask-card").forEach((c) => {
-          c.classList.remove("task-card-expanded");
-        });
-        // Toggle this card if it wasn't already expanded
-        if (!wasExpanded) {
-          card.classList.add("task-card-expanded");
-        }
-      }
-    });
-  }
-
   // Top row: Checkbox + Recurring icon + Title
   const topRow = card.createDiv({ cls: "task-card-top" });
   const cb = topRow.createEl("input", { type: "checkbox", cls: "task-checkbox" });
@@ -105,6 +80,29 @@ export function renderTaskItem(
   renderDescriptionLine(title, task.title);
   title.addEventListener("click", () => {
     startEditingTitle(title, task, callbacks);
+  });
+
+  // Action icons container (top right)
+  const actionIconsContainer = topRow.createDiv({ cls: "task-card-top-icons" });
+  
+  // Edit icon
+  const editIcon = actionIconsContainer.createEl("span", { cls: "task-action-icon task-action-icon-edit" });
+  editIcon.innerHTML = "✏️";
+  editIcon.title = "Edit";
+  editIcon.style.cursor = "pointer";
+  editIcon.addEventListener("click", async (e) => {
+    e.stopPropagation();
+    await callbacks.onEdit(task);
+  });
+
+  // Open icon
+  const openIcon = actionIconsContainer.createEl("span", { cls: "task-action-icon task-action-icon-open" });
+  openIcon.innerHTML = "🔗";
+  openIcon.title = "Open note";
+  openIcon.style.cursor = "pointer";
+  openIcon.addEventListener("click", async (e) => {
+    e.stopPropagation();
+    await callbacks.onOpen(task);
   });
 
   // Bottom row: Scheduled date + Due date + Priority + Tags on left, Project on right
@@ -215,13 +213,11 @@ export function renderTaskItem(
     priorityIcon.innerHTML = "!";
   }
   
-  // Tags/labels (with tag icon) - extract from both tags and description
+  // Tags/labels - extract from both tags and description
   const allLabels = extractLabels(task);
   if (allLabels.length > 0) {
     allLabels.forEach(label => {
       const tagContainer = leftSide.createEl("span", { cls: "task-tag-container" });
-      const tagIcon = tagContainer.createEl("span", { cls: "task-tag-icon" });
-      tagIcon.textContent = "🏷️";
       const tagText = tagContainer.createEl("span", { cls: "task-tag-text" });
       tagText.textContent = label;
     });
@@ -261,7 +257,7 @@ export function renderTaskItem(
     const descEl = descRow.createDiv({ cls: "task-description" });
     // Preserve line breaks - split by newlines and render each line
     const descLines = task.description.split("\n");
-    descLines.forEach((line, idx) => {
+    descLines.forEach((line: string, idx: number) => {
       if (line.trim().length > 0) {
         const lineEl = descEl.createDiv({ cls: "task-description-line" });
         renderDescriptionLine(lineEl, line);
@@ -284,38 +280,6 @@ export function renderTaskItem(
     }
   }
 
-  // Action buttons (shown on hover)
-  const actionRow = card.createDiv({ cls: "task-card-actions" });
-  
-  // Edit button
-  const editBtn = actionRow.createEl("button", { 
-    text: "Edit", 
-    cls: "geckotask-action-btn geckotask-action-btn-edit"
-  });
-  editBtn.addEventListener("click", async (e) => {
-    e.stopPropagation();
-    await callbacks.onEdit(task);
-  });
-
-  // Move button
-  const moveBtn = actionRow.createEl("button", { 
-    text: "Move", 
-    cls: "geckotask-action-btn geckotask-action-btn-move"
-  });
-  moveBtn.addEventListener("click", async (e) => {
-    e.stopPropagation();
-    await callbacks.onMove(task);
-  });
-
-  // Open Note button
-  const openBtn = actionRow.createEl("button", { 
-    text: "Open", 
-    cls: "geckotask-action-btn geckotask-action-btn-primary"
-  });
-  openBtn.addEventListener("click", async (e) => {
-    e.stopPropagation();
-    await callbacks.onOpen(task);
-  });
 }
 
 /**

@@ -13,7 +13,7 @@ export function isOverdue(dueDate: string): boolean {
 
 /**
  * Formats a due date for display.
- * Shows day name if within next 7 days, otherwise shortened format like "7th Nov".
+ * Shows abbreviated day name (e.g., "Sat") if within next 7 days, otherwise shortened format like "7th Nov".
  * @param dueDate - ISO date string (YYYY-MM-DD)
  * @returns Formatted date string
  */
@@ -26,8 +26,8 @@ export function formatDueDate(dueDate: string): string {
   } else if (daysDiff === 0) {
     return "Today";
   } else if (daysDiff <= 7) {
-    // Within next 7 days - show day name
-    return formatDate(dueDate, "dddd");
+    // Within next 7 days - show abbreviated day name
+    return formatDate(dueDate, "ddd");
   } else {
     // Beyond 7 days - show shortened format
     return formatDate(dueDate, "Do MMM");
@@ -36,7 +36,7 @@ export function formatDueDate(dueDate: string): string {
 
 /**
  * Formats a scheduled date for display.
- * Shows day name if within next 7 days, otherwise shortened format like "7th Nov".
+ * Shows abbreviated day name (e.g., "Sat") if within next 7 days, otherwise shortened format like "7th Nov".
  * @param scheduledDate - ISO date string (YYYY-MM-DD)
  * @returns Formatted date string
  */
@@ -49,8 +49,8 @@ export function formatScheduledDate(scheduledDate: string): string {
   } else if (daysDiff === 0) {
     return "Today";
   } else if (daysDiff <= 7) {
-    // Within next 7 days - show day name
-    return formatDate(scheduledDate, "dddd");
+    // Within next 7 days - show abbreviated day name
+    return formatDate(scheduledDate, "ddd");
   } else {
     // Beyond 7 days - show shortened format
     return formatDate(scheduledDate, "Do MMM");

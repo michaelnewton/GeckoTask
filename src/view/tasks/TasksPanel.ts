@@ -237,7 +237,7 @@ export class TasksPanel extends ItemView {
 
     // Render each task
     for (const task of rows) {
-      renderTaskItem(list, this.app, this.settings, task, callbacks, this.isTouchDevice());
+      renderTaskItem(list, this.app, this.settings, task, callbacks);
     }
     
     // Update title with task count

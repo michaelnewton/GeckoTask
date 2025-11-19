@@ -54,6 +54,7 @@ export function registerCommands(plugin: GeckoTaskPlugin) {
   plugin.addCommand({
     id: "geckotask-quick-add",
     name: "Quick Add/Edit Task",
+    hotkeys: [{ modifiers: ["Mod", "Shift"], key: "e" }],
     editorCallback: async (editor: Editor, ctx: MarkdownView | MarkdownFileInfo) => {
       const view = app.workspace.getActiveViewOfType(MarkdownView);
       if (!view || !view.file) {

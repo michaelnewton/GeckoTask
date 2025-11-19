@@ -266,6 +266,48 @@ If your plugin does not need CSS, delete this file.
   position: relative;
 }
 
+/* Action icons container in top right */
+.task-card-top-icons {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  margin-left: auto;
+  opacity: 0.6;
+  transition: opacity 0.2s ease;
+}
+
+.geckotask-card:hover .task-card-top-icons {
+  opacity: 1;
+}
+
+.task-action-icon {
+  font-size: 14px;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 3px;
+  transition: background 0.2s ease, opacity 0.2s ease;
+  user-select: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+}
+
+.task-action-icon:hover {
+  background: var(--background-modifier-hover);
+  opacity: 1;
+}
+
+.task-action-icon-edit {
+  color: var(--text-muted);
+}
+
+.task-action-icon-open {
+  color: var(--text-muted);
+}
+
 /* Circular checkbox styling */
 .task-checkbox {
   width: 18px;
@@ -612,7 +654,6 @@ If your plugin does not need CSS, delete this file.
   border-radius: 12px;
   white-space: nowrap;
   flex-shrink: 0;
-  margin-left: 8px;
 }
 
 .task-priority-icon {
@@ -690,53 +731,8 @@ If your plugin does not need CSS, delete this file.
   color: var(--tag-color);
 }
 
-/* Hide action buttons by default, show on hover (desktop) or when expanded (mobile) */
-.task-card-actions {
-  display: flex;
-  gap: 6px;
-  justify-content: flex-end;
-  opacity: 0;
-  transition: opacity 0.2s ease;
-  border-top: none; /* Remove border when hidden */
-  padding-top: 0;
-  margin-top: 0;
-  height: 0; /* Collapse when hidden to remove extra space */
-  overflow: hidden;
-}
-
-/* Desktop: show on hover */
-@media (hover: hover) and (pointer: fine) {
-  .geckotask-card:hover .task-card-actions {
-    opacity: 1;
-    border-top: 1px solid var(--background-modifier-border);
-    padding-top: 8px;
-    margin-top: 6px; /* Reduced margin */
-    height: auto; /* Expand when visible */
-  }
-}
-
-/* Mobile: show when card is expanded (tapped) */
+/* Mobile: reduce spacing between date, tags, and description icon */
 @media (hover: none) and (pointer: coarse) {
-  .geckotask-card.task-card-expanded .task-card-actions {
-    opacity: 1;
-    border-top: 1px solid var(--background-modifier-border);
-    padding-top: 8px;
-    margin-top: 6px; /* Reduced margin */
-    height: auto; /* Expand when visible */
-  }
-  
-  /* Visual feedback when card is expanded */
-  .geckotask-card.task-card-expanded {
-    border-color: var(--interactive-accent);
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-  }
-  
-  /* Hide tag icons on mobile */
-  .task-tag-icon {
-    display: none !important;
-  }
-  
-  /* Reduce spacing between date, tags, and description icon on mobile */
   .task-card-bottom-left {
     gap: 4px !important;
   }
@@ -746,50 +742,10 @@ If your plugin does not need CSS, delete this file.
     margin-left: 2px !important;
   }
   
-  /* Remove gap in tag container since icon is hidden */
+  /* Remove gap in tag container since icon is removed */
   .task-tag-container {
     gap: 0 !important;
   }
-}
-
-.geckotask-action-btn {
-  background: var(--interactive-normal);
-  border: 1px solid var(--background-modifier-border);
-  border-radius: 4px;
-  padding: 4px 8px; /* More compact */
-  cursor: pointer;
-  font-size: 11px; /* Slightly smaller */
-  white-space: nowrap;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  transition: background 0.2s ease;
-}
-
-.geckotask-action-btn:hover {
-  background: var(--interactive-hover);
-}
-
-/* Edit button icon */
-.geckotask-action-btn-edit::before {
-  content: '✎';
-  font-size: 12px;
-}
-
-/* Move button icon */
-.geckotask-action-btn-move::before {
-  content: '↔';
-  font-size: 12px;
-}
-
-.geckotask-action-btn-primary {
-  background: var(--interactive-accent);
-  color: var(--text-on-accent);
-  border-color: var(--interactive-accent);
-}
-
-.geckotask-action-btn-primary:hover {
-  background: var(--interactive-accent-hover);
 }
 
 /* GeckoTask Capture Modal - Wider inputs (desktop) */
@@ -993,11 +949,6 @@ If your plugin does not need CSS, delete this file.
     border-radius: 3px !important;
   }
   
-  /* Hide tag icons on mobile */
-  .task-tag-icon {
-    display: none !important;
-  }
-  
   /* Reduce spacing between date, tags, and description icon on mobile */
   .task-card-bottom-left {
     gap: 4px !important;
@@ -1008,7 +959,7 @@ If your plugin does not need CSS, delete this file.
     margin-left: 2px !important;
   }
   
-  /* Remove gap in tag container since icon is hidden */
+  /* Remove gap in tag container since icon is removed */
   .task-tag-container {
     gap: 0 !important;
   }
