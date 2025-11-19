@@ -45,6 +45,24 @@ export async function captureQuickTask(app: App, settings: GeckoTaskSettings, ex
       };
       
       /**
+       * Validates that a date string is in ISO format (YYYY-MM-DD).
+       * @param dateStr - Date string to validate
+       * @returns True if valid ISO date format, false otherwise
+       */
+      private isValidISODate(dateStr: string): boolean {
+        // Check format matches YYYY-MM-DD
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+          return false;
+        }
+        // Validate that it's a real date (not invalid like 2025-13-45)
+        const date = new Date(dateStr);
+        const [year, month, day] = dateStr.split("-").map(Number);
+        return date.getFullYear() === year &&
+               date.getMonth() + 1 === month &&
+               date.getDate() === day;
+      }
+
+      /**
        * Handles saving the task when Enter is pressed.
        */
       private async handleSave() {
@@ -52,6 +70,27 @@ export async function captureQuickTask(app: App, settings: GeckoTaskSettings, ex
           new Notice("Title required."); 
           return; 
         }
+        
+        // Validate due date if provided
+        if (this.draft.due && this.draft.due.trim()) {
+          // Try to parse the due date
+          const parsedDue = parseNLDate(this.draft.due.trim());
+          
+          if (!parsedDue) {
+            new Notice(`GeckoTask: Could not parse due date "${this.draft.due}". Please use a valid date format (e.g., "today", "2025-11-25", "tomorrow").`);
+            return;
+          }
+          
+          // Validate that the parsed date is in valid ISO format
+          if (!this.isValidISODate(parsedDue)) {
+            new Notice(`GeckoTask: Invalid due date format "${parsedDue}". Expected format: YYYY-MM-DD (e.g., "2025-11-25").`);
+            return;
+          }
+          
+          // Update draft with the validated ISO date
+          this.draft.due = parsedDue;
+        }
+        
         if (isEditMode && existingTask) {
           await updateTask(app, existingTask, this.draft, settings);
         } else {

@@ -1,8 +1,76 @@
 import { formatISODate } from "../utils/dateUtils";
 
 /**
+ * Gets the moment.js instance if available.
+ * @returns Moment.js instance or undefined
+ */
+function getMoment(): any {
+  return (window as any).moment;
+}
+
+/**
+ * Validates that a date string is in ISO format (YYYY-MM-DD) and represents a valid date.
+ * @param dateStr - Date string to validate
+ * @returns True if valid ISO date format, false otherwise
+ */
+function isValidISODate(dateStr: string): boolean {
+  // Check format matches YYYY-MM-DD
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    return false;
+  }
+  // Validate that it's a real date (not invalid like 2025-13-45)
+  const date = new Date(dateStr);
+  const [year, month, day] = dateStr.split("-").map(Number);
+  return date.getFullYear() === year &&
+         date.getMonth() + 1 === month &&
+         date.getDate() === day;
+}
+
+/**
+ * Attempts to parse a date string using moment.js (if available) or native Date.
+ * @param input - Date string to parse
+ * @returns ISO date string or undefined if parsing fails
+ */
+function tryParseDate(input: string): string | undefined {
+  const originalInput = input.trim();
+  
+  // Try moment.js first (if available) - it's very flexible with date formats
+  const moment = getMoment();
+  if (moment) {
+    try {
+      const parsed = moment(originalInput);
+      if (parsed.isValid()) {
+        const isoDate = parsed.format("YYYY-MM-DD");
+        if (isValidISODate(isoDate)) {
+          return isoDate;
+        }
+      }
+    } catch (e) {
+      // moment parsing failed, continue to native Date
+    }
+  }
+  
+  // Fallback to native Date constructor
+  try {
+    const date = new Date(originalInput);
+    // Check if date is valid (not NaN)
+    if (!isNaN(date.getTime())) {
+      const isoDate = formatISODate(date);
+      if (isValidISODate(isoDate)) {
+        return isoDate;
+      }
+    }
+  } catch (e) {
+    // Native Date parsing failed
+  }
+  
+  return undefined;
+}
+
+/**
  * Parses natural language date strings into ISO date format (YYYY-MM-DD).
- * Supports "today", "tomorrow", "next [day]", "[day]" (bare day names), "in N days", and ISO dates.
+ * Supports "today", "tomorrow", "next [day]", "[day]" (bare day names), "in N days", 
+ * ISO dates (YYYY-MM-DD), and various other formats like "24 nov 2025", "nov 24 2025", etc.
  * @param input - Natural language date string
  * @returns ISO date string or undefined if parsing fails
  */
@@ -50,9 +118,17 @@ export function parseNLDate(input: string): string | undefined {
       return formatISODate(d);
     }
   
-    // Fallback: if looks like yyyy-mm-dd, accept.
-    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-    return undefined;
+    // Check if it's already in ISO format (yyyy-mm-dd)
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+      if (isValidISODate(s)) {
+        return s;
+      }
+      return undefined;
+    }
+  
+    // Try parsing with moment.js or native Date for other formats
+    // This will handle formats like "24 nov 2025", "nov 24 2025", "24/11/2025", etc.
+    return tryParseDate(input);
   }
   
   /**
