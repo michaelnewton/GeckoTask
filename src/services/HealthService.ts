@@ -34,7 +34,7 @@ import {
 import { parseTaskWithDescription } from "../models/TaskModel";
 import { loadTasksFromFiles } from "../utils/taskUtils";
 import { isInSomedayMaybeFolder } from "../utils/somedayMaybeUtils";
-import { formatISODate } from "../utils/dateUtils";
+import { formatISODate, getMomentNow, parseMomentDate } from "../utils/dateUtils";
 
 /**
  * Main analysis function that processes all tasks and generates a health report.
@@ -584,12 +584,21 @@ export function analyzeRecurringTasks(tasks: IndexedTask[]): RecurringIssue[] {
       });
     }
 
-    // Check for missing due date
-    if (!task.due) {
+    // GTD rules: recurring tasks should have scheduled dates (most common) or due dates (if consequences)
+    // Flag tasks with neither as "habit disguised as task"
+    const hasScheduled = !!task.scheduled;
+    const hasDue = !!task.due;
+
+    if (!hasScheduled && !hasDue) {
       issues.push({
         task,
-        issue: "Recurring task missing due date"
+        issue: "Recurring task missing scheduled or due date (GTD: habit disguised as task)"
       });
+    } else if (!hasScheduled) {
+      // If it has due but no scheduled, that's valid (due-only for deadlines)
+      // But most recurring tasks should have scheduled, so we can flag it as a suggestion
+      // Actually, per GTD rules, due-only is valid for recurring tasks with consequences
+      // So we won't flag this as an error, just note it
     }
 
     // Track for duplicate detection

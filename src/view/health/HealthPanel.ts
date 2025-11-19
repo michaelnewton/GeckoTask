@@ -14,7 +14,7 @@ import {
 import { analyzeAllTasks } from "../../services/HealthService";
 import { updateTaskTracking, getTaskId, markTaskReviewed, updateTaskPath } from "../../services/TaskTrackingService";
 import { parseTaskWithDescription, formatTaskWithDescription, Task } from "../../models/TaskModel";
-import { calculateNextOccurrence } from "../../services/Recurrence";
+import { calculateNextOccurrenceDates } from "../../services/Recurrence";
 import { parseNLDate } from "../../services/NLDate";
 import { captureQuickTask } from "../../ui/CaptureModal";
 import { FilePickerModal } from "../../ui/FilePickerModal";
@@ -525,12 +525,13 @@ export class HealthPanel extends ItemView {
       let nextOccurrenceTask: Task | null = null;
       if (parsed.recur && parsed.recur.length > 0) {
         const today = new Date();
-        const nextDue = calculateNextOccurrence(parsed.recur, today);
-        if (nextDue) {
+        const nextDates = calculateNextOccurrenceDates(parsed.recur, today, parsed);
+        if (nextDates) {
           nextOccurrenceTask = {
             ...parsed,
             checked: false,
-            due: nextDue,
+            scheduled: nextDates.scheduled,
+            due: nextDates.due,
             completion: undefined,
             recur: parsed.recur,
           };

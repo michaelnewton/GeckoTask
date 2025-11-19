@@ -1,4 +1,10 @@
 import { App, Modal, Setting } from "obsidian";
+import { validateTaskDueDate, validateTaskScheduled, ValidationResult } from "../services/ValidationService";
+
+/**
+ * Field type for validation context.
+ */
+export type PromptFieldType = "due" | "scheduled" | "recur" | "title" | "other";
 
 /**
  * Modal for prompting user for text input.
@@ -7,6 +13,8 @@ export class PromptModal extends Modal {
   private inputValue: string = "";
   private resolve: ((value: string | null) => void) | null = null;
   private isResolved: boolean = false;
+  private fieldType: PromptFieldType = "other";
+  private taskTitle?: string;
 
   /**
    * Creates a new prompt modal.
@@ -14,15 +22,83 @@ export class PromptModal extends Modal {
    * @param promptText - Text to display as prompt
    * @param defaultValue - Default input value
    * @param description - Optional description text to display below the prompt
+   * @param fieldType - Optional field type for validation context
+   * @param taskTitle - Optional task title for validation context (used with due/scheduled)
    */
   constructor(
     app: App,
     private promptText: string,
     private defaultValue: string = "",
-    private description?: string
+    private description?: string,
+    fieldType?: PromptFieldType,
+    taskTitle?: string
   ) {
     super(app);
     this.inputValue = defaultValue;
+    this.fieldType = fieldType || "other";
+    this.taskTitle = taskTitle;
+  }
+
+  /**
+   * Renders validation feedback below an element.
+   * @param container - Container element to add feedback to
+   * @param results - Validation results to display
+   */
+  private renderValidationFeedback(container: HTMLElement, results: ValidationResult[]): void {
+    // Remove existing validation feedback
+    const existing = container.querySelector(".geckotask-validation-container");
+    if (existing) {
+      existing.remove();
+    }
+    
+    if (results.length === 0) {
+      return;
+    }
+    
+    const feedbackContainer = container.createDiv({ cls: "geckotask-validation-container" });
+    
+    for (const result of results) {
+      const feedbackEl = feedbackContainer.createDiv({
+        cls: `geckotask-validation-${result.severity}`
+      });
+      
+      let icon = "";
+      if (result.severity === "warning") {
+        icon = "⚠️ ";
+      } else if (result.severity === "error") {
+        icon = "❌ ";
+      } else {
+        icon = "ℹ️ ";
+      }
+      
+      feedbackEl.textContent = icon + result.message;
+      
+      if (result.suggestion) {
+        const suggestionEl = feedbackContainer.createDiv({
+          cls: `geckotask-validation-${result.severity} geckotask-validation-suggestion`
+        });
+        suggestionEl.textContent = `💡 ${result.suggestion}`;
+        suggestionEl.style.fontSize = "0.85em";
+        suggestionEl.style.marginTop = "2px";
+        suggestionEl.style.opacity = "0.8";
+      }
+    }
+  }
+
+  /**
+   * Debounce helper for validation.
+   */
+  private debounceValidation<T extends (...args: any[]) => void>(
+    func: T,
+    wait: number
+  ): (...args: Parameters<T>) => void {
+    let timeout: ReturnType<typeof setTimeout> | null = null;
+    return (...args: Parameters<T>) => {
+      if (timeout) {
+        clearTimeout(timeout);
+      }
+      timeout = setTimeout(() => func(...args), wait);
+    };
   }
 
   /**
@@ -40,6 +116,8 @@ export class PromptModal extends Modal {
     if (this.description) {
       setting.setDesc(this.description);
     }
+    
+    const settingEl = setting.settingEl;
     
     setting.addText((text) => {
       text.setValue(this.defaultValue);
@@ -59,6 +137,35 @@ export class PromptModal extends Modal {
           this.cancel();
         }
       });
+      
+      // Add debounced validation for date fields
+      if (this.fieldType === "due" || this.fieldType === "scheduled") {
+        const debouncedValidate = this.debounceValidation((value: string) => {
+          let results: ValidationResult[] = [];
+          if (this.fieldType === "due") {
+            results = validateTaskDueDate(value, this.taskTitle);
+          } else if (this.fieldType === "scheduled") {
+            results = validateTaskScheduled(value);
+          }
+          this.renderValidationFeedback(settingEl, results);
+        }, 300);
+        
+        text.inputEl.addEventListener("input", (evt) => {
+          const value = (evt.target as HTMLInputElement).value;
+          debouncedValidate(value);
+        });
+        
+        // Initial validation
+        if (this.defaultValue) {
+          let results: ValidationResult[] = [];
+          if (this.fieldType === "due") {
+            results = validateTaskDueDate(this.defaultValue, this.taskTitle);
+          } else if (this.fieldType === "scheduled") {
+            results = validateTaskScheduled(this.defaultValue);
+          }
+          this.renderValidationFeedback(settingEl, results);
+        }
+      }
     });
 
     new Setting(contentEl)

@@ -120,6 +120,19 @@ export function registerCommands(plugin: GeckoTaskPlugin) {
   });
 
   /**
+   * Sets or updates the scheduled date field for the task at the cursor.
+   * Supports natural language date parsing if enabled.
+   * Unregistered automatically on plugin unload.
+   */
+  plugin.addCommand({
+    id: "geckotask-set-scheduled",
+    name: "Set Scheduled (at cursor)",
+    editorCallback: async (editor: Editor, _ctx: MarkdownView | MarkdownFileInfo) => {
+      await setFieldAtCursor(app, editor, "scheduled", settings);
+    }
+  });
+
+  /**
    * Sets or updates the priority field for the task at the cursor.
    * Unregistered automatically on plugin unload.
    */

@@ -2,7 +2,7 @@ import { App, TFile, Notice, MarkdownView } from "obsidian";
 import { IndexedTask } from "../TasksPanelTypes";
 import { parseTaskWithDescription, formatTaskWithDescription, Task } from "../../../models/TaskModel";
 import { formatISODate } from "../../../utils/dateUtils";
-import { calculateNextOccurrence } from "../../../services/Recurrence";
+import { calculateNextOccurrenceDates } from "../../../services/Recurrence";
 
 /**
  * Toggles the completion status of a task.
@@ -16,6 +16,7 @@ export async function toggleTask(app: App, task: IndexedTask, checked: boolean):
   if (!(file instanceof TFile)) return;
 
   let nextOccurrenceDue: string | null = null;
+  let nextOccurrenceDates: { scheduled?: string; due?: string } | null = null;
 
   await app.vault.process(file, (data) => {
     const lines = data.split("\n");
@@ -42,13 +43,15 @@ export async function toggleTask(app: App, task: IndexedTask, checked: boolean):
       // If recurring task, create next occurrence
       if (parsed.recur && parsed.recur.length > 0) {
         const today = new Date();
-        const nextDue = calculateNextOccurrence(parsed.recur, today);
-        if (nextDue) {
-          nextOccurrenceDue = nextDue;
+        const nextDates = calculateNextOccurrenceDates(parsed.recur, today, parsed);
+        if (nextDates) {
+          nextOccurrenceDates = nextDates;
+          nextOccurrenceDue = nextDates.scheduled || nextDates.due || null;
           nextOccurrenceTask = {
             ...parsed,
             checked: false,
-            due: nextDue,
+            scheduled: nextDates.scheduled,
+            due: nextDates.due,
             completion: undefined,
             recur: parsed.recur,
           };
@@ -74,8 +77,13 @@ export async function toggleTask(app: App, task: IndexedTask, checked: boolean):
     return lines.join("\n");
   });
 
-  if (checked && nextOccurrenceDue) {
-    new Notice(`Task completed. Next occurrence scheduled for ${nextOccurrenceDue}`);
+  if (checked && nextOccurrenceDue && nextOccurrenceDates) {
+    // Build notice message based on which dates were set
+    const dateParts: string[] = [];
+    if (nextOccurrenceDates.scheduled) dateParts.push(`scheduled: ${nextOccurrenceDates.scheduled}`);
+    if (nextOccurrenceDates.due) dateParts.push(`due: ${nextOccurrenceDates.due}`);
+    const dateMsg = dateParts.join(", ");
+    new Notice(`Task completed. Next occurrence ${dateMsg}`);
   } else {
     new Notice(`Task ${checked ? "completed" : "reopened"}`);
   }
@@ -85,14 +93,14 @@ export async function toggleTask(app: App, task: IndexedTask, checked: boolean):
  * Updates a field value on a task.
  * @param app - Obsidian app instance
  * @param task - The indexed task to update
- * @param key - Field key to update ("due", "priority", or "recur")
+ * @param key - Field key to update ("due", "scheduled", "priority", or "recur")
  * @param value - New field value (optional)
  * @returns Promise that resolves when task is updated
  */
 export async function updateTaskField(
   app: App,
   task: IndexedTask,
-  key: "due" | "priority" | "recur",
+  key: "due" | "scheduled" | "priority" | "recur",
   value?: string
 ): Promise<void> {
   const file = app.vault.getAbstractFileByPath(task.path);
@@ -112,6 +120,8 @@ export async function updateTaskField(
     // Update the field
     if (key === "due") {
       parsed.due = value;
+    } else if (key === "scheduled") {
+      parsed.scheduled = value;
     } else if (key === "priority") {
       parsed.priority = value;
     } else if (key === "recur") {

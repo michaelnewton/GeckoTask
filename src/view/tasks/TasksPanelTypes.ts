@@ -41,6 +41,7 @@ export interface IndexedTask {
   project?: string;
   priority?: string;
   due?: string;        // YYYY-MM-DD
+  scheduled?: string;  // YYYY-MM-DD
   recur?: string;      // Recurrence pattern (e.g., "every Tuesday", "every 10 days")
   checked: boolean;
   descriptionEndLine?: number; // Last line of description (1-based, inclusive)

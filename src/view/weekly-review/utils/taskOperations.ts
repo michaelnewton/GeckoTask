@@ -2,7 +2,7 @@ import { App, Notice, TFile } from "obsidian";
 import { IndexedTask } from "../../tasks/TasksPanelTypes";
 import { formatISODate } from "../../../utils/dateUtils";
 import { parseTaskWithDescription, formatTaskWithDescription, Task } from "../../../models/TaskModel";
-import { calculateNextOccurrence } from "../../../services/Recurrence";
+import { calculateNextOccurrenceDates } from "../../../services/Recurrence";
 
 /**
  * Completes a task and handles recurrence if applicable.
@@ -31,13 +31,14 @@ export async function completeTask(app: App, task: IndexedTask): Promise<void> {
     let nextOccurrenceTask: Task | null = null;
     if (parsed.recur && parsed.recur.length > 0) {
       const today = new Date();
-      const nextDue = calculateNextOccurrence(parsed.recur, today);
-      if (nextDue) {
+      const nextDates = calculateNextOccurrenceDates(parsed.recur, today, parsed);
+      if (nextDates) {
         nextOccurrenceTask = {
           ...parsed,
           checked: false,
-          due: nextDue,
-          completed: undefined,
+          scheduled: nextDates.scheduled,
+          due: nextDates.due,
+          completion: undefined,
           recur: parsed.recur,
         };
       }

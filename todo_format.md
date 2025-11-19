@@ -76,6 +76,9 @@ Recurrence can be specified using either the 🔁 emoji format (Tasks plugin com
 - [ ] Backup files 🔁 every 10 days due:: 2025-11-07
 - [ ] Bi-weekly report 🔁 every 2 weeks on Tuesday due:: 2025-11-11
 - [ ] Monthly review recur:: every month due:: 2025-12-01
+- [ ] Rent payment 🔁 7th of every month due:: 2025-12-07
+- [ ] Annual review 🔁 1st of june every year due:: 2026-06-01
+- [ ] Quarterly report 🔁 every 4 weeks due:: 2025-12-15
 ```
 
 **Recurrence Patterns Supported:**
@@ -83,14 +86,16 @@ Recurrence can be specified using either the 🔁 emoji format (Tasks plugin com
 - `every weekday` or `weekdays` - Monday through Friday
 - `every N days` - Every N days (e.g., `every 10 days`)
 - `every week` or `weekly` - Every week
-- `every N weeks` - Every N weeks (e.g., `every 2 weeks`)
+- `every N weeks` - Every N weeks (e.g., `every 2 weeks`, `every 4 weeks`)
 - `every [day]` - Every specific day of week (e.g., `every Tuesday`)
 - `every N weeks on [day]` - Every N weeks on a specific day (e.g., `every 2 weeks on Tuesday`)
 - `every month` or `monthly` - Every month
 - `every N months` - Every N months
 - `every month on the [day]` - Every month on a specific day (e.g., `every month on the 15th`)
+- `[day] of every month` - Every month on a specific day (e.g., `7th of every month`, `15th of every month`)
 - `every year` or `yearly` - Every year
 - `every N years` - Every N years
+- `[day] of [month] every year` - Every year on a specific date (e.g., `1st of june every year`, `15th of december every year`)
 
 When a recurring task is completed, the plugin automatically creates a new task with the next occurrence date calculated from the recurrence pattern.
 

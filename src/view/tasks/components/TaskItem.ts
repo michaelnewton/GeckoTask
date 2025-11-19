@@ -5,16 +5,17 @@ import { PromptModal } from "../../../ui/PromptModal";
 import { FilePickerModal } from "../../../ui/FilePickerModal";
 import { captureQuickTask } from "../../../ui/CaptureModal";
 import { parseNLDate } from "../../../services/NLDate";
-import { formatDueDate, isOverdue, getPriorityColorClass, extractLabels, renderDescriptionLine } from "../utils/taskFormatting";
+import { formatDueDate, formatScheduledDate, isOverdue, getPriorityColorClass, extractLabels, renderDescriptionLine } from "../utils/taskFormatting";
 import { updateTaskField, moveTask, openTaskInNote } from "../utils/taskOperations";
 import { TFile } from "obsidian";
+import { validateTaskTitle, ValidationResult } from "../../../services/ValidationService";
 
 /**
  * Callbacks for task item actions.
  */
 export interface TaskItemCallbacks {
   onToggle: (task: IndexedTask, checked: boolean) => Promise<void>;
-  onUpdateField: (task: IndexedTask, key: "due" | "priority" | "recur", value?: string) => Promise<void>;
+  onUpdateField: (task: IndexedTask, key: "due" | "scheduled" | "priority" | "recur", value?: string) => Promise<void>;
   onUpdateTitle: (task: IndexedTask, newTitle: string) => Promise<void>;
   onMove: (task: IndexedTask) => Promise<void>;
   onOpen: (task: IndexedTask) => Promise<void>;
@@ -47,7 +48,7 @@ export function renderTaskItem(
     card.addEventListener("click", (e) => {
       // Don't toggle if clicking on interactive elements
       const target = e.target as HTMLElement;
-      const isInteractive = target.closest("input, button, .task-checkbox, .task-recur-icon, .task-due-container, .task-description-icon, .task-priority-container, .geckotask-action-btn, .task-title, .task-title-container");
+      const isInteractive = target.closest("input, button, .task-checkbox, .task-recur-icon, .task-scheduled-container, .task-due-container, .task-description-icon, .task-priority-container, .geckotask-action-btn, .task-title, .task-title-container");
       
       if (!isInteractive) {
         // Toggle this card and close others
@@ -106,17 +107,59 @@ export function renderTaskItem(
     startEditingTitle(title, task, callbacks);
   });
 
-  // Bottom row: Due date + Priority + Tags on left, Project on right
+  // Bottom row: Scheduled date + Due date + Priority + Tags on left, Project on right
   const bottomRow = card.createDiv({ cls: "task-card-bottom" });
   
-  // Left side: Due date + Priority + Tags
+  // Left side: Scheduled date + Due date + Priority + Tags
   const leftSide = bottomRow.createDiv({ cls: "task-card-bottom-left" });
   
-  // Due date (with calendar icon)
+  // Scheduled date (with start icon)
+  if (task.scheduled) {
+    const scheduledContainer = leftSide.createDiv({ cls: "task-scheduled-container" });
+    const scheduledIcon = scheduledContainer.createEl("span", { cls: "task-scheduled-icon" });
+    scheduledIcon.innerHTML = "▶️";
+    const scheduledText = scheduledContainer.createEl("span", { cls: "task-scheduled-text" });
+    scheduledText.textContent = formatScheduledDate(task.scheduled);
+    scheduledContainer.style.cursor = "pointer";
+    scheduledContainer.addEventListener("click", async () => {
+      const defaultValue = task.scheduled ?? "today";
+      const modal = new PromptModal(app, "Set scheduled date (today / 2025-11-10)", defaultValue, undefined, "scheduled", task.title);
+      const next = await modal.prompt();
+      if (next == null) return; // User cancelled
+      if (next.trim() === "") {
+        // User wants to clear the scheduled date
+        await callbacks.onUpdateField(task, "scheduled", undefined);
+        return;
+      }
+      const parsed = parseNLDate(next) ?? next;
+      await callbacks.onUpdateField(task, "scheduled", parsed);
+    });
+  } else {
+    const scheduledContainer = leftSide.createDiv({ cls: "task-scheduled-container task-scheduled-empty" });
+    const scheduledIcon = scheduledContainer.createEl("span", { cls: "task-scheduled-icon" });
+    scheduledIcon.innerHTML = "▶️";
+    scheduledContainer.style.cursor = "pointer";
+    scheduledContainer.style.opacity = "0.6";
+    scheduledContainer.addEventListener("click", async () => {
+      const defaultValue = "today";
+      const modal = new PromptModal(app, "Set scheduled date (today / 2025-11-10)", defaultValue, undefined, "scheduled", task.title);
+      const next = await modal.prompt();
+      if (next == null) return; // User cancelled
+      if (next.trim() === "") {
+        // User wants to clear the scheduled date
+        await callbacks.onUpdateField(task, "scheduled", undefined);
+        return;
+      }
+      const parsed = parseNLDate(next) ?? next;
+      await callbacks.onUpdateField(task, "scheduled", parsed);
+    });
+  }
+  
+  // Due date (with deadline icon)
   if (task.due) {
     const dueContainer = leftSide.createDiv({ cls: "task-due-container" });
     const dueIcon = dueContainer.createEl("span", { cls: "task-due-icon" });
-    dueIcon.innerHTML = "📅";
+    dueIcon.innerHTML = "🏁";
     const dueText = dueContainer.createEl("span", { cls: "task-due-text" });
     dueText.textContent = formatDueDate(task.due);
     // Apply red styling if overdue
@@ -126,9 +169,14 @@ export function renderTaskItem(
     dueContainer.style.cursor = "pointer";
     dueContainer.addEventListener("click", async () => {
       const defaultValue = task.due ?? "today";
-      const modal = new PromptModal(app, "Set due date (today / 2025-11-10)", defaultValue);
+      const modal = new PromptModal(app, "Set due date (today / 2025-11-10)", defaultValue, undefined, "due", task.title);
       const next = await modal.prompt();
-      if (next == null || next.trim() === "") return;
+      if (next == null) return; // User cancelled
+      if (next.trim() === "") {
+        // User wants to clear the due date
+        await callbacks.onUpdateField(task, "due", undefined);
+        return;
+      }
       const parsed = parseNLDate(next) ?? next;
       await callbacks.onUpdateField(task, "due", parsed);
     });
@@ -136,15 +184,18 @@ export function renderTaskItem(
     const dueContainer = leftSide.createDiv({ cls: "task-due-container task-due-empty" });
     const dueIcon = dueContainer.createEl("span", { cls: "task-due-icon" });
     dueIcon.innerHTML = "📅";
-    const dueText = dueContainer.createEl("span", { cls: "task-due-text" });
-    dueText.textContent = "Set due";
     dueContainer.style.cursor = "pointer";
     dueContainer.style.opacity = "0.6";
     dueContainer.addEventListener("click", async () => {
       const defaultValue = "today";
-      const modal = new PromptModal(app, "Set due date (today / 2025-11-10)", defaultValue);
+      const modal = new PromptModal(app, "Set due date (today / 2025-11-10)", defaultValue, undefined, "due", task.title);
       const next = await modal.prompt();
-      if (next == null || next.trim() === "") return;
+      if (next == null) return; // User cancelled
+      if (next.trim() === "") {
+        // User wants to clear the due date
+        await callbacks.onUpdateField(task, "due", undefined);
+        return;
+      }
       const parsed = parseNLDate(next) ?? next;
       await callbacks.onUpdateField(task, "due", parsed);
     });
@@ -268,6 +319,77 @@ export function renderTaskItem(
 }
 
 /**
+ * Renders validation feedback for inline editing.
+ * @param container - Container element (parent of input)
+ * @param results - Validation results to display
+ */
+function renderInlineValidationFeedback(container: HTMLElement, results: ValidationResult[]): void {
+  // Remove existing validation feedback
+  const existing = container.querySelector(".geckotask-validation-container");
+  if (existing) {
+    existing.remove();
+  }
+  
+  if (results.length === 0) {
+    return;
+  }
+  
+  const feedbackContainer = container.createDiv({ cls: "geckotask-validation-container" });
+  feedbackContainer.style.position = "absolute";
+  feedbackContainer.style.zIndex = "1000";
+  feedbackContainer.style.background = "var(--background-primary)";
+  feedbackContainer.style.border = "1px solid var(--background-modifier-border)";
+  feedbackContainer.style.borderRadius = "4px";
+  feedbackContainer.style.padding = "6px 8px";
+  feedbackContainer.style.marginTop = "4px";
+  feedbackContainer.style.boxShadow = "0 2px 8px rgba(0,0,0,0.1)";
+  feedbackContainer.style.maxWidth = "400px";
+  
+  for (const result of results) {
+    const feedbackEl = feedbackContainer.createDiv({
+      cls: `geckotask-validation-${result.severity}`
+    });
+    
+    let icon = "";
+    if (result.severity === "warning") {
+      icon = "⚠️ ";
+    } else if (result.severity === "error") {
+      icon = "❌ ";
+    } else {
+      icon = "ℹ️ ";
+    }
+    
+    feedbackEl.textContent = icon + result.message;
+    
+    if (result.suggestion) {
+      const suggestionEl = feedbackContainer.createDiv({
+        cls: `geckotask-validation-${result.severity} geckotask-validation-suggestion`
+      });
+      suggestionEl.textContent = `💡 ${result.suggestion}`;
+      suggestionEl.style.fontSize = "0.85em";
+      suggestionEl.style.marginTop = "2px";
+      suggestionEl.style.opacity = "0.8";
+    }
+  }
+}
+
+/**
+ * Debounce helper for validation.
+ */
+function debounceValidation<T extends (...args: any[]) => void>(
+  func: T,
+  wait: number
+): (...args: Parameters<T>) => void {
+  let timeout: ReturnType<typeof setTimeout> | null = null;
+  return (...args: Parameters<T>) => {
+    if (timeout) {
+      clearTimeout(timeout);
+    }
+    timeout = setTimeout(() => func(...args), wait);
+  };
+}
+
+/**
  * Starts inline editing of a task title.
  * @param titleEl - The title element to replace with input
  * @param task - The indexed task being edited
@@ -283,10 +405,33 @@ function startEditingTitle(titleEl: HTMLElement, task: IndexedTask, callbacks: T
   input.style.width = "100%";
   input.style.padding = "2px 4px";
   
+  // Get parent container for validation feedback
+  const parentContainer = titleEl.parentElement;
+  
   // Replace the div with the input
   titleEl.replaceWith(input);
   input.focus();
   input.select();
+
+  // Add debounced validation
+  const debouncedValidate = debounceValidation((value: string) => {
+    if (parentContainer) {
+      const results = validateTaskTitle(value);
+      renderInlineValidationFeedback(parentContainer, results);
+    }
+  }, 300);
+  
+  // Initial validation
+  if (parentContainer) {
+    const results = validateTaskTitle(currentText);
+    renderInlineValidationFeedback(parentContainer, results);
+  }
+  
+  // Add input listener for validation
+  input.addEventListener("input", (e) => {
+    const value = (e.target as HTMLInputElement).value;
+    debouncedValidate(value);
+  });
 
   let isFinishing = false;
   const finishEditing = async () => {
@@ -297,6 +442,14 @@ function startEditingTitle(titleEl: HTMLElement, task: IndexedTask, callbacks: T
     // Check if input is still in the DOM
     if (!input.parentElement) {
       return;
+    }
+
+    // Clear validation feedback
+    if (parentContainer) {
+      const existing = parentContainer.querySelector(".geckotask-validation-container");
+      if (existing) {
+        existing.remove();
+      }
     }
 
     const newTitle = input.value.trim();
@@ -326,6 +479,15 @@ function startEditingTitle(titleEl: HTMLElement, task: IndexedTask, callbacks: T
     if (!input.parentElement) {
       return;
     }
+    
+    // Clear validation feedback
+    if (parentContainer) {
+      const existing = parentContainer.querySelector(".geckotask-validation-container");
+      if (existing) {
+        existing.remove();
+      }
+    }
+    
     const newTitleEl = document.createElement("div");
     newTitleEl.className = "task-title";
     newTitleEl.style.cursor = "pointer";

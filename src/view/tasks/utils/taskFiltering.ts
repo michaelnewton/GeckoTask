@@ -28,12 +28,13 @@ export function filterTasks(
   
   // Apply tab-specific filtering
   if (currentTab === "today-overdue") {
-    // Show tasks due today or overdue, OR tasks with the "now" tag
+    // Show tasks due today or overdue, OR tasks with the "now" tag, OR tasks scheduled for today or in the past
     const nowTag = settings.nowTag;
     rows = rows.filter(t => {
       const hasNowTag = t.tags.includes(nowTag);
       const isDueTodayOrOverdue = t.due && (t.due === today || t.due < today);
-      return hasNowTag || isDueTodayOrOverdue;
+      const isScheduledTodayOrPast = t.scheduled && (t.scheduled === today || t.scheduled < today);
+      return hasNowTag || isDueTodayOrOverdue || isScheduledTodayOrPast;
     });
   } else if (currentTab === "inbox") {
     // Show only tasks from the inbox file
@@ -181,20 +182,20 @@ export function sortTasks(tasks: IndexedTask[], currentTab: TabType, settings: G
   
   const sorted = [...tasks];
   sorted.sort((a, b) => {
-    // For Today view: overdue, due today, prioritized, then non-prioritized
+    // For Today view: overdue, due/scheduled today, prioritized, then non-prioritized
     if (currentTab === "today-overdue") {
       const nowTag = settings.nowTag;
-      const aOverdue = !!(a.due && a.due < today);
-      const bOverdue = !!(b.due && b.due < today);
-      const aDueToday = !!(a.due && a.due === today);
-      const bDueToday = !!(b.due && b.due === today);
+      const aOverdue = !!(a.due && a.due < today) || !!(a.scheduled && a.scheduled < today);
+      const bOverdue = !!(b.due && b.due < today) || !!(b.scheduled && b.scheduled < today);
+      const aDueToday = !!(a.due && a.due === today) || !!(a.scheduled && a.scheduled === today);
+      const bDueToday = !!(b.due && b.due === today) || !!(b.scheduled && b.scheduled === today);
       const aHasNowTag = a.tags.includes(nowTag);
       const bHasNowTag = b.tags.includes(nowTag);
-      // "Now" tag tasks are those with the tag but not due today (or overdue)
+      // "Now" tag tasks are those with the tag but not due/scheduled today (or overdue)
       const aIsNowTagOnly = aHasNowTag && !aDueToday && !aOverdue;
       const bIsNowTagOnly = bHasNowTag && !bDueToday && !bOverdue;
       
-      // Assign group numbers: 1=overdue, 2=due today, 3=now tag only
+      // Assign group numbers: 1=overdue, 2=due/scheduled today, 3=now tag only
       const getGroup = (overdue: boolean, dueToday: boolean, isNowTagOnly: boolean): number => {
         if (overdue) return 1;
         if (dueToday) return 2;
@@ -205,7 +206,7 @@ export function sortTasks(tasks: IndexedTask[], currentTab: TabType, settings: G
       const aGroup = getGroup(aOverdue, aDueToday, aIsNowTagOnly);
       const bGroup = getGroup(bOverdue, bDueToday, bIsNowTagOnly);
       
-      // First: sort by group (overdue < due today < now tag only)
+      // First: sort by group (overdue < due/scheduled today < now tag only)
       if (aGroup !== bGroup) return aGroup - bGroup;
       
       // Second: within same group, prioritized tasks come before non-prioritized

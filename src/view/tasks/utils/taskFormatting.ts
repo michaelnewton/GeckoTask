@@ -35,6 +35,29 @@ export function formatDueDate(dueDate: string): string {
 }
 
 /**
+ * Formats a scheduled date for display.
+ * Shows day name if within next 7 days, otherwise shortened format like "7th Nov".
+ * @param scheduledDate - ISO date string (YYYY-MM-DD)
+ * @returns Formatted date string
+ */
+export function formatScheduledDate(scheduledDate: string): string {
+  const daysDiff = diffInDays(scheduledDate);
+  
+  if (daysDiff < 0) {
+    // Past - show shortened format
+    return formatDate(scheduledDate, "Do MMM");
+  } else if (daysDiff === 0) {
+    return "Today";
+  } else if (daysDiff <= 7) {
+    // Within next 7 days - show day name
+    return formatDate(scheduledDate, "dddd");
+  } else {
+    // Beyond 7 days - show shortened format
+    return formatDate(scheduledDate, "Do MMM");
+  }
+}
+
+/**
  * Gets the priority color class for styling.
  * Maps priority position in the user-defined array to escalating color classes.
  * @param priority - Priority value

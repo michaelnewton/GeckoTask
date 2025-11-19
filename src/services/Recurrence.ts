@@ -1,4 +1,5 @@
 import { formatISODate } from "../utils/dateUtils";
+import { Task } from "../models/TaskModel";
 
 /**
  * Service for parsing and calculating recurrence patterns for tasks.
@@ -7,7 +8,7 @@ import { formatISODate } from "../utils/dateUtils";
 
 /**
  * Parses a recurrence pattern string and calculates the next occurrence date.
- * @param pattern - The recurrence pattern (e.g., "every Tuesday", "every 10 days", "every 2 weeks on Tuesday")
+ * @param pattern - The recurrence pattern (e.g., "every Tuesday", "every 10 days", "every 2 weeks on Tuesday", "7th of every month", "1st of june every year", "every 4 weeks")
  * @param fromDate - The date to calculate from (typically completion date or current date)
  * @returns The next occurrence date as ISO string (YYYY-MM-DD), or null if pattern is invalid
  */
@@ -100,6 +101,16 @@ export function calculateNextOccurrence(pattern: string, fromDate: Date = new Da
     return formatISODate(next);
   }
   
+  // Handle "[day] of every month" (e.g., "7th of every month", "15th of every month")
+  const dayOfEveryMonthMatch = normalized.match(/^(\d+)(?:st|nd|rd|th)?\s+of\s+every\s+month$/);
+  if (dayOfEveryMonthMatch) {
+    const dayOfMonth = parseInt(dayOfEveryMonthMatch[1], 10);
+    const next = new Date(fromDate);
+    next.setMonth(next.getMonth() + 1);
+    next.setDate(Math.min(dayOfMonth, getDaysInMonth(next)));
+    return formatISODate(next);
+  }
+  
   // Handle "every year" or "yearly"
   if (normalized === "every year" || normalized === "yearly") {
     const next = new Date(fromDate);
@@ -113,6 +124,34 @@ export function calculateNextOccurrence(pattern: string, fromDate: Date = new Da
     const years = parseInt(yearsMatch[1], 10);
     const next = new Date(fromDate);
     next.setFullYear(next.getFullYear() + years);
+    return formatISODate(next);
+  }
+  
+  // Handle "[day] of [month] every year" (e.g., "1st of june every year", "15th of december every year")
+  const yearlyDateMatch = normalized.match(/^(\d+)(?:st|nd|rd|th)?\s+of\s+(january|february|march|april|may|june|july|august|september|october|november|december)\s+every\s+year$/);
+  if (yearlyDateMatch) {
+    const dayOfMonth = parseInt(yearlyDateMatch[1], 10);
+    const monthName = yearlyDateMatch[2];
+    const monthIndex = parseMonthName(monthName);
+    if (monthIndex === null) {
+      return null;
+    }
+    
+    const currentYear = fromDate.getFullYear();
+    
+    // Create target date for this year
+    const targetDateThisYear = new Date(currentYear, monthIndex, dayOfMonth);
+    // Handle months with fewer days (e.g., Feb 30 -> Feb 28/29)
+    const daysInTargetMonth = getDaysInMonth(targetDateThisYear);
+    targetDateThisYear.setDate(Math.min(dayOfMonth, daysInTargetMonth));
+    
+    // If target date has already passed this year, move to next year
+    let targetYear = currentYear;
+    if (targetDateThisYear < fromDate) {
+      targetYear = currentYear + 1;
+    }
+    
+    const next = new Date(targetYear, monthIndex, Math.min(dayOfMonth, getDaysInMonth(new Date(targetYear, monthIndex, 1))));
     return formatISODate(next);
   }
   
@@ -165,6 +204,30 @@ function getDaysInMonth(date: Date): number {
   return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
 }
 
+/**
+ * Parses a month name string to a month index (0 = January, 1 = February, ..., 11 = December).
+ * @param monthStr - Month name (case-insensitive)
+ * @returns Month index (0-11), or null if invalid
+ */
+function parseMonthName(monthStr: string): number | null {
+  const months: Record<string, number> = {
+    january: 0,
+    february: 1,
+    march: 2,
+    april: 3,
+    may: 4,
+    june: 5,
+    july: 6,
+    august: 7,
+    september: 8,
+    october: 9,
+    november: 10,
+    december: 11,
+  };
+  const normalized = monthStr.toLowerCase();
+  return months[normalized] ?? null;
+}
+
 
 /**
  * Validates if a recurrence pattern is recognized.
@@ -173,5 +236,53 @@ function getDaysInMonth(date: Date): number {
  */
 export function isValidRecurrencePattern(pattern: string): boolean {
   return calculateNextOccurrence(pattern) !== null;
+}
+
+/**
+ * Calculates the scheduled and/or due dates for the next occurrence of a recurring task
+ * based on GTD rules. Preserves the date type(s) from the existing task:
+ * - If existing task has scheduled → next occurrence gets scheduled
+ * - If existing task has due → next occurrence gets due
+ * - If existing task has both → next occurrence gets both
+ * - If existing task has neither → next occurrence gets scheduled only (default GTD behavior)
+ * @param recurPattern - The recurrence pattern (e.g., "every Tuesday", "every 10 days")
+ * @param fromDate - The date to calculate from (typically completion date or current date)
+ * @param existingTask - The existing task to determine which date types to preserve
+ * @returns Object with scheduled and/or due dates as ISO strings (YYYY-MM-DD), or null if pattern is invalid
+ */
+export function calculateNextOccurrenceDates(
+  recurPattern: string,
+  fromDate: Date,
+  existingTask: Task
+): { scheduled?: string; due?: string } | null {
+  const nextDate = calculateNextOccurrence(recurPattern, fromDate);
+  if (!nextDate) {
+    return null;
+  }
+
+  const hasScheduled = !!existingTask.scheduled;
+  const hasDue = !!existingTask.due;
+
+  // GTD rules:
+  // - If existing has scheduled → next gets scheduled
+  // - If existing has due → next gets due
+  // - If existing has both → next gets both
+  // - If existing has neither → next gets scheduled only (default GTD behavior)
+  const result: { scheduled?: string; due?: string } = {};
+
+  if (hasScheduled) {
+    result.scheduled = nextDate;
+  }
+
+  if (hasDue) {
+    result.due = nextDate;
+  }
+
+  // If neither exists, default to scheduled (GTD: most recurring tasks use scheduled)
+  if (!hasScheduled && !hasDue) {
+    result.scheduled = nextDate;
+  }
+
+  return result;
 }
 

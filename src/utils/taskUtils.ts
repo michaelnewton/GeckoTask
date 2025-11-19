@@ -62,6 +62,7 @@ export async function loadTasksFromFile(
       project,
       priority: parsed.priority,
       due: parsed.due,
+      scheduled: parsed.scheduled,
       recur: parsed.recur,
       checked: parsed.checked,
       descriptionEndLine: endLine + 1

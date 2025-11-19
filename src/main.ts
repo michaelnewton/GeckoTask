@@ -5,7 +5,7 @@ import { WeeklyReviewPanel, VIEW_TYPE_WEEKLY_REVIEW } from "./view/weekly-review
 import { HealthPanel, VIEW_TYPE_HEALTH } from "./view/health/HealthPanel";
 import { isInTasksFolder, inferAreaFromPath, isSpecialFile } from "./utils/areaUtils";
 import { parseTaskWithDescription, formatTaskWithDescription, Task } from "./models/TaskModel";
-import { calculateNextOccurrence } from "./services/Recurrence";
+import { calculateNextOccurrenceDates } from "./services/Recurrence";
 import { IndexedTask } from "./view/tasks/TasksPanelTypes";
 import { formatISODate } from "./utils/dateUtils";
 import { getAllEditorLines, replaceTaskBlock } from "./utils/editorUtils";
@@ -207,13 +207,14 @@ export default class GeckoTaskPlugin extends Plugin {
     // Only create next occurrence if we just added the completed date (first time completing)
     // This prevents duplicate occurrences when re-checking already completed recurring tasks
     if (parsed.recur && parsed.recur.length > 0 && parsed.checked && parsed.completion && justAddedCompletedDate) {
-      const nextDue = calculateNextOccurrence(parsed.recur, today);
-      if (nextDue) {
-        // Create new task with next occurrence
+      const nextDates = calculateNextOccurrenceDates(parsed.recur, today, parsed);
+      if (nextDates) {
+        // Create new task with next occurrence (preserve date types based on GTD rules)
         const newTask: Task = {
           ...parsed,
           checked: false,
-          due: nextDue,
+          scheduled: nextDates.scheduled,
+          due: nextDates.due,
           completion: undefined,
           recur: parsed.recur,
         };
@@ -233,7 +234,12 @@ export default class GeckoTaskPlugin extends Plugin {
         
         editor.replaceRange(insertText, insertPos, insertPos);
         
-        new Notice(`GeckoTask: Next occurrence scheduled for ${nextDue}`);
+        // Build notice message based on which dates were set
+        const dateParts: string[] = [];
+        if (nextDates.scheduled) dateParts.push(`scheduled: ${nextDates.scheduled}`);
+        if (nextDates.due) dateParts.push(`due: ${nextDates.due}`);
+        const dateMsg = dateParts.join(", ");
+        new Notice(`GeckoTask: Next occurrence ${dateMsg}`);
       }
     }
   }
@@ -273,6 +279,7 @@ export default class GeckoTaskPlugin extends Plugin {
       project,
       priority: parsed.priority,
       due: parsed.due,
+      scheduled: parsed.scheduled,
       recur: parsed.recur,
       checked: parsed.checked,
       descriptionEndLine: endLine + 1 // 1-based, inclusive

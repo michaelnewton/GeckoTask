@@ -5,6 +5,7 @@ import { formatTask, formatTaskWithDescription, Task, parseTaskWithDescription }
 import { isInTasksFolder, normalizeInboxPath, isSpecialFile, isTasksFolderFile, getProjectDisplayName, getSortedProjectFiles } from "../utils/areaUtils";
 import { IndexedTask } from "../view/tasks/TasksPanelTypes";
 import { createProjectFile } from "../services/VaultIO";
+import { validateTaskTitle, validateTaskDescription, validateTaskDueDate, validateTaskScheduled, validateTaskTags, ValidationResult } from "../services/ValidationService";
 
 
 /**
@@ -15,6 +16,7 @@ interface Draft {
   description?: string; // Multi-line description
   projectPath: string;
   due?: string;
+  scheduled?: string;
   priority?: string;
   tags?: string[];
   recur?: string;
@@ -39,6 +41,7 @@ export async function captureQuickTask(app: App, settings: GeckoTaskSettings, ex
         description: existingTask?.description,
         projectPath: existingTask?.path || projectPath || normalizeInboxPath(settings.inboxPath),
         due: existingTask?.due,
+        scheduled: existingTask?.scheduled,
         priority: existingTask?.priority,
         tags: existingTask?.tags || [],
         recur: existingTask?.recur
@@ -91,6 +94,26 @@ export async function captureQuickTask(app: App, settings: GeckoTaskSettings, ex
           this.draft.due = parsedDue;
         }
         
+        // Validate scheduled date if provided
+        if (this.draft.scheduled && this.draft.scheduled.trim()) {
+          // Try to parse the scheduled date
+          const parsedScheduled = parseNLDate(this.draft.scheduled.trim());
+          
+          if (!parsedScheduled) {
+            new Notice(`GeckoTask: Could not parse scheduled date "${this.draft.scheduled}". Please use a valid date format (e.g., "today", "2025-11-25", "tomorrow").`);
+            return;
+          }
+          
+          // Validate that the parsed date is in valid ISO format
+          if (!this.isValidISODate(parsedScheduled)) {
+            new Notice(`GeckoTask: Invalid scheduled date format "${parsedScheduled}". Expected format: YYYY-MM-DD (e.g., "2025-11-25").`);
+            return;
+          }
+          
+          // Update draft with the validated ISO date
+          this.draft.scheduled = parsedScheduled;
+        }
+        
         if (isEditMode && existingTask) {
           await updateTask(app, existingTask, this.draft, settings);
         } else {
@@ -100,12 +123,76 @@ export async function captureQuickTask(app: App, settings: GeckoTaskSettings, ex
         resolve();
       }
       
+      /**
+       * Renders validation feedback below an element.
+       * @param container - Container element to add feedback to
+       * @param results - Validation results to display
+       */
+      private renderValidationFeedback(container: HTMLElement, results: ValidationResult[]): void {
+        // Remove existing validation feedback
+        const existing = container.querySelector(".geckotask-validation-container");
+        if (existing) {
+          existing.remove();
+        }
+        
+        if (results.length === 0) {
+          return;
+        }
+        
+        const feedbackContainer = container.createDiv({ cls: "geckotask-validation-container" });
+        
+        for (const result of results) {
+          const feedbackEl = feedbackContainer.createDiv({
+            cls: `geckotask-validation-${result.severity}`
+          });
+          
+          let icon = "";
+          if (result.severity === "warning") {
+            icon = "⚠️ ";
+          } else if (result.severity === "error") {
+            icon = "❌ ";
+          } else {
+            icon = "ℹ️ ";
+          }
+          
+          feedbackEl.textContent = icon + result.message;
+          
+          if (result.suggestion) {
+            const suggestionEl = feedbackContainer.createDiv({
+              cls: `geckotask-validation-${result.severity} geckotask-validation-suggestion`
+            });
+            suggestionEl.textContent = `💡 ${result.suggestion}`;
+            suggestionEl.style.fontSize = "0.85em";
+            suggestionEl.style.marginTop = "2px";
+            suggestionEl.style.opacity = "0.8";
+          }
+        }
+      }
+
+      /**
+       * Debounce helper for validation.
+       */
+      private debounceValidation<T extends (...args: any[]) => void>(
+        func: T,
+        wait: number
+      ): (...args: Parameters<T>) => void {
+        let timeout: ReturnType<typeof setTimeout> | null = null;
+        return (...args: Parameters<T>) => {
+          if (timeout) {
+            clearTimeout(timeout);
+          }
+          timeout = setTimeout(() => func(...args), wait);
+        };
+      }
+
       onOpen() {
         const { contentEl } = this;
         contentEl.empty();
         this.titleEl.setText(isEditMode ? "GeckoTask — Quick Edit" : "GeckoTask — Quick Add");
 
-        new Setting(contentEl).setName("Title").addText(t => {
+        const titleSetting = new Setting(contentEl).setName("Title");
+        const titleContainer = titleSetting.settingEl;
+        titleSetting.addText(t => {
           t.setValue(this.draft.title);
           t.inputEl.style.width = "100%";
           t.onChange(v => this.draft.title = v);
@@ -116,6 +203,23 @@ export async function captureQuickTask(app: App, settings: GeckoTaskSettings, ex
               this.handleSave();
             }
           });
+          
+          // Add debounced validation
+          const debouncedValidate = this.debounceValidation((value: string) => {
+            const results = validateTaskTitle(value);
+            this.renderValidationFeedback(titleContainer, results);
+          }, 300);
+          
+          t.inputEl.addEventListener("input", (evt) => {
+            const value = (evt.target as HTMLInputElement).value;
+            debouncedValidate(value);
+          });
+          
+          // Initial validation
+          if (this.draft.title) {
+            const results = validateTaskTitle(this.draft.title);
+            this.renderValidationFeedback(titleContainer, results);
+          }
         });
 
         const normalizedInboxPath = normalizeInboxPath(settings.inboxPath);
@@ -195,7 +299,9 @@ export async function captureQuickTask(app: App, settings: GeckoTaskSettings, ex
         // Use fewer rows on mobile for more compact display
         const isMobile = "ontouchstart" in window || navigator.maxTouchPoints > 0 || 
                         (window.matchMedia && window.matchMedia("(pointer: coarse)").matches);
-        new Setting(contentEl).setName("Description (optional)").addTextArea(t => {
+        const descSetting = new Setting(contentEl).setName("Description (optional)");
+        const descContainer = descSetting.settingEl;
+        descSetting.addTextArea(t => {
           t.setPlaceholder("Multi-line description...");
           t.setValue(this.draft.description || "");
           t.inputEl.rows = isMobile ? 2 : 4; // Reduced rows on mobile
@@ -208,6 +314,23 @@ export async function captureQuickTask(app: App, settings: GeckoTaskSettings, ex
               this.handleSave();
             }
           });
+          
+          // Add debounced validation
+          const debouncedValidate = this.debounceValidation((value: string) => {
+            const results = validateTaskDescription(value);
+            this.renderValidationFeedback(descContainer, results);
+          }, 300);
+          
+          t.inputEl.addEventListener("input", (evt) => {
+            const value = (evt.target as HTMLTextAreaElement).value;
+            debouncedValidate(value);
+          });
+          
+          // Initial validation
+          if (this.draft.description) {
+            const results = validateTaskDescription(this.draft.description);
+            this.renderValidationFeedback(descContainer, results);
+          }
         });
 
         // Helper function to check if a tag is present
@@ -329,7 +452,9 @@ export async function captureQuickTask(app: App, settings: GeckoTaskSettings, ex
           updateButtonStates();
         });
 
-        new Setting(contentEl).setName("Due").addText(t => {
+        const dueSetting = new Setting(contentEl).setName("Due");
+        const dueContainer = dueSetting.settingEl;
+        dueSetting.addText(t => {
           t.setPlaceholder("today / 2025-11-15");
           t.setValue(this.draft.due || "");
           t.inputEl.style.width = "100%";
@@ -348,6 +473,63 @@ export async function captureQuickTask(app: App, settings: GeckoTaskSettings, ex
               this.handleSave();
             }
           });
+          
+          // Add debounced validation
+          const debouncedValidate = this.debounceValidation((value: string) => {
+            const results = validateTaskDueDate(value, this.draft.title);
+            this.renderValidationFeedback(dueContainer, results);
+          }, 300);
+          
+          t.inputEl.addEventListener("input", (evt) => {
+            const value = (evt.target as HTMLInputElement).value;
+            debouncedValidate(value);
+          });
+          
+          // Initial validation
+          if (this.draft.due) {
+            const results = validateTaskDueDate(this.draft.due, this.draft.title);
+            this.renderValidationFeedback(dueContainer, results);
+          }
+        });
+
+        const scheduledSetting = new Setting(contentEl).setName("Scheduled");
+        const scheduledContainer = scheduledSetting.settingEl;
+        scheduledSetting.addText(t => {
+          t.setPlaceholder("today / 2025-11-15");
+          t.setValue(this.draft.scheduled || "");
+          t.inputEl.style.width = "100%";
+          t.onChange(v => {
+            if (v) {
+              const parsed = parseNLDate(v);
+              this.draft.scheduled = parsed || v;
+            } else {
+              this.draft.scheduled = v;
+            }
+          });
+          // Handle Enter key to save
+          t.inputEl.addEventListener("keydown", (evt) => {
+            if (evt.key === "Enter") {
+              evt.preventDefault();
+              this.handleSave();
+            }
+          });
+          
+          // Add debounced validation
+          const debouncedValidate = this.debounceValidation((value: string) => {
+            const results = validateTaskScheduled(value);
+            this.renderValidationFeedback(scheduledContainer, results);
+          }, 300);
+          
+          t.inputEl.addEventListener("input", (evt) => {
+            const value = (evt.target as HTMLInputElement).value;
+            debouncedValidate(value);
+          });
+          
+          // Initial validation
+          if (this.draft.scheduled) {
+            const results = validateTaskScheduled(this.draft.scheduled);
+            this.renderValidationFeedback(scheduledContainer, results);
+          }
         });
 
         new Setting(contentEl).setName("Recurrence (optional)").addText(t => {
@@ -413,6 +595,7 @@ async function appendTask(app: App, d: Draft, settings: GeckoTaskSettings) {
     description: d.description,
     tags: tags,
     due: d.due,
+    scheduled: d.scheduled,
     priority: d.priority,
     recur: d.recur,
     project: undefined, // Don't store project in metadata, it's derived from file basename
@@ -471,6 +654,7 @@ async function updateTask(app: App, existingTask: IndexedTask, d: Draft, setting
     title: d.title,
     description: d.description,
     due: d.due,
+    scheduled: d.scheduled,
     priority: d.priority,
     recur: d.recur,
     // Normalize tags (ensure they start with #)

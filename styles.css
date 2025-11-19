@@ -494,6 +494,37 @@ If your plugin does not need CSS, delete this file.
   font-style: italic;
 }
 
+/* Scheduled date container */
+.task-scheduled-container {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-muted);
+  transition: color 0.2s ease;
+  white-space: nowrap; /* Single-line badge */
+  flex-shrink: 0; /* Don't shrink date badge */
+}
+
+.task-scheduled-container:hover {
+  color: var(--text-normal);
+}
+
+.task-scheduled-icon {
+  font-size: 14px;
+  opacity: 0.8;
+}
+
+.task-scheduled-text {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.task-scheduled-container.task-scheduled-empty {
+  opacity: 0.6;
+  font-style: italic;
+}
+
 /* Tag container */
 .task-tag-container {
   display: inline-flex;
@@ -1591,4 +1622,35 @@ If your plugin does not need CSS, delete this file.
     width: 100%;
     max-width: 300px;
   }
+}
+
+/* Validation feedback styles */
+.geckotask-validation-warning {
+  color: var(--text-warning, #f59e0b);
+  font-size: 0.9em;
+  margin-top: 4px;
+}
+
+.geckotask-validation-error {
+  color: var(--text-error, #ef4444);
+  font-size: 0.9em;
+  margin-top: 4px;
+}
+
+.geckotask-validation-info {
+  color: var(--text-muted, #6b7280);
+  font-size: 0.9em;
+  margin-top: 4px;
+}
+
+.geckotask-validation-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.geckotask-validation-suggestion {
+  font-size: 0.85em;
+  margin-top: 2px;
+  opacity: 0.8;
 }

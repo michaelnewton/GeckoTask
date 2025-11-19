@@ -3,7 +3,7 @@ import { Task, parseTask, formatTask, withField, parseTaskWithDescription, forma
 import { GeckoTaskSettings } from "../settings";
 import { parseNLDate } from "./NLDate";
 import { PromptModal } from "../ui/PromptModal";
-import { calculateNextOccurrence } from "./Recurrence";
+import { calculateNextOccurrenceDates } from "./Recurrence";
 import { formatISODate } from "../utils/dateUtils";
 import { getAllEditorLines, replaceTaskBlock } from "../utils/editorUtils";
 
@@ -58,13 +58,14 @@ export async function toggleCompleteAtCursor(editor: Editor, view: MarkdownView,
 
   // If completing a recurring task, create the next occurrence
   if (checked && parsed.recur && parsed.recur.length > 0) {
-    const nextDue = calculateNextOccurrence(parsed.recur, today);
-    if (nextDue) {
-      // Create new task with next occurrence
+    const nextDates = calculateNextOccurrenceDates(parsed.recur, today, parsed);
+    if (nextDates) {
+      // Create new task with next occurrence (preserve date types based on GTD rules)
       const newTask: Task = {
         ...parsed,
         checked: false,
-        due: nextDue,
+        scheduled: nextDates.scheduled,
+        due: nextDates.due,
         completion: undefined,
         recur: parsed.recur, // Keep the recurrence pattern
       };
@@ -82,7 +83,12 @@ export async function toggleCompleteAtCursor(editor: Editor, view: MarkdownView,
       
       editor.replaceRange(insertText, insertPos, insertPos);
       
-      new Notice(`GeckoTask: Next occurrence scheduled for ${nextDue}`);
+      // Build notice message based on which dates were set
+      const dateParts: string[] = [];
+      if (nextDates.scheduled) dateParts.push(`scheduled: ${nextDates.scheduled}`);
+      if (nextDates.due) dateParts.push(`due: ${nextDates.due}`);
+      const dateMsg = dateParts.join(", ");
+      new Notice(`GeckoTask: Next occurrence ${dateMsg}`);
     } else {
       new Notice(`GeckoTask: Invalid recurrence pattern: ${parsed.recur}`);
     }
@@ -93,10 +99,10 @@ export async function toggleCompleteAtCursor(editor: Editor, view: MarkdownView,
  * Sets a field value on the task at the cursor via user prompt.
  * @param app - Obsidian app instance
  * @param editor - The editor instance
- * @param key - The field key to set ("due", "priority", or "recur")
+ * @param key - The field key to set ("due", "scheduled", "priority", or "recur")
  * @param settings - Plugin settings
  */
-export async function setFieldAtCursor(app: App, editor: Editor, key: "due"|"priority"|"recur", settings: GeckoTaskSettings) {
+export async function setFieldAtCursor(app: App, editor: Editor, key: "due"|"scheduled"|"priority"|"recur", settings: GeckoTaskSettings) {
   const currentLineNo = editor.getCursor().line;
   
   // Get all lines from the editor to parse task with description
@@ -111,6 +117,8 @@ export async function setFieldAtCursor(app: App, editor: Editor, key: "due"|"pri
   
   if (key === "due") {
     defaultValue = "today";
+  } else if (key === "scheduled") {
+    defaultValue = "today";
   } else if (key === "priority") {
     defaultValue = settings.allowedPriorities[0] || "";
   } else if (key === "recur") {
@@ -123,7 +131,7 @@ export async function setFieldAtCursor(app: App, editor: Editor, key: "due"|"pri
   if (value == null) return;
 
   let v = value.trim();
-  if (key === "due") {
+  if (key === "due" || key === "scheduled") {
     v = parseNLDate(v) ?? v;
   }
 
@@ -131,6 +139,8 @@ export async function setFieldAtCursor(app: App, editor: Editor, key: "due"|"pri
   const updated: Task = { ...parsed };
   if (key === "due") {
     updated.due = v || undefined;
+  } else if (key === "scheduled") {
+    updated.scheduled = v || undefined;
   } else if (key === "priority") {
     updated.priority = v || undefined;
   } else if (key === "recur") {
