@@ -166,7 +166,9 @@ async function writeToArchive(
 
   if (taskLines.length > 0) {
     const prev = await app.vault.read(archiveFile);
-    const next = prev + taskLines.join("\n") + "\n";
+    // Remove trailing newlines from existing content to avoid extra blank lines
+    const normalizedPrev = prev.replace(/\n+$/, "");
+    const next = normalizedPrev + "\n" + taskLines.join("\n") + "\n";
     await app.vault.modify(archiveFile, next);
   }
 

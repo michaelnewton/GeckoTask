@@ -605,8 +605,10 @@ async function appendTask(app: App, d: Draft, settings: GeckoTaskSettings) {
 
   // Format task with description (returns array of lines)
   const taskLines = formatTaskWithDescription(task);
-  const next = prev.trim().length 
-    ? prev + "\n" + taskLines.join("\n") + "\n" 
+  // Remove trailing newlines from existing content to avoid extra blank lines
+  const normalizedPrev = prev.replace(/\n+$/, "");
+  const next = normalizedPrev.length 
+    ? normalizedPrev + "\n" + taskLines.join("\n") + "\n" 
     : taskLines.join("\n") + "\n";
   await app.vault.modify(file, next);
 }
@@ -682,8 +684,10 @@ async function updateTask(app: App, existingTask: IndexedTask, d: Draft, setting
     const updatedLines = formatTaskWithDescription(taskWithDescription);
     const targetContent = await app.vault.read(targetFile);
     const finalLines = updatedLines.join("\n");
-    const updated = targetContent.trim().length 
-      ? targetContent + "\n" + finalLines + "\n" 
+    // Remove trailing newlines from existing content to avoid extra blank lines
+    const normalizedTarget = targetContent.replace(/\n+$/, "");
+    const updated = normalizedTarget.length 
+      ? normalizedTarget + "\n" + finalLines + "\n" 
       : finalLines + "\n";
     await app.vault.modify(targetFile, updated);
 

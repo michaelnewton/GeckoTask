@@ -37,8 +37,10 @@ export async function addTasksToInbox(
     const inboxFile = app.vault.getAbstractFileByPath(inboxPath);
     if (inboxFile instanceof TFile) {
       const content = await app.vault.read(inboxFile);
-      const updated = content.trim().length 
-        ? content + "\n" + taskLines.join("\n") + "\n" 
+      // Remove trailing newlines from existing content to avoid extra blank lines
+      const normalizedContent = content.replace(/\n+$/, "");
+      const updated = normalizedContent.length 
+        ? normalizedContent + "\n" + taskLines.join("\n") + "\n" 
         : taskLines.join("\n") + "\n";
       await app.vault.modify(inboxFile, updated);
     }
@@ -134,8 +136,10 @@ async function moveTask(app: App, task: IndexedTask, targetPath: string): Promis
 
   const targetContent = await app.vault.read(targetFile);
   const finalLines = updatedLines.join("\n");
-  const updated = targetContent.trim().length 
-    ? targetContent + "\n" + finalLines + "\n" 
+  // Remove trailing newlines from existing content to avoid extra blank lines
+  const normalizedTarget = targetContent.replace(/\n+$/, "");
+  const updated = normalizedTarget.length 
+    ? normalizedTarget + "\n" + finalLines + "\n" 
     : finalLines + "\n";
   await app.vault.modify(targetFile, updated);
 }
@@ -361,8 +365,10 @@ export async function activateSomedayMaybeProject(
   // Add tasks to target file
   const targetContent = await app.vault.read(target);
   const tasksText = taskRanges.map(r => r.lines.join("\n")).join("\n\n");
-  const updated = targetContent.trim().length 
-    ? targetContent + "\n\n" + tasksText + "\n" 
+  // Remove trailing newlines from existing content to avoid extra blank lines
+  const normalizedTarget = targetContent.replace(/\n+$/, "");
+  const updated = normalizedTarget.length 
+    ? normalizedTarget + "\n\n" + tasksText + "\n" 
     : tasksText + "\n";
   await app.vault.modify(target, updated);
 

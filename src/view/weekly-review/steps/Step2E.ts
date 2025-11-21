@@ -28,7 +28,10 @@ export async function renderStep2E(
     text: "Review each Waiting For task. Update, complete, or remove the tag as needed." 
   });
 
-  const waitingForTasks = await fetchTasksByTag(app, settings, settings.waitingForTag);
+  const allWaitingForTasks = await fetchTasksByTag(app, settings, settings.waitingForTag);
+  
+  // Filter out completed tasks
+  const waitingForTasks = allWaitingForTasks.filter(task => !task.checked);
 
   if (waitingForTasks.length === 0) {
     host.createEl("p", { 
