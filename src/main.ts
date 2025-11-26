@@ -7,7 +7,7 @@ import { isInTasksFolder, inferAreaFromPath, isSpecialFile } from "./utils/areaU
 import { parseTaskWithDescription, formatTaskWithDescription, Task } from "./models/TaskModel";
 import { calculateNextOccurrenceDates } from "./services/Recurrence";
 import { IndexedTask } from "./view/tasks/TasksPanelTypes";
-import { formatISODate } from "./utils/dateUtils";
+import { formatISODateTime } from "./utils/dateUtils";
 import { getAllEditorLines, replaceTaskBlock } from "./utils/editorUtils";
 import { registerCommands } from "./commands";
 import { 
@@ -180,7 +180,7 @@ export default class GeckoTaskPlugin extends Plugin {
     if (parsed.checked) {
       // Task is checked - add completed date if not present
       if (!parsed.completion) {
-        parsed.completion = formatISODate(today);
+        parsed.completion = formatISODateTime(today);
         needsUpdate = true;
         justAddedCompletedDate = true;
       }

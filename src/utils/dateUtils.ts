@@ -15,6 +15,19 @@ export function formatISODate(date: Date): string {
 }
 
 /**
+ * Formats a date/time as an ISO string (YYYY-MM-DDTHH:mm:ss).
+ * @param date - The date/time to format
+ * @returns ISO date/time string
+ */
+export function formatISODateTime(date: Date): string {
+  const pad = (value: number) => String(value).padStart(2, "0");
+  const hours = pad(date.getHours());
+  const minutes = pad(date.getMinutes());
+  const seconds = pad(date.getSeconds());
+  return `${formatISODate(date)}T${hours}:${minutes}:${seconds}`;
+}
+
+/**
  * Gets the moment.js instance if available.
  * @returns Moment.js instance or undefined
  */

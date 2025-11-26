@@ -22,7 +22,7 @@ import { PromptModal } from "../../ui/PromptModal";
 import { ConfirmationModal } from "../../ui/ConfirmationModal";
 import { isInTasksFolder, isTasksFolderFile, inferAreaFromPath, isSpecialFile } from "../../utils/areaUtils";
 import { loadTasksFromFiles } from "../../utils/taskUtils";
-import { formatISODate } from "../../utils/dateUtils";
+import { formatISODate, formatISODateTime } from "../../utils/dateUtils";
 
 /**
  * View type identifier for the Health Panel.
@@ -517,8 +517,7 @@ export class HealthPanel extends ItemView {
 
       parsed.checked = true;
       if (!parsed.completion) {
-        const today = formatISODate(new Date());
-        parsed.completion = today;
+        parsed.completion = formatISODateTime(new Date());
       }
 
       // Handle recurring tasks

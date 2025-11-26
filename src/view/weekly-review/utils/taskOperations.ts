@@ -1,6 +1,6 @@
 import { App, Notice, TFile } from "obsidian";
 import { IndexedTask } from "../../tasks/TasksPanelTypes";
-import { formatISODate } from "../../../utils/dateUtils";
+import { formatISODateTime } from "../../../utils/dateUtils";
 import { parseTaskWithDescription, formatTaskWithDescription, Task } from "../../../models/TaskModel";
 import { calculateNextOccurrenceDates } from "../../../services/Recurrence";
 
@@ -23,7 +23,7 @@ export async function completeTask(app: App, task: IndexedTask): Promise<void> {
 
     parsed.checked = true;
     if (!parsed.completion) {
-      const today = formatISODate(new Date());
+      const today = formatISODateTime(new Date());
       parsed.completion = today;
     }
 

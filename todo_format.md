@@ -29,7 +29,7 @@ The following fields are supported:
 | `scheduled` | `scheduled:: YYYY-MM-DD` | Scheduled date (optional, not used in UI) | `scheduled:: 2025-11-10` |
 | `priority` | `priority:: <value>` | Priority level | `priority:: high` |
 | `recur` | `🔁 <pattern>` or `recur:: <pattern>` | Recurrence pattern (both formats supported) | `🔁 every Tuesday` or `recur:: every Tuesday` |
-| `completion` | `completion:: YYYY-MM-DD` | Completion date (auto-added) | `completion:: 2025-11-14` |
+| `completion` | `completion:: YYYY-MM-DDTHH:mm:ss` | Completion timestamp (auto-added) | `completion:: 2025-11-14T15:42:00` |
 | `origin_file` | `origin_file:: <path>` | Original file path (archive only) | `origin_file:: tasks/Work/Project.md` |
 | `origin_project` | `origin_project:: <name>` | Original project (archive only) | `origin_project:: RouterRevamp` |
 | `origin_area` | `origin_area:: <name>` | Original area (archive only) | `origin_area:: Work` |
@@ -114,7 +114,7 @@ When a recurring task is completed, the plugin automatically creates a new task 
 ### Completed Task
 
 ```markdown
-- [x] Write agent router tests #work #router priority:: high due:: 2025-11-15 completion:: 2025-11-14
+- [x] Write agent router tests #work #router priority:: high due:: 2025-11-15 completion:: 2025-11-14T15:42:00
 ```
 
 ### Task with All Fields
@@ -211,12 +211,12 @@ Tasks in certain special files behave differently:
 When tasks are archived, they include origin metadata. **Note:** Only tasks that are both checked (`[x]`) and have a `completion::` field are archived.
 
 ```markdown
-- [x] Completed task #work priority:: high due:: 2025-11-15 completion:: 2025-11-14 origin_file:: tasks/Work/RouterRevamp.md origin_project:: RouterRevamp origin_area:: Work
+- [x] Completed task #work priority:: high due:: 2025-11-15 completion:: 2025-11-14T15:42:00 origin_file:: tasks/Work/RouterRevamp.md origin_project:: RouterRevamp origin_area:: Work
 ```
 
 **Archive Requirements:**
 - Task must be checked: `[x]`
-- Task must have a `completion::` field with a date
+- Task must have a `completion::` field with a timestamp
 - The `origin_*` fields are automatically added during archiving if not already present
 
 ## Best Practices
@@ -264,7 +264,7 @@ created: 2025-11-07
 - [ ] Update documentation #work priority:: med due:: 2025-11-20
   Document the new routing API and provide usage examples.
 
-- [x] Design router architecture #work priority:: high completion:: 2025-11-10
+- [x] Design router architecture #work priority:: high completion:: 2025-11-10T09:30:00
 ```
 
 **Note:** Tasks in this file automatically have project `RouterRevamp` (derived from the file name). The `project::` field is not stored in the task line.

@@ -4,7 +4,7 @@ import { GeckoTaskSettings } from "../settings";
 import { parseNLDate } from "./NLDate";
 import { PromptModal } from "../ui/PromptModal";
 import { calculateNextOccurrenceDates } from "./Recurrence";
-import { formatISODate } from "../utils/dateUtils";
+import { formatISODateTime } from "../utils/dateUtils";
 import { getAllEditorLines, replaceTaskBlock } from "../utils/editorUtils";
 
 
@@ -43,7 +43,7 @@ export async function toggleCompleteAtCursor(editor: Editor, view: MarkdownView,
   
   const checked = !parsed.checked;
   const today = new Date();
-  const completion = checked ? formatISODate(today) : undefined;
+  const completion = checked ? formatISODateTime(today) : undefined;
 
   // Update the task
   parsed.checked = checked;

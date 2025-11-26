@@ -72,7 +72,7 @@ Tasks are stored as standard Markdown checkboxes in `.md` files within your task
 - Tasks are plain Markdown - you can edit them in any editor
 - Metadata is stored inline using the format `key:: value`
 - Tasks can have multi-line descriptions stored as indented lines below the task line
-- Completed tasks get a `completion:: YYYY-MM-DD` field automatically added
+- Completed tasks get a `completion:: YYYY-MM-DDTHH:mm:ss` timestamp field (date + time) automatically added
 - Recurring tasks use the Tasks plugin format: `🔁 every Tuesday` or `recur:: every 10 days`
 
 ### Project and Area Organization

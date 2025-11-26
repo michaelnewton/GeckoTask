@@ -1,7 +1,7 @@
 import { App, TFile, Notice, MarkdownView } from "obsidian";
 import { IndexedTask } from "../TasksPanelTypes";
 import { parseTaskWithDescription, formatTaskWithDescription, Task } from "../../../models/TaskModel";
-import { formatISODate } from "../../../utils/dateUtils";
+import { formatISODateTime } from "../../../utils/dateUtils";
 import { calculateNextOccurrenceDates } from "../../../services/Recurrence";
 
 /**
@@ -36,7 +36,7 @@ export async function toggleTask(app: App, task: IndexedTask, checked: boolean):
     let nextOccurrenceTask: Task | null = null;
     if (checked) {
       if (!parsed.completion) {
-        const today = formatISODate(new Date());
+        const today = formatISODateTime(new Date());
         parsed.completion = today;
       }
       
