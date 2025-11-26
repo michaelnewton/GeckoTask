@@ -1,4 +1,4 @@
-import { App, Modal, Setting, Notice, TFile } from "obsidian";
+import { App, AbstractInputSuggest, Modal, Setting, Notice, TFile } from "obsidian";
 import { GeckoTaskSettings } from "../settings";
 import { parseNLDate } from "../services/NLDate";
 import { formatTask, formatTaskWithDescription, Task, parseTaskWithDescription } from "../models/TaskModel";
@@ -20,6 +20,101 @@ interface Draft {
   priority?: string;
   tags?: string[];
   recur?: string;
+}
+
+/**
+ * Retrieves the vault's cached tags, normalized and sorted for display.
+ * @param app - Obsidian app instance
+ * @returns Sorted array of unique tags (with leading '#')
+ */
+function getVaultTags(app: App): string[] {
+  const cache = app.metadataCache.getTags() ?? {};
+  const rawTags = Object.keys(cache)
+    .map(tag => tag.trim())
+    .filter(Boolean);
+  const uniqueTags = Array.from(new Set(rawTags));
+  return uniqueTags.sort((a, b) => a.localeCompare(b));
+}
+
+interface TagToken {
+  start: number;
+  end: number;
+  text: string;
+}
+
+class CaptureTagSuggest extends AbstractInputSuggest<string> {
+  private readonly inputEl: HTMLInputElement;
+  private readonly getTags: () => string[];
+  private readonly onSelectTag: (tag: string, token: TagToken) => void;
+
+  constructor(
+    app: App,
+    inputEl: HTMLInputElement,
+    getTags: () => string[],
+    onSelectTag: (tag: string, token: TagToken) => void
+  ) {
+    super(app, inputEl);
+    this.inputEl = inputEl;
+    this.getTags = getTags;
+    this.onSelectTag = onSelectTag;
+    this.limit = 15;
+  }
+
+  protected getSuggestions(_query: string): string[] {
+    const token = this.getActiveToken();
+    const prefix = token.text.replace(/^#+/, "").toLowerCase();
+    const allTags = this.getTags();
+    if (!prefix) {
+      return allTags.slice(0, this.limit);
+    }
+    const normalizedPrefix = prefix.startsWith("#") ? prefix : `#${prefix}`;
+    return allTags
+      .filter(tag => {
+        const lower = tag.toLowerCase();
+        return lower.startsWith(normalizedPrefix) || lower.startsWith(prefix);
+      })
+      .slice(0, this.limit);
+  }
+
+  renderSuggestion(suggestion: string, el: HTMLElement): void {
+    el.setText(suggestion);
+  }
+
+  selectSuggestion(suggestion: string, evt: MouseEvent | KeyboardEvent): void {
+    const token = this.getActiveToken();
+    this.onSelectTag(suggestion, token);
+    this.close();
+  }
+
+  private getActiveToken(): TagToken {
+    const value = this.inputEl.value;
+    const startSelection = this.inputEl.selectionStart ?? value.length;
+    const endSelection = this.inputEl.selectionEnd ?? value.length;
+    const cursorPosition = Math.max(startSelection, endSelection);
+    const tokenStart = this.getTokenStart(value, Math.min(startSelection, endSelection));
+    const tokenEnd = this.getTokenEnd(value, cursorPosition);
+    return {
+      start: tokenStart,
+      end: tokenEnd,
+      text: value.slice(tokenStart, tokenEnd)
+    };
+  }
+
+  private getTokenStart(value: string, position: number): number {
+    let idx = position;
+    while (idx > 0 && !/\s/.test(value[idx - 1])) {
+      idx--;
+    }
+    return idx;
+  }
+
+  private getTokenEnd(value: string, position: number): number {
+    let idx = position;
+    while (idx < value.length && !/\s/.test(value[idx])) {
+      idx++;
+    }
+    return idx;
+  }
 }
 
 /**
@@ -46,6 +141,9 @@ export async function captureQuickTask(app: App, settings: GeckoTaskSettings, ex
         tags: existingTask?.tags || [],
         recur: existingTask?.recur
       };
+      availableTags: string[] = [];
+      tagsInputElement: HTMLInputElement | null = null;
+      tagSuggest: CaptureTagSuggest | null = null;
       
       /**
        * Validates that a date string is in ISO format (YYYY-MM-DD).
@@ -189,6 +287,18 @@ export async function captureQuickTask(app: App, settings: GeckoTaskSettings, ex
         const { contentEl } = this;
         contentEl.empty();
         this.titleEl.setText(isEditMode ? "GeckoTask — Quick Edit" : "GeckoTask — Quick Add");
+
+        this.availableTags = getVaultTags(app);
+        const quickTags = [settings.nowTag, settings.waitingForTag];
+        for (const tag of quickTags) {
+          if (!tag) continue;
+          if (!this.availableTags.some(existing => existing.toLowerCase() === tag.toLowerCase())) {
+            this.availableTags.push(tag);
+          }
+        }
+        this.availableTags.sort((a, b) => a.localeCompare(b));
+        this.tagsInputElement = null;
+        this.tagSuggest = null;
 
         const titleSetting = new Setting(contentEl).setName("Title");
         const titleContainer = titleSetting.settingEl;
@@ -356,13 +466,35 @@ export async function captureQuickTask(app: App, settings: GeckoTaskSettings, ex
           this.draft.tags = currentTags;
         };
 
+        const addToAvailableTags = (tag: string) => {
+          const normalizedTag = tag.startsWith("#") ? tag : `#${tag}`;
+          if (!this.availableTags.some(existing => existing.toLowerCase() === normalizedTag.toLowerCase())) {
+            this.availableTags.push(normalizedTag);
+            this.availableTags.sort((a, b) => a.localeCompare(b));
+          }
+        };
+
+        const handleTagSelection = (tag: string, token: TagToken) => {
+          const input = this.tagsInputElement;
+          if (!input) return;
+          const normalizedTag = tag.startsWith("#") ? tag : `#${tag}`;
+          addToAvailableTags(normalizedTag);
+          const before = input.value.slice(0, token.start);
+          const after = input.value.slice(token.end);
+          const needsTrailingSpace = after.length === 0 || !/^\s/.test(after);
+          input.value = `${before}${normalizedTag}${needsTrailingSpace ? " " : ""}${after}`;
+          const cursorPos = before.length + normalizedTag.length + (needsTrailingSpace ? 1 : 0);
+          input.setSelectionRange(cursorPos, cursorPos);
+          input.dispatchEvent(new Event("input", { bubbles: true }));
+          updateButtonStates();
+        };
+
         const tagsSetting = new Setting(contentEl).setName("Tags (space-separated)");
-        let tagsInputElement: HTMLInputElement | null = null;
         tagsSetting.addText(t => {
           t.setPlaceholder("#work #bug");
           t.setValue((this.draft.tags || []).join(" "));
           t.inputEl.style.width = "100%";
-          tagsInputElement = t.inputEl;
+          this.tagsInputElement = t.inputEl;
           t.onChange(v => {
             this.draft.tags = v.split(/\s+/).filter(Boolean);
             // Update button states when tags change
@@ -375,8 +507,13 @@ export async function captureQuickTask(app: App, settings: GeckoTaskSettings, ex
               this.handleSave();
             }
           });
+          this.tagSuggest = new CaptureTagSuggest(
+            app,
+            t.inputEl,
+            () => this.availableTags,
+            (tag, token) => handleTagSelection(tag, token)
+          );
         });
-
         // Quick add buttons for plugin-defined tags (placed after tags input)
         const quickTagButtonsContainer = contentEl.createDiv({ cls: "geckotask-quick-tag-buttons" });
         quickTagButtonsContainer.style.marginTop = "8px";
@@ -433,10 +570,10 @@ export async function captureQuickTask(app: App, settings: GeckoTaskSettings, ex
         nowTagChip.addEventListener("click", () => {
           toggleTag(settings.nowTag);
           // Update the input field
-          if (tagsInputElement) {
-            tagsInputElement.value = (this.draft.tags || []).join(" ");
+          if (this.tagsInputElement) {
+            this.tagsInputElement.value = (this.draft.tags || []).join(" ");
             // Trigger onChange to update draft
-            tagsInputElement.dispatchEvent(new Event("input"));
+            this.tagsInputElement.dispatchEvent(new Event("input", { bubbles: true }));
           }
           updateButtonStates();
         });
@@ -444,10 +581,10 @@ export async function captureQuickTask(app: App, settings: GeckoTaskSettings, ex
         waitingForTagChip.addEventListener("click", () => {
           toggleTag(settings.waitingForTag);
           // Update the input field
-          if (tagsInputElement) {
-            tagsInputElement.value = (this.draft.tags || []).join(" ");
+          if (this.tagsInputElement) {
+            this.tagsInputElement.value = (this.draft.tags || []).join(" ");
             // Trigger onChange to update draft
-            tagsInputElement.dispatchEvent(new Event("input"));
+            this.tagsInputElement.dispatchEvent(new Event("input", { bubbles: true }));
           }
           updateButtonStates();
         });
@@ -560,6 +697,10 @@ export async function captureQuickTask(app: App, settings: GeckoTaskSettings, ex
             await this.handleSave();
           }))
           .addButton(b => b.setButtonText("Cancel").onClick(() => { this.close(); resolve(); }));
+      }
+
+      onClose() {
+        this.tagSuggest?.close();
       }
     })(app);
 
