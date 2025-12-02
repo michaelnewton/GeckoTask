@@ -20,6 +20,7 @@ export function registerCommands(plugin: GeckoTaskPlugin) {
   plugin.addCommand({
     id: "geckotask-open-panel",
     name: "Open Tasks Panel",
+    icon: "check-circle",
     callback: () => plugin.activateView()
   });
 
@@ -30,6 +31,7 @@ export function registerCommands(plugin: GeckoTaskPlugin) {
   plugin.addCommand({
     id: "weekly-review-open-panel",
     name: "Open Weekly Review Panel",
+    icon: "calendar",
     callback: () => plugin.activateWeeklyReviewView()
   });
 
@@ -40,6 +42,7 @@ export function registerCommands(plugin: GeckoTaskPlugin) {
   plugin.addCommand({
     id: "health-open-panel",
     name: "Open Health Check Panel",
+    icon: "activity",
     callback: () => plugin.activateHealthView()
   });
 
@@ -54,6 +57,7 @@ export function registerCommands(plugin: GeckoTaskPlugin) {
   plugin.addCommand({
     id: "geckotask-quick-add",
     name: "Quick Add/Edit Task",
+    icon: "plus-circle",
     hotkeys: [{ modifiers: ["Mod", "Shift"], key: "e" }],
     editorCallback: async (editor: Editor, ctx: MarkdownView | MarkdownFileInfo) => {
       const view = app.workspace.getActiveViewOfType(MarkdownView);
@@ -87,6 +91,7 @@ export function registerCommands(plugin: GeckoTaskPlugin) {
   plugin.addCommand({
     id: "geckotask-toggle-complete",
     name: "Complete/Uncomplete Task at Cursor",
+    icon: "check",
     editorCallback: (editor: Editor, _ctx: MarkdownView | MarkdownFileInfo) => {
       const view = app.workspace.getActiveViewOfType(MarkdownView);
       if (!view) return new Notice("GeckoTask: Not in a Markdown view.");
@@ -102,6 +107,7 @@ export function registerCommands(plugin: GeckoTaskPlugin) {
   plugin.addCommand({
     id: "geckotask-move-task",
     name: "Move Task (pick project)",
+    icon: "arrow-right",
     editorCallback: async (editor: Editor, _ctx: MarkdownView | MarkdownFileInfo) => {
       await moveTaskAtCursorInteractive(app, editor, settings);
     }
@@ -115,6 +121,7 @@ export function registerCommands(plugin: GeckoTaskPlugin) {
   plugin.addCommand({
     id: "geckotask-set-due",
     name: "Set Due (at cursor)",
+    icon: "calendar",
     editorCallback: async (editor: Editor, _ctx: MarkdownView | MarkdownFileInfo) => {
       await setFieldAtCursor(app, editor, "due", settings);
     }
@@ -128,6 +135,7 @@ export function registerCommands(plugin: GeckoTaskPlugin) {
   plugin.addCommand({
     id: "geckotask-set-scheduled",
     name: "Set Scheduled (at cursor)",
+    icon: "calendar-clock",
     editorCallback: async (editor: Editor, _ctx: MarkdownView | MarkdownFileInfo) => {
       await setFieldAtCursor(app, editor, "scheduled", settings);
     }
@@ -140,6 +148,7 @@ export function registerCommands(plugin: GeckoTaskPlugin) {
   plugin.addCommand({
     id: "geckotask-set-priority",
     name: "Set Priority (at cursor)",
+    icon: "flag",
     editorCallback: async (editor: Editor, _ctx: MarkdownView | MarkdownFileInfo) => {
       await setFieldAtCursor(app, editor, "priority", settings);
     }
@@ -155,6 +164,7 @@ export function registerCommands(plugin: GeckoTaskPlugin) {
   plugin.addCommand({
     id: "geckotask-set-recur",
     name: "Set Recurrence (at cursor)",
+    icon: "repeat",
     editorCallback: async (editor: Editor, _ctx: MarkdownView | MarkdownFileInfo) => {
       await setFieldAtCursor(app, editor, "recur", settings);
     }
@@ -170,6 +180,7 @@ export function registerCommands(plugin: GeckoTaskPlugin) {
   plugin.addCommand({
     id: "geckotask-add-remove-tags",
     name: "Add/Remove Tags (at cursor)",
+    icon: "tag",
     editorCallback: async (editor: Editor, _ctx: MarkdownView | MarkdownFileInfo) => {
       await addRemoveTagsAtCursor(app, editor, settings);
     }
@@ -182,6 +193,7 @@ export function registerCommands(plugin: GeckoTaskPlugin) {
   plugin.addCommand({
     id: "geckotask-create-project",
     name: "Create Project File",
+    icon: "folder-plus",
     callback: async () => {
       await createProjectFile(app, settings);
     }
@@ -194,6 +206,7 @@ export function registerCommands(plugin: GeckoTaskPlugin) {
   plugin.addCommand({
     id: "geckotask-normalize-task",
     name: "Normalize Task Line (at cursor)",
+    icon: "wand-2",
     editorCallback: (editor: Editor, _ctx: MarkdownView | MarkdownFileInfo) => {
       normalizeTaskLine(editor);
     }
@@ -206,6 +219,7 @@ export function registerCommands(plugin: GeckoTaskPlugin) {
   plugin.addCommand({
     id: "geckotask-archive-global",
     name: "Archive All Completed (older than N days)",
+    icon: "archive",
     callback: async () => {
       const moved = await archiveAllCompletedInVault(app, settings);
       new Notice(`GeckoTask: Archived ${moved} completed task(s) across vault.`);

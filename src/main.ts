@@ -1,4 +1,4 @@
-import { App, Editor, MarkdownFileInfo, MarkdownView, Notice, Plugin, TFile, WorkspaceLeaf } from "obsidian";
+import { App, Editor, MarkdownFileInfo, MarkdownView, Notice, Platform, Plugin, TFile, WorkspaceLeaf } from "obsidian";
 import { GeckoTaskSettings, DEFAULT_SETTINGS, GeckoTaskSettingTab } from "./settings";
 import { TasksPanel, VIEW_TYPE_TASKS } from "./view/tasks/TasksPanel";
 import { WeeklyReviewPanel, VIEW_TYPE_WEEKLY_REVIEW } from "./view/weekly-review/WeeklyReviewPanel";
@@ -109,6 +109,61 @@ export default class GeckoTaskPlugin extends Plugin {
         }
       });
     }, 500));
+
+
+    // Activate the Tasks panel on load (wait for workspace layout to be ready)
+    // On mobile, this may not work the same way, so we'll try but not fail if it doesn't work
+    let activationAttempted = false;
+    let retryTimeoutId: number | null = null;
+    const maxRetries = Platform.isMobileApp ? 20 : 15; // More retries on mobile
+    let retryCount = 0;
+    
+    const tryActivatePanel = async () => {
+      if (activationAttempted) return;
+      
+      retryCount++;
+      try {
+        await activateTasksView(this.app);
+        activationAttempted = true;
+        if (retryTimeoutId !== null) {
+          window.clearTimeout(retryTimeoutId);
+        }
+        console.log(`GeckoTask: Tasks panel activated successfully (${Platform.isMobileApp ? 'mobile' : 'desktop'})`);
+      } catch (error) {
+        // Workspace might not be ready yet, will retry
+        if (retryCount < maxRetries) {
+          // On mobile, use longer delays as initialization can be slower
+          const baseDelay = Platform.isMobileApp ? 300 : 200;
+          const delay = Math.min(baseDelay * retryCount, Platform.isMobileApp ? 3000 : 2000);
+          retryTimeoutId = window.setTimeout(tryActivatePanel, delay) as unknown as number;
+          this.registerInterval(retryTimeoutId);
+        } else {
+          // On mobile, this is less critical - user can open manually
+          if (Platform.isMobileApp) {
+            console.log("GeckoTask: Could not auto-open Tasks panel on mobile. Use the command or ribbon icon to open it manually.");
+          } else {
+            console.warn("GeckoTask: Could not auto-open Tasks panel after retries:", error);
+          }
+        }
+      }
+    };
+
+    // On mobile, wait longer before first attempt as workspace takes more time to initialize
+    const initialDelay = Platform.isMobileApp ? 1000 : 500;
+    const initialTimeoutId = window.setTimeout(tryActivatePanel, initialDelay) as unknown as number;
+    this.registerInterval(initialTimeoutId);
+
+    // Also try when workspace layout changes (ensures we catch when layout is ready)
+    this.registerEvent(
+      this.app.workspace.on("layout-change", () => {
+        if (!activationAttempted && retryCount < maxRetries) {
+          // Small delay to ensure layout is stable
+          const layoutTimeoutId = window.setTimeout(tryActivatePanel, Platform.isMobileApp ? 200 : 100) as unknown as number;
+          this.registerInterval(layoutTimeoutId);
+        }
+      })
+    );
+
   }
 
   /**
