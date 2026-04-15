@@ -25,6 +25,7 @@ export class GeckoTaskSettingTab extends PluginSettingTab {
   display(): void {
     const { containerEl } = this;
     containerEl.empty();
+    containerEl.addClass("geckotask-settings");
 
     containerEl.createEl("h2", { text: "Tasks Folder & Areas" });
     

@@ -284,6 +284,7 @@ export async function captureQuickTask(app: App, settings: GeckoTaskSettings, ex
       }
 
       onOpen() {
+        this.modalEl.addClass("geckotask-modal");
         const { contentEl } = this;
         contentEl.empty();
         this.titleEl.setText(isEditMode ? "GeckoTask — Quick Edit" : "GeckoTask — Quick Add");

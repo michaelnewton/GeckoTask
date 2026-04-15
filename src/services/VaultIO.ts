@@ -80,6 +80,7 @@ export async function createProjectFile(app: App, settings: GeckoTaskSettings): 
       projectName: string = "";
 
       onOpen() {
+        this.modalEl.addClass("geckotask-modal");
         const { contentEl } = this;
         contentEl.empty();
         this.titleEl.setText("GeckoTask — Create Project File");

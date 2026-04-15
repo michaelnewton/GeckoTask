@@ -105,6 +105,7 @@ export class PromptModal extends Modal {
    * Called when modal opens. Renders the input UI.
    */
   onOpen() {
+    this.modalEl.addClass("geckotask-modal");
     const { contentEl } = this;
     contentEl.empty();
     this.titleEl.setText(this.promptText);

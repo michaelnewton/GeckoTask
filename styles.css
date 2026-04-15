@@ -7,17 +7,15 @@ If your plugin does not need CSS, delete this file.
  
 */
 
-/* Settings Tab - Prevent overflow */
-/* Target the settings tab container */
-.vertical-tab-content {
+/* Settings tab (scoped to plugin setting tab root only — see SettingsTab.display) */
+.geckotask-settings {
   overflow-x: hidden !important;
   max-width: 100% !important;
   box-sizing: border-box !important;
   width: 100% !important;
 }
 
-/* Ensure setting items don't overflow - override Obsidian defaults */
-.vertical-tab-content .setting-item {
+.geckotask-settings .setting-item {
   max-width: 100% !important;
   width: 100% !important;
   box-sizing: border-box !important;
@@ -27,8 +25,7 @@ If your plugin does not need CSS, delete this file.
   align-items: flex-start !important;
 }
 
-/* Allow setting item info to shrink - override any fixed widths */
-.vertical-tab-content .setting-item-info {
+.geckotask-settings .setting-item-info {
   flex: 0 0 auto !important;
   min-width: 0 !important;
   max-width: 50% !important;
@@ -38,8 +35,7 @@ If your plugin does not need CSS, delete this file.
   word-wrap: break-word !important;
 }
 
-/* Allow setting item control to shrink - critical for preventing overflow */
-.vertical-tab-content .setting-item-control {
+.geckotask-settings .setting-item-control {
   flex: 1 1 0% !important;
   min-width: 0 !important;
   max-width: 50% !important;
@@ -47,19 +43,17 @@ If your plugin does not need CSS, delete this file.
   overflow-x: hidden !important;
 }
 
-/* Ensure inputs respect container width - this is critical */
-.vertical-tab-content .setting-item-control input[type="text"],
-.vertical-tab-content .setting-item-control input[type="number"],
-.vertical-tab-content .setting-item-control textarea,
-.vertical-tab-content .setting-item-control select {
+.geckotask-settings .setting-item-control input[type="text"],
+.geckotask-settings .setting-item-control input[type="number"],
+.geckotask-settings .setting-item-control textarea,
+.geckotask-settings .setting-item-control select {
   width: 100% !important;
   max-width: 100% !important;
   box-sizing: border-box !important;
   min-width: 0 !important;
 }
 
-/* Ensure descriptions wrap */
-.vertical-tab-content .setting-item-description {
+.geckotask-settings .setting-item-description {
   word-wrap: break-word !important;
   overflow-wrap: break-word !important;
   max-width: 100% !important;
@@ -67,22 +61,21 @@ If your plugin does not need CSS, delete this file.
   overflow-x: hidden !important;
 }
 
-/* Mobile: Stack setting items vertically */
 @media (max-width: 768px), (hover: none) and (pointer: coarse) {
-  .vertical-tab-content .setting-item {
+  .geckotask-settings .setting-item {
     flex-direction: column !important;
     flex-wrap: nowrap !important;
     align-items: stretch !important;
   }
 
-  .vertical-tab-content .setting-item-info {
+  .geckotask-settings .setting-item-info {
     width: 100% !important;
     max-width: 100% !important;
     margin-bottom: 8px !important;
     flex: none !important;
   }
 
-  .vertical-tab-content .setting-item-control {
+  .geckotask-settings .setting-item-control {
     width: 100% !important;
     max-width: 100% !important;
     flex: none !important;
@@ -748,8 +741,8 @@ If your plugin does not need CSS, delete this file.
   }
 }
 
-/* GeckoTask Capture Modal - Wider inputs (desktop) */
-.modal .setting-item {
+/* GeckoTask modals only — class added in Modal.onOpen (see CaptureModal, PromptModal, etc.) */
+.geckotask-modal .setting-item {
   display: flex !important;
   align-items: flex-start !important;
   gap: 12px !important;
@@ -757,7 +750,7 @@ If your plugin does not need CSS, delete this file.
   max-width: 100% !important;
 }
 
-.modal .setting-item-info {
+.geckotask-modal .setting-item-info {
   flex: 0 0 auto !important;
   min-width: 150px !important;
   max-width: 100% !important;
@@ -765,34 +758,34 @@ If your plugin does not need CSS, delete this file.
   word-wrap: break-word !important;
 }
 
-.modal .setting-item-control {
+.geckotask-modal .setting-item-control {
   flex: 1 1 auto !important;
   min-width: 300px !important;
   max-width: none !important;
 }
 
-.modal .setting-item-control input[type="text"],
-.modal .setting-item-control textarea,
-.modal .setting-item-control select {
+.geckotask-modal .setting-item-control input[type="text"],
+.geckotask-modal .setting-item-control textarea,
+.geckotask-modal .setting-item-control select {
   width: 100% !important;
   max-width: 100% !important;
   box-sizing: border-box !important;
 }
 
 /* Make the modal itself wider for better visibility (desktop) */
-.modal {
+.geckotask-modal {
   min-width: 600px !important;
   max-width: 90vw !important;
 }
 
-.modal-content {
+.geckotask-modal .modal-content {
   min-width: 0 !important;
 }
 
 /* Mobile-specific modal styles - optimized for compact display */
 @media (max-width: 768px), (hover: none) and (pointer: coarse), (max-width: 768px) and (hover: none) {
   /* Make modal full-width on mobile */
-  .modal {
+  .geckotask-modal {
     min-width: 0 !important;
     width: 95vw !important;
     max-width: 95vw !important;
@@ -803,14 +796,14 @@ If your plugin does not need CSS, delete this file.
     overflow-y: auto !important;
   }
 
-  .modal-content {
+  .geckotask-modal .modal-content {
     padding: 8px 10px !important;
     width: 100% !important;
     box-sizing: border-box !important;
   }
 
   /* Stack setting items vertically on mobile with reduced spacing */
-  .modal .setting-item {
+  .geckotask-modal .setting-item {
     flex-direction: column !important;
     align-items: stretch !important;
     gap: 0 !important; /* Remove gap, we'll use margins instead */
@@ -820,7 +813,7 @@ If your plugin does not need CSS, delete this file.
   }
 
   /* Remove fixed min-widths on mobile */
-  .modal .setting-item-info {
+  .geckotask-modal .setting-item-info {
     min-width: 0 !important;
     width: 100% !important;
     margin-bottom: 0 !important; /* No gap - spacing handled by label margin */
@@ -829,7 +822,7 @@ If your plugin does not need CSS, delete this file.
     padding-bottom: 0 !important;
   }
 
-  .modal .setting-item-control {
+  .geckotask-modal .setting-item-control {
     min-width: 0 !important;
     width: 100% !important;
     flex: 1 1 auto !important;
@@ -839,9 +832,9 @@ If your plugin does not need CSS, delete this file.
   }
 
   /* Compact inputs with reduced padding */
-  .modal .setting-item-control input[type="text"],
-  .modal .setting-item-control textarea,
-  .modal .setting-item-control select {
+  .geckotask-modal .setting-item-control input[type="text"],
+  .geckotask-modal .setting-item-control textarea,
+  .geckotask-modal .setting-item-control select {
     width: 100% !important;
     max-width: 100% !important;
     box-sizing: border-box !important;
@@ -854,7 +847,7 @@ If your plugin does not need CSS, delete this file.
   }
 
   /* Compact textarea with reduced default height */
-  .modal .setting-item-control textarea {
+  .geckotask-modal .setting-item-control textarea {
     padding: 6px 10px !important;
     resize: vertical !important;
     min-height: 60px !important; /* Reduced from default */
@@ -863,7 +856,7 @@ If your plugin does not need CSS, delete this file.
   }
 
   /* Button container adjustments for mobile */
-  .modal .setting-item .setting-item-control .button-container {
+  .geckotask-modal .setting-item .setting-item-control .button-container {
     display: flex !important;
     flex-direction: column !important;
     gap: 6px !important;
@@ -872,13 +865,13 @@ If your plugin does not need CSS, delete this file.
   }
 
   /* Add extra spacing before the button setting-item */
-  .modal .setting-item:has(.button-container) {
+  .geckotask-modal .setting-item:has(.button-container) {
     margin-top: 12px !important; /* Extra space before separator line */
     padding-top: 12px !important; /* Space for separator line */
     border-top: 1px solid var(--background-modifier-border) !important;
   }
 
-  .modal .setting-item .setting-item-control button {
+  .geckotask-modal .setting-item .setting-item-control button {
     width: 100% !important;
     padding: 8px 12px !important;
     font-size: 15px !important;
@@ -886,7 +879,7 @@ If your plugin does not need CSS, delete this file.
   }
 
   /* Compact modal title */
-  .modal .modal-title {
+  .geckotask-modal .modal-title {
     padding: 8px 10px 6px 10px !important;
     font-size: 16px !important;
     line-height: 1.3 !important;
@@ -895,12 +888,12 @@ If your plugin does not need CSS, delete this file.
   }
 
   /* Compact modal header */
-  .modal .modal-header {
+  .geckotask-modal .modal-header {
     padding: 8px 10px !important;
   }
 
   /* Compact labels with minimal spacing */
-  .modal .setting-item-info .setting-item-name {
+  .geckotask-modal .setting-item-info .setting-item-name {
     padding: 0 !important;
     padding-bottom: 0 !important;
     margin: 0 !important; /* No gap between label and input */
@@ -917,7 +910,7 @@ If your plugin does not need CSS, delete this file.
   }
 
   /* Description text wrapping in modals */
-  .modal .setting-item-description {
+  .geckotask-modal .setting-item-description {
     word-wrap: break-word !important;
     overflow-wrap: break-word !important;
     white-space: normal !important;
@@ -926,25 +919,25 @@ If your plugin does not need CSS, delete this file.
 
 
   /* Ensure inputs have proper text alignment */
-  .modal .setting-item-control input[type="text"],
-  .modal .setting-item-control textarea,
-  .modal .setting-item-control select {
+  .geckotask-modal .setting-item-control input[type="text"],
+  .geckotask-modal .setting-item-control textarea,
+  .geckotask-modal .setting-item-control select {
     text-align: left !important;
     text-indent: 0 !important;
   }
 
   /* Reduce spacing in modal container - but not for setting-items */
-  .modal .modal-content > *:not(.setting-item) {
+  .geckotask-modal .modal-content > *:not(.setting-item) {
     margin-top: 0 !important;
     margin-bottom: 0 !important;
   }
 
   /* Compact scrollbar for modal */
-  .modal::-webkit-scrollbar {
+  .geckotask-modal::-webkit-scrollbar {
     width: 6px !important;
   }
 
-  .modal::-webkit-scrollbar-thumb {
+  .geckotask-modal::-webkit-scrollbar-thumb {
     background: var(--background-modifier-border) !important;
     border-radius: 3px !important;
   }
