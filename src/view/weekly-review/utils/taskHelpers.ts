@@ -6,25 +6,42 @@ import { Task, parseTaskWithDescription, formatTaskWithDescription } from "../..
 import { formatISODate } from "../../../utils/dateUtils";
 import { calculateNextOccurrence } from "../../../services/Recurrence";
 import { parseNLDate } from "../../../services/NLDate";
-import { normalizeInboxPath } from "../../../utils/areaUtils";
-import { getSomedayMaybePath, isInSomedayMaybeFolder } from "../../../utils/somedayMaybeUtils";
-import { inferAreaFromPath, isInTasksFolder, isTasksFolderFile, getAreas } from "../../../utils/areaUtils";
+import {
+  getInboxFolderPath,
+  isInInboxFolder,
+  isInAnyArea,
+  inferAreaFromPath,
+  isAreaTasksFile,
+  isSomedayMaybeFile,
+  getAreas,
+  getSortedProjectFiles,
+  getAreaSomedayMaybePath,
+  inferProjectFromPath,
+  getProjectsPath,
+  getProjectTasksFilePath,
+  getAreaTasksFilePath
+} from "../../../utils/areaUtils";
 import { FilePickerModal } from "../../../ui/FilePickerModal";
 import { PromptModal } from "../../../ui/PromptModal";
 import { captureQuickTask } from "../../../ui/CaptureModal";
 
 /**
- * Adds tasks to Inbox from text input.
+ * Adds tasks to Inbox by creating a new file in the Inbox folder for each task.
  */
 export async function addTasksToInbox(
   app: App,
   settings: GeckoTaskSettings,
   text: string
 ): Promise<void> {
-  // Split by newlines and create tasks
   const lines = text.split("\n").filter(l => l.trim().length > 0);
-  const inboxPath = normalizeInboxPath(settings.inboxPath);
-  
+  const inboxFolder = getInboxFolderPath(settings);
+
+  // Ensure inbox folder exists
+  const existingFolder = app.vault.getAbstractFileByPath(inboxFolder);
+  if (!existingFolder) {
+    await app.vault.createFolder(inboxFolder);
+  }
+
   for (const line of lines) {
     const task: Task = {
       checked: false,
@@ -32,20 +49,19 @@ export async function addTasksToInbox(
       tags: [],
       raw: ""
     };
-    
+
     const taskLines = formatTaskWithDescription(task);
-    const inboxFile = app.vault.getAbstractFileByPath(inboxPath);
-    if (inboxFile instanceof TFile) {
-      const content = await app.vault.read(inboxFile);
-      // Remove trailing newlines from existing content to avoid extra blank lines
-      const normalizedContent = content.replace(/\n+$/, "");
-      const updated = normalizedContent.length 
-        ? normalizedContent + "\n" + taskLines.join("\n") + "\n" 
-        : taskLines.join("\n") + "\n";
-      await app.vault.modify(inboxFile, updated);
+    const slug = slugify(line.trim());
+    let filePath = `${inboxFolder}/${slug}.md`;
+    let counter = 1;
+    while (app.vault.getAbstractFileByPath(filePath)) {
+      filePath = `${inboxFolder}/${slug}-${counter}.md`;
+      counter++;
     }
+
+    await app.vault.create(filePath, taskLines.join("\n") + "\n");
   }
-  
+
   new Notice(`Added ${lines.length} task(s) to Inbox`);
 }
 
@@ -57,7 +73,6 @@ export async function moveTaskToProject(
   settings: GeckoTaskSettings,
   task: IndexedTask
 ): Promise<void> {
-  // FilePickerModal will automatically get and sort files
   const target = await new FilePickerModal(app, [], settings).openAndGet();
   if (!target) return;
 
@@ -66,14 +81,13 @@ export async function moveTaskToProject(
 }
 
 /**
- * Moves a task to Someday/Maybe.
+ * Moves a task to Someday/Maybe (area or project level).
  */
 export async function moveTaskToSomedayMaybe(
   app: App,
   settings: GeckoTaskSettings,
   task: IndexedTask
 ): Promise<void> {
-  // Determine area from task
   const areas = getAreas(app, settings);
   const area = task.area || (areas.length > 0 ? areas[0] : undefined);
   if (!area) {
@@ -81,21 +95,36 @@ export async function moveTaskToSomedayMaybe(
     return;
   }
 
-  const somedayMaybePath = getSomedayMaybePath(area, settings) + ".md";
-  
-  // Check if file exists, create if not
-  let somedayMaybeFile = app.vault.getAbstractFileByPath(somedayMaybePath);
-  if (!somedayMaybeFile) {
-    somedayMaybeFile = await app.vault.create(somedayMaybePath, `# ${settings.somedayMaybeFolderName}\n\n`);
+  // Determine target: if the task has a project, use project-level; otherwise area-level
+  let smPath: string;
+  const projectInfo = inferProjectFromPath(task.path, settings);
+  if (projectInfo?.project) {
+    smPath = `${area}/${settings.projectsSubfolder}/${projectInfo.project}/${settings.somedayMaybeFileName}.md`;
+  } else {
+    smPath = getAreaSomedayMaybePath(area, settings);
   }
 
-  if (!(somedayMaybeFile instanceof TFile)) {
-    new Notice(`Failed to create ${settings.somedayMaybeFolderName} file`);
+  // Ensure file exists
+  let smFile = app.vault.getAbstractFileByPath(smPath);
+  if (!smFile) {
+    // Ensure parent directory exists
+    const dirParts = smPath.split("/");
+    dirParts.pop(); // remove filename
+    const dirPath = dirParts.join("/");
+    const dir = app.vault.getAbstractFileByPath(dirPath);
+    if (!dir) {
+      await app.vault.createFolder(dirPath);
+    }
+    smFile = await app.vault.create(smPath, `# Someday/Maybe\n\n`);
+  }
+
+  if (!(smFile instanceof TFile)) {
+    new Notice(`Failed to create Someday/Maybe file`);
     return;
   }
 
-  await moveTask(app, task, somedayMaybePath);
-  new Notice(`Task moved to ${settings.somedayMaybeFolderName} (${area})`);
+  await moveTask(app, task, smPath);
+  new Notice(`Task moved to Someday/Maybe (${area})`);
 }
 
 /**
@@ -106,12 +135,12 @@ async function moveTask(app: App, task: IndexedTask, targetPath: string): Promis
   if (!(sourceFile instanceof TFile)) return;
 
   let taskWithDescription: Task | null = null;
-  
+
   await app.vault.process(sourceFile, (data) => {
     const lines = data.split("\n");
     const taskLineIdx = task.line - 1;
     const descEndIdx = (task.descriptionEndLine ?? task.line) - 1;
-    
+
     if (taskLineIdx < 0 || taskLineIdx >= lines.length) return data;
 
     const { task: parsed } = parseTaskWithDescription(lines, taskLineIdx);
@@ -136,10 +165,9 @@ async function moveTask(app: App, task: IndexedTask, targetPath: string): Promis
 
   const targetContent = await app.vault.read(targetFile);
   const finalLines = updatedLines.join("\n");
-  // Remove trailing newlines from existing content to avoid extra blank lines
   const normalizedTarget = targetContent.replace(/\n+$/, "");
-  const updated = normalizedTarget.length 
-    ? normalizedTarget + "\n" + finalLines + "\n" 
+  const updated = normalizedTarget.length
+    ? normalizedTarget + "\n" + finalLines + "\n"
     : finalLines + "\n";
   await app.vault.modify(targetFile, updated);
 }
@@ -156,7 +184,7 @@ export async function updateTaskDueDate(
   const modal = new PromptModal(app, "Set due date (today / 2025-11-10)", defaultValue);
   const next = await modal.prompt();
   if (next == null || next.trim() === "") return;
-  
+
   const parsed = parseNLDate(next) ?? next;
   await updateTaskField(app, task, "due", parsed);
 }
@@ -172,12 +200,12 @@ async function updateTaskField(
 ): Promise<void> {
   const file = app.vault.getAbstractFileByPath(task.path);
   if (!(file instanceof TFile)) return;
-  
+
   await app.vault.process(file, (data) => {
     const lines = data.split("\n");
     const taskLineIdx = task.line - 1;
     const descEndIdx = (task.descriptionEndLine ?? task.line) - 1;
-    
+
     if (taskLineIdx < 0 || taskLineIdx >= lines.length) return data;
 
     const { task: parsed } = parseTaskWithDescription(lines, taskLineIdx);
@@ -194,7 +222,7 @@ async function updateTaskField(
     const updatedLines = formatTaskWithDescription(parsed);
     const numLinesToReplace = descEndIdx - taskLineIdx + 1;
     lines.splice(taskLineIdx, numLinesToReplace, ...updatedLines);
-    
+
     return lines.join("\n");
   });
 }
@@ -209,12 +237,12 @@ export async function removeTag(
 ): Promise<void> {
   const file = app.vault.getAbstractFileByPath(task.path);
   if (!(file instanceof TFile)) return;
-  
+
   await app.vault.process(file, (data) => {
     const lines = data.split("\n");
     const taskLineIdx = task.line - 1;
     const descEndIdx = (task.descriptionEndLine ?? task.line) - 1;
-    
+
     if (taskLineIdx < 0 || taskLineIdx >= lines.length) return data;
 
     const { task: parsed } = parseTaskWithDescription(lines, taskLineIdx);
@@ -226,7 +254,7 @@ export async function removeTag(
     const updatedLines = formatTaskWithDescription(parsed);
     const numLinesToReplace = descEndIdx - taskLineIdx + 1;
     lines.splice(taskLineIdx, numLinesToReplace, ...updatedLines);
-    
+
     return lines.join("\n");
   });
 
@@ -247,27 +275,22 @@ export async function activateSomedayMaybeTask(
     return;
   }
 
-  // Get all project files in the same area (excluding Someday Maybe folder)
-  const normalizedInboxPath = normalizeInboxPath(settings.inboxPath);
-  const files = app.vault.getMarkdownFiles()
-    .filter(f => {
-      if (!isInTasksFolder(f.path, settings)) return false;
-      if (isTasksFolderFile(f.path, settings)) return false;
-      const fileArea = inferAreaFromPath(f.path, app, settings);
-      if (fileArea !== area) return false;
-      if (f.path === normalizedInboxPath) return false;
-      if (isInSomedayMaybeFolder(f.path, settings, app)) {
-        return false;
-      }
-      return true;
-    });
+  // Get all project task files in the same area
+  const sortedFiles = getSortedProjectFiles(app, settings);
+  const areaProjectFiles = sortedFiles.filter(f => {
+    if (isInInboxFolder(f.path, settings)) return false;
+    if (isSomedayMaybeFile(f.path, settings)) return false;
+    if (isAreaTasksFile(f.path, settings)) return false;
+    const fileArea = inferAreaFromPath(f.path, app, settings);
+    return fileArea === area;
+  });
 
-  if (files.length === 0) {
+  if (areaProjectFiles.length === 0) {
     new Notice(`No active projects found in ${area} area`);
     return;
   }
 
-  const target = await new FilePickerModal(app, files, settings).openAndGet();
+  const target = await new FilePickerModal(app, areaProjectFiles, settings).openAndGet();
   if (!target) return;
 
   await moveTask(app, task, target.path);
@@ -288,41 +311,33 @@ export async function activateSomedayMaybeProject(
     return;
   }
 
-  // Get all project files in the same area (excluding Someday Maybe folder)
-  const normalizedInboxPath = normalizeInboxPath(settings.inboxPath);
-  const files = app.vault.getMarkdownFiles()
-    .filter(f => {
-      if (!isInTasksFolder(f.path, settings)) return false;
-      if (isTasksFolderFile(f.path, settings)) return false;
-      const fileArea = inferAreaFromPath(f.path, app, settings);
-      if (fileArea !== area) return false;
-      if (f.path === normalizedInboxPath) return false;
-      if (isInSomedayMaybeFolder(f.path, settings, app)) {
-        return false;
-      }
-      return true;
-    });
+  // Get all project task files in the same area
+  const sortedFiles = getSortedProjectFiles(app, settings);
+  const areaProjectFiles = sortedFiles.filter(f => {
+    if (isInInboxFolder(f.path, settings)) return false;
+    if (isSomedayMaybeFile(f.path, settings)) return false;
+    if (isAreaTasksFile(f.path, settings)) return false;
+    const fileArea = inferAreaFromPath(f.path, app, settings);
+    return fileArea === area;
+  });
 
-  if (files.length === 0) {
+  if (areaProjectFiles.length === 0) {
     new Notice(`No active projects found in ${area} area`);
     return;
   }
 
-  const target = await new FilePickerModal(app, files, settings).openAndGet();
+  const target = await new FilePickerModal(app, areaProjectFiles, settings).openAndGet();
   if (!target) return;
 
-  // Move all tasks from the Someday Maybe project to the target project
   const sourceFile = app.vault.getAbstractFileByPath(project.path);
   if (!(sourceFile instanceof TFile)) {
     new Notice("Source project file not found");
     return;
   }
 
-  // Read source file to get all tasks
   const sourceContent = await app.vault.read(sourceFile);
   const sourceLines = sourceContent.split("\n");
-  
-  // Find all task lines in the source file
+
   const cache = app.metadataCache.getCache(project.path);
   const lists = cache?.listItems;
   if (!lists || lists.length === 0) {
@@ -330,17 +345,16 @@ export async function activateSomedayMaybeProject(
     return;
   }
 
-  // Collect all task line ranges
   const taskRanges: { startLine: number; endLine: number; lines: string[] }[] = [];
-  
+
   for (const li of lists) {
     if (!li.task) continue;
     const lineNo = li.position?.start?.line ?? 0;
     if (lineNo < 0 || lineNo >= sourceLines.length) continue;
-    
+
     const { task: parsed, endLine } = parseTaskWithDescription(sourceLines, lineNo);
     if (!parsed) continue;
-    
+
     const taskLines = sourceLines.slice(lineNo, endLine + 1);
     taskRanges.push({ startLine: lineNo, endLine, lines: taskLines });
   }
@@ -350,11 +364,10 @@ export async function activateSomedayMaybeProject(
     return;
   }
 
-  // Remove tasks from source file
   await app.vault.process(sourceFile, (data) => {
     const lines = data.split("\n");
     const sortedRanges = [...taskRanges].sort((a, b) => b.startLine - a.startLine);
-    
+
     for (const range of sortedRanges) {
       const numLines = range.endLine - range.startLine + 1;
       lines.splice(range.startLine, numLines);
@@ -362,13 +375,11 @@ export async function activateSomedayMaybeProject(
     return lines.join("\n");
   });
 
-  // Add tasks to target file
   const targetContent = await app.vault.read(target);
   const tasksText = taskRanges.map(r => r.lines.join("\n")).join("\n\n");
-  // Remove trailing newlines from existing content to avoid extra blank lines
   const normalizedTarget = targetContent.replace(/\n+$/, "");
-  const updated = normalizedTarget.length 
-    ? normalizedTarget + "\n\n" + tasksText + "\n" 
+  const updated = normalizedTarget.length
+    ? normalizedTarget + "\n\n" + tasksText + "\n"
     : tasksText + "\n";
   await app.vault.modify(target, updated);
 
@@ -395,12 +406,11 @@ export async function openTaskInNote(app: App, task: IndexedTask): Promise<void>
 
   const leaf = app.workspace.getLeaf(false);
   await leaf.openFile(file);
-  
-  // Scroll to the line
+
   const view = leaf.view;
   if (view instanceof MarkdownView && view.editor) {
     const editor = view.editor;
-    const line = Math.max(0, task.line - 1); // 0-based
+    const line = Math.max(0, task.line - 1);
     editor.setCursor(line, 0);
     editor.scrollIntoView({ from: { line, ch: 0 }, to: { line, ch: 0 } }, true);
   }
@@ -417,3 +427,12 @@ export async function openProjectFile(app: App, projectPath: string): Promise<vo
   await leaf.openFile(file);
 }
 
+function slugify(title: string): string {
+  return title
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 80);
+}

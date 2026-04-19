@@ -2,317 +2,297 @@ import { App, TFolder, TFile } from "obsidian";
 import { GeckoTaskSettings } from "../settings";
 
 /**
- * Gets the list of areas by detecting first-level directories in the tasks folder.
- * Returns empty array if areasEnabled is false, otherwise scans the filesystem.
- * Archive directory is excluded from areas.
- * @param app - Obsidian app instance
+ * Returns the configured area paths from settings.
+ * @param _app - Obsidian app instance (unused, kept for API compat)
  * @param settings - Plugin settings
  * @returns Array of area names (sorted alphabetically)
  */
-export function getAreas(app: App, settings: GeckoTaskSettings): string[] {
-  // If areas are disabled, return empty array
-  if (!settings.areasEnabled) {
-    return [];
+export function getAreas(_app: App, settings: GeckoTaskSettings): string[] {
+  return [...settings.areaPaths].sort();
+}
+
+/**
+ * Returns the area path (just the area name since areas are root-level).
+ */
+export function getAreaPath(area: string, _settings: GeckoTaskSettings): string {
+  return area;
+}
+
+/**
+ * Checks if a file path starts with any configured area path.
+ */
+export function isInAnyArea(filePath: string, settings: GeckoTaskSettings): boolean {
+  // Sort by length descending so longer area names match first (prevents prefix collision)
+  const sorted = [...settings.areaPaths].sort((a, b) => b.length - a.length);
+  return sorted.some(area =>
+    filePath === area || filePath.startsWith(area + "/")
+  );
+}
+
+/**
+ * Infers the area from a file path by matching against configured area paths.
+ */
+export function inferAreaFromPath(filePath: string, _app: App, settings: GeckoTaskSettings): string | undefined {
+  // Sort by length descending so longer area names match first
+  const sorted = [...settings.areaPaths].sort((a, b) => b.length - a.length);
+  for (const area of sorted) {
+    if (filePath === area || filePath.startsWith(area + "/")) {
+      return area;
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Gets the projects folder path for an area.
+ * e.g., "Personal/1Projects"
+ */
+export function getProjectsPath(area: string, settings: GeckoTaskSettings): string {
+  return `${area}/${settings.projectsSubfolder}`;
+}
+
+/**
+ * Gets the area tasks folder path for an area.
+ * e.g., "Personal/2Areas"
+ */
+export function getAreaTasksPath(area: string, settings: GeckoTaskSettings): string {
+  return `${area}/${settings.areaTasksSubfolder}`;
+}
+
+/**
+ * Gets the area-level tasks file path.
+ * e.g., "Personal/2Areas/_tasks.md"
+ */
+export function getAreaTasksFilePath(area: string, settings: GeckoTaskSettings): string {
+  return `${area}/${settings.areaTasksSubfolder}/${settings.tasksFileName}.md`;
+}
+
+/**
+ * Gets the area-level someday/maybe file path.
+ * e.g., "Personal/2Areas/_SomedayMaybe.md"
+ */
+export function getAreaSomedayMaybePath(area: string, settings: GeckoTaskSettings): string {
+  return `${area}/${settings.areaTasksSubfolder}/${settings.somedayMaybeFileName}.md`;
+}
+
+/**
+ * Gets the project tasks file path.
+ * e.g., "Personal/1Projects/RouterRevamp/_tasks.md"
+ */
+export function getProjectTasksFilePath(area: string, project: string, settings: GeckoTaskSettings): string {
+  return `${area}/${settings.projectsSubfolder}/${project}/${settings.tasksFileName}.md`;
+}
+
+/**
+ * Gets the project someday/maybe file path.
+ * e.g., "Personal/1Projects/RouterRevamp/_SomedayMaybe.md"
+ */
+export function getProjectSomedayMaybePath(area: string, project: string, settings: GeckoTaskSettings): string {
+  return `${area}/${settings.projectsSubfolder}/${project}/${settings.somedayMaybeFileName}.md`;
+}
+
+/**
+ * Gets the inbox folder path.
+ * e.g., "Inbox"
+ */
+export function getInboxFolderPath(settings: GeckoTaskSettings): string {
+  return settings.inboxFolderName;
+}
+
+/**
+ * Checks if a file path is inside the inbox folder.
+ */
+export function isInInboxFolder(filePath: string, settings: GeckoTaskSettings): boolean {
+  return filePath.startsWith(settings.inboxFolderName + "/");
+}
+
+/**
+ * Checks if a file path is the area-level tasks file.
+ * Matches: {area}/{areaTasksSubfolder}/{tasksFileName}.md
+ */
+export function isAreaTasksFile(filePath: string, settings: GeckoTaskSettings): boolean {
+  for (const area of settings.areaPaths) {
+    if (filePath === getAreaTasksFilePath(area, settings)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Checks if a file's basename matches the someday/maybe file name.
+ */
+export function isSomedayMaybeFile(filePath: string, settings: GeckoTaskSettings): boolean {
+  const basename = filePath.split("/").pop()?.replace(/\.md$/, "") || "";
+  return basename === settings.somedayMaybeFileName;
+}
+
+/**
+ * Infers project info from a file path.
+ * Returns { area, project } for project task files, { area, project: undefined } for area task files,
+ * or null if not a recognized task file.
+ */
+export function inferProjectFromPath(filePath: string, settings: GeckoTaskSettings): { area: string; project: string | undefined } | null {
+  // Check inbox
+  if (isInInboxFolder(filePath, settings)) {
+    return null;
   }
 
-  // Get the tasks folder
-  const tasksFolder = app.vault.getAbstractFileByPath(settings.tasksFolder);
-  if (!tasksFolder || !(tasksFolder instanceof TFolder)) {
-    return [];
-  }
+  // Sort by length descending so longer area names match first (prevents prefix collision)
+  const sortedAreas = [...settings.areaPaths].sort((a, b) => b.length - a.length);
+  for (const area of sortedAreas) {
+    // Check area tasks file
+    if (filePath === getAreaTasksFilePath(area, settings)) {
+      return { area, project: undefined };
+    }
 
-  // Get all first-level children that are folders
-  const areas: string[] = [];
-  for (const child of tasksFolder.children) {
-    if (child instanceof TFolder) {
-      // Filter out Archive directory and other non-area directories
-      // Only include if it's a direct child folder
-      if (child.path.startsWith(settings.tasksFolder + "/")) {
-        const relativePath = child.path.substring(settings.tasksFolder.length + 1);
-        // Check if it's a first-level directory (no slashes in relative path)
-        if (!relativePath.includes("/")) {
-          // Exclude Archive directory using the same logic as isInArchiveDirectory
-          if (isInArchiveDirectory(child.path, settings)) {
-            continue;
-          }
-          areas.push(child.name);
+    // Check area someday/maybe
+    if (filePath === getAreaSomedayMaybePath(area, settings)) {
+      return { area, project: undefined };
+    }
+
+    // Check project files: {area}/{projectsSubfolder}/{projectName}/{tasksFileName}.md
+    const projectsPrefix = `${area}/${settings.projectsSubfolder}/`;
+    if (filePath.startsWith(projectsPrefix)) {
+      const relativePath = filePath.substring(projectsPrefix.length);
+      const parts = relativePath.split("/");
+      if (parts.length >= 2) {
+        const projectName = parts[0];
+        const fileName = parts[parts.length - 1];
+        if (fileName === `${settings.tasksFileName}.md` || fileName === `${settings.somedayMaybeFileName}.md`) {
+          return { area, project: projectName };
         }
       }
     }
   }
 
-  // Sort alphabetically for consistency
-  return areas.sort();
+  return null;
 }
 
 /**
- * Infers the area from a file path based on settings.
- * Returns the area name if the file is under tasksFolder/{area}/, otherwise undefined.
- * @param filePath - The file path to check
- * @param app - Obsidian app instance
- * @param settings - Plugin settings
- * @returns Area name or undefined
+ * Gets the display name for a project/file path in dropdowns.
  */
-export function inferAreaFromPath(filePath: string, app: App, settings: GeckoTaskSettings): string | undefined {
-  // Check if file is under tasksFolder
-  if (!filePath.startsWith(settings.tasksFolder + "/")) {
-    return undefined;
+export function getProjectDisplayName(filePath: string, app: App, settings: GeckoTaskSettings): string {
+  // Inbox folder files
+  if (isInInboxFolder(filePath, settings)) {
+    return "Inbox";
   }
 
-  // Get the path relative to tasksFolder
-  const relativePath = filePath.substring(settings.tasksFolder.length + 1);
-  
-  // Get detected areas
-  const areas = getAreas(app, settings);
-  
-  // Check each area to see if the file is under that area folder
-  for (const area of areas) {
-    if (relativePath.startsWith(area + "/")) {
+  // Area tasks file -> show area name
+  for (const area of settings.areaPaths) {
+    if (filePath === getAreaTasksFilePath(area, settings)) {
       return area;
     }
   }
 
-  return undefined;
+  // Area someday/maybe
+  for (const area of settings.areaPaths) {
+    if (filePath === getAreaSomedayMaybePath(area, settings)) {
+      return `${area} / Someday Maybe`;
+    }
+  }
+
+  // Project files
+  const projectInfo = inferProjectFromPath(filePath, settings);
+  if (projectInfo?.project) {
+    return `${projectInfo.area} / ${projectInfo.project}`;
+  }
+
+  // Fallback
+  const basename = filePath.split("/").pop()?.replace(/\.md$/, "") || filePath;
+  return basename;
 }
 
 /**
- * Checks if a file path is within the tasks folder structure
+ * Discovers all task files across the vault: project _tasks.md, area _tasks.md,
+ * someday/maybe files, and inbox folder files.
+ * Returns sorted: inbox files first, then area tasks, then project tasks (by area/project alpha).
  */
+export function getSortedProjectFiles(app: App, settings: GeckoTaskSettings): TFile[] {
+  const allFiles = app.vault.getMarkdownFiles();
+  const result: TFile[] = [];
+
+  // 1. Inbox files
+  const inboxFiles = allFiles.filter(f => isInInboxFolder(f.path, settings));
+  result.push(...inboxFiles);
+
+  // 2. For each area, collect area tasks file + project task files
+  const areas = getAreas(app, settings);
+  for (const area of areas) {
+    // Area tasks file
+    const areaTasksPath = getAreaTasksFilePath(area, settings);
+    const areaTasksFile = allFiles.find(f => f.path === areaTasksPath);
+    if (areaTasksFile) {
+      result.push(areaTasksFile);
+    }
+
+    // Area someday/maybe file
+    const areaSmPath = getAreaSomedayMaybePath(area, settings);
+    const areaSmFile = allFiles.find(f => f.path === areaSmPath);
+    if (areaSmFile) {
+      result.push(areaSmFile);
+    }
+
+    // Project directories under {area}/{projectsSubfolder}/
+    const projectsPath = getProjectsPath(area, settings);
+    const projectsFolder = app.vault.getAbstractFileByPath(projectsPath);
+    if (projectsFolder instanceof TFolder) {
+      // Get project dirs sorted by name
+      const projectDirs = projectsFolder.children
+        .filter((c): c is TFolder => c instanceof TFolder)
+        .sort((a, b) => a.name.localeCompare(b.name));
+
+      for (const projectDir of projectDirs) {
+        // Add _tasks.md if it exists
+        const taskFilePath = `${projectDir.path}/${settings.tasksFileName}.md`;
+        const taskFile = allFiles.find(f => f.path === taskFilePath);
+        if (taskFile) {
+          result.push(taskFile);
+        }
+
+        // Add _SomedayMaybe.md if it exists
+        const smFilePath = `${projectDir.path}/${settings.somedayMaybeFileName}.md`;
+        const smFile = allFiles.find(f => f.path === smFilePath);
+        if (smFile) {
+          result.push(smFile);
+        }
+      }
+    }
+  }
+
+  return result;
+}
+
+// --- Legacy aliases for gradual migration ---
+
+/** @deprecated Use isInAnyArea instead */
 export function isInTasksFolder(filePath: string, settings: GeckoTaskSettings): boolean {
-  return filePath.startsWith(settings.tasksFolder + "/");
+  return isInAnyArea(filePath, settings) || isInInboxFolder(filePath, settings);
 }
 
-/**
- * Gets the full path for an area folder
- */
-export function getAreaPath(area: string, settings: GeckoTaskSettings): string {
-  return `${settings.tasksFolder}/${area}`;
+/** @deprecated Use isAreaTasksFile or isInInboxFolder instead */
+export function isSpecialFile(filePath: string, settings: GeckoTaskSettings): boolean {
+  return isAreaTasksFile(filePath, settings) || isInInboxFolder(filePath, settings);
 }
 
-/**
- * Normalizes an inbox path by ensuring it has .md extension
- * Users can enter paths without .md, but internally we need the full path
- */
+/** @deprecated No longer needed — tasksFileName is used instead */
 export function normalizeInboxPath(path: string): string {
   if (!path) return path;
-  // Remove .md if present, then add it back to ensure consistency
-  const withoutExt = path.endsWith(".md") ? path.slice(0, -3) : path;
-  return withoutExt + ".md";
+  return path.endsWith(".md") ? path : path + ".md";
 }
 
-/**
- * Gets the display path for inbox (without .md extension)
- */
+/** @deprecated No longer needed */
 export function getInboxDisplayPath(path: string): string {
   if (!path) return path;
   return path.endsWith(".md") ? path.slice(0, -3) : path;
 }
 
-/**
- * Checks if a file path is a special file that shouldn't show a project name
- * (e.g., the configured inbox file or the single action file)
- */
-export function isSpecialFile(filePath: string, settings: GeckoTaskSettings): boolean {
-  const normalizedInboxPath = normalizeInboxPath(settings.inboxPath);
-  // Check if this is the configured inbox file
-  if (filePath === normalizedInboxPath) {
-    return true;
-  }
-  // Check if basename matches the single action file
-  const basename = filePath.split("/").pop()?.replace(/\.md$/, "") || "";
-  return basename === settings.singleActionFile;
-}
-
-/**
- * Checks if a file path matches the tasks folder name itself (e.g., tasks.md if tasksFolder is "tasks").
- * These files should be excluded from project dropdowns.
- * @param filePath - The file path to check
- * @param settings - Plugin settings
- * @returns True if the file matches the tasks folder name
- */
-export function isTasksFolderFile(filePath: string, settings: GeckoTaskSettings): boolean {
-  // Check if the file is directly in the tasks folder and matches the folder name
-  // Handle both with and without .md extension
-  const tasksFolderFileWithExt = `${settings.tasksFolder}/${settings.tasksFolder}.md`;
-  const tasksFolderFileWithoutExt = `${settings.tasksFolder}/${settings.tasksFolder}`;
-  
-  // Check exact match with extension
-  if (filePath === tasksFolderFileWithExt) return true;
-  
-  // Check if path without extension matches
-  const pathWithoutExt = filePath.endsWith(".md") ? filePath.slice(0, -3) : filePath;
-  if (pathWithoutExt === tasksFolderFileWithoutExt) return true;
-  
-  // Also check if the basename matches the tasks folder name and it's directly in the tasks folder
-  const pathParts = filePath.split("/");
-  if (pathParts.length === 2 && pathParts[0] === settings.tasksFolder) {
-    const basename = pathParts[1].replace(/\.md$/, "");
-    if (basename === settings.tasksFolder) return true;
-  }
-  
+/** @deprecated No longer needed */
+export function isTasksFolderFile(_filePath: string, _settings: GeckoTaskSettings): boolean {
   return false;
 }
 
-/**
- * Gets the display name for a project path in dropdowns.
- * For Single Action files, returns the Area name instead of the file path.
- * For other files, shows the relative path from the tasks folder (e.g., "Work/Project" or just "Project").
- * Tasks folder files should never be passed to this function, but we check anyway for safety.
- * @param filePath - The file path
- * @param app - Obsidian app instance
- * @param settings - Plugin settings
- * @returns Display name for the project
- */
-export function getProjectDisplayName(filePath: string, app: App, settings: GeckoTaskSettings): string {
-  // Safety check: if this is the tasks folder file, return empty string (shouldn't happen)
-  if (isTasksFolderFile(filePath, settings)) {
-    return "";
-  }
-  
-  // Check if this is the Single Action file
-  const basename = filePath.split("/").pop()?.replace(/\.md$/, "") || "";
-  if (basename === settings.singleActionFile) {
-    // Return the Area name instead of the file path
-    const area = inferAreaFromPath(filePath, app, settings);
-    if (area) {
-      return area;
-    }
-  }
-  
-  // Check if this is the inbox file
-  const normalizedInboxPath = normalizeInboxPath(settings.inboxPath);
-  if (filePath === normalizedInboxPath) {
-    // Show just "Inbox" for the inbox file
-    return "Inbox";
-  }
-  
-  // For other files, show the relative path from the tasks folder
-  // Remove the tasks folder prefix and .md extension
-  if (!filePath.startsWith(settings.tasksFolder + "/")) {
-    // Fallback: just remove .md extension
-    return filePath.endsWith(".md") ? filePath.slice(0, -3) : filePath;
-  }
-  
-  // Get the relative path from tasks folder
-  const relativePath = filePath.substring(settings.tasksFolder.length + 1);
-  // Remove .md extension
-  return relativePath.endsWith(".md") ? relativePath.slice(0, -3) : relativePath;
+/** @deprecated No longer needed — archive removed */
+export function isInArchiveDirectory(_filePath: string, _settings: GeckoTaskSettings): boolean {
+  return false;
 }
-
-/**
- * Checks if a file path is in the Archive directory (for filtering project files).
- * Archive directory is determined from the archive pattern (e.g., "Archive" from "Archive/Completed-YYYY.md").
- * This excludes both the archive file itself and any project files in the archive directory.
- * @param filePath - The file path to check
- * @param settings - Plugin settings
- * @returns True if the file is in the Archive directory
- */
-export function isInArchiveDirectory(filePath: string, settings: GeckoTaskSettings): boolean {
-  // Extract archive directory from archive pattern
-  // Pattern format can be:
-  // - "Archive/Completed-YYYY.md" -> directory is "Archive"
-  // - "Tasks/Archive/Completed-YYYY.md" -> directory is "Archive" (tasks folder included)
-  const archivePattern = settings.archivePattern;
-  
-  // Remove tasks folder prefix if present to get the relative pattern
-  let relativePattern = archivePattern;
-  if (archivePattern.startsWith(settings.tasksFolder + "/")) {
-    relativePattern = archivePattern.substring(settings.tasksFolder.length + 1);
-  }
-  
-  // Extract archive directory from relative pattern
-  const archiveDirMatch = relativePattern.match(/^([^\/]+)\//);
-  
-  if (!archiveDirMatch) {
-    // Archive is at root level (no directory), check if file matches the archive pattern exactly
-    const archivePatternWithoutExt = relativePattern.replace(/\.md$/, "").replace("YYYY", "\\d{4}");
-    const archiveRegex = new RegExp(`^${settings.tasksFolder}/${archivePatternWithoutExt}\\.md$`);
-    return archiveRegex.test(filePath);
-  }
-  
-  // Extract the archive directory name from the relative pattern
-  const archiveDir = archiveDirMatch[1];
-  const archiveDirPath = `${settings.tasksFolder}/${archiveDir}`;
-  
-  // Check if file is in the archive directory
-  // This catches files directly in archive, in subdirectories, and the archive file itself
-  return filePath === archiveDirPath || filePath.startsWith(archiveDirPath + "/");
-}
-
-/**
- * Gets project files sorted in the correct order:
- * 1. Inbox (if exists)
- * 2. Areas and their subfiles/folders in alphabetical order
- * Archive is excluded if it exists in the Tasks directory.
- * @param app - Obsidian app instance
- * @param settings - Plugin settings
- * @returns Array of TFile objects sorted in the correct order
- */
-export function getSortedProjectFiles(app: App, settings: GeckoTaskSettings): TFile[] {
-  const allFiles = app.vault.getMarkdownFiles();
-  const normalizedInboxPath = normalizeInboxPath(settings.inboxPath);
-  
-  // Filter files: must be in tasks folder, not tasks folder file, and not in Archive
-  const projectFiles = allFiles.filter(f => {
-    const path = f.path;
-    if (!isInTasksFolder(path, settings)) return false;
-    if (isTasksFolderFile(path, settings)) return false;
-    if (isInArchiveDirectory(path, settings)) return false;
-    return true;
-  });
-  
-  // Separate inbox from other files
-  const inboxFile = projectFiles.find(f => f.path === normalizedInboxPath);
-  const otherFiles = projectFiles.filter(f => f.path !== normalizedInboxPath);
-  
-  // Get areas and sort alphabetically
-  const areas = getAreas(app, settings);
-  const sortedAreas = [...areas].sort();
-  
-  // Group files by area
-  const filesByArea = new Map<string, TFile[]>();
-  const filesWithoutArea: TFile[] = [];
-  
-  for (const file of otherFiles) {
-    const area = inferAreaFromPath(file.path, app, settings);
-    if (area) {
-      if (!filesByArea.has(area)) {
-        filesByArea.set(area, []);
-      }
-      filesByArea.get(area)!.push(file);
-    } else {
-      // File is directly in tasks folder (not in an area)
-      filesWithoutArea.push(file);
-    }
-  }
-  
-  // Sort files within each area alphabetically by path
-  for (const [area, files] of filesByArea.entries()) {
-    files.sort((a, b) => a.path.localeCompare(b.path));
-  }
-  
-  // Sort files without area alphabetically
-  filesWithoutArea.sort((a, b) => a.path.localeCompare(b.path));
-  
-  // Build result array: inbox first, then areas in alphabetical order with their files
-  const result: TFile[] = [];
-  
-  // Add inbox if it exists
-  if (inboxFile) {
-    result.push(inboxFile);
-  }
-  
-  // Add files from each area in alphabetical order
-  for (const area of sortedAreas) {
-    const areaFiles = filesByArea.get(area);
-    if (areaFiles) {
-      result.push(...areaFiles);
-    }
-  }
-  
-  // Add files without area at the end
-  result.push(...filesWithoutArea);
-  
-  return result;
-}
-

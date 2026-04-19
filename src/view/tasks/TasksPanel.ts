@@ -5,8 +5,7 @@ import { FilePickerModal } from "../../ui/FilePickerModal";
 import { captureQuickTask } from "../../ui/CaptureModal";
 import { TabType, FilterState, IndexedTask } from "./TasksPanelTypes";
 import { loadTasksFromFile } from "../../utils/taskUtils";
-import { getTasksFolderFiles } from "../../utils/fileUtils";
-import { isTasksFolderFile, getSortedProjectFiles } from "../../utils/areaUtils";
+import { getSortedProjectFiles } from "../../utils/areaUtils";
 import { renderTabBar } from "./components/TabBar";
 import { renderFilterBar } from "./components/FilterBar";
 import { renderTaskItem, TaskItemCallbacks } from "./components/TaskItem";
@@ -150,18 +149,15 @@ export class TasksPanel extends ItemView {
   private async reindex() {
     const tasks: IndexedTask[] = [];
 
-    // Filter files in tasks folder (excluding tasks folder file)
-    const tasksFolderFiles = getTasksFolderFiles(this.app, this.settings)
-      .filter(f => !isTasksFolderFile(f.path, this.settings));
+    // Discover all task files (project _tasks.md, area _tasks.md, inbox files)
+    const sortedFiles = getSortedProjectFiles(this.app, this.settings);
 
-    // Load tasks from all files and collect project paths
-    for (const file of tasksFolderFiles) {
+    // Load tasks from all discovered files
+    for (const file of sortedFiles) {
       const fileTasks = await loadTasksFromFile(this.app, file, this.settings);
       tasks.push(...fileTasks);
     }
 
-    // Get sorted project files (Inbox first, then areas alphabetically)
-    const sortedFiles = getSortedProjectFiles(this.app, this.settings);
     this.projectPaths = sortedFiles.map(f => f.path);
     this.tasks = tasks;
     // re-render filters project dropdown

@@ -1,7 +1,7 @@
 import { App, MarkdownView, TFile } from "obsidian";
 import { EditorView } from "@codemirror/view";
 import { GeckoTaskSettings } from "../settings";
-import { isInTasksFolder } from "../utils/areaUtils";
+import { isInAnyArea, isInInboxFolder } from "../utils/areaUtils";
 
 /**
  * Updates the styling class on markdown views based on whether the file is in the tasks folder.
@@ -16,7 +16,7 @@ export function updateMarkdownViewStyling(app: App, settings: GeckoTaskSettings,
       const viewFile = leaf.view.file;
       
       // Check if this view's file is in the tasks folder
-      if (viewFile && isInTasksFolder(viewFile.path, settings)) {
+      if (viewFile && (isInAnyArea(viewFile.path, settings) || isInInboxFolder(viewFile.path, settings))) {
         // Add class to container
         viewEl.classList.add("mod-geckotask-styled");
         

@@ -1,7 +1,7 @@
 import { App, Editor, MarkdownView, TFile } from "obsidian";
 import { ViewPlugin, ViewUpdate, EditorView } from "@codemirror/view";
 import { GeckoTaskSettings } from "../settings";
-import { isInTasksFolder } from "../utils/areaUtils";
+import { isInAnyArea, isInInboxFolder } from "../utils/areaUtils";
 
 /**
  * Creates a CodeMirror ViewPlugin that intercepts checkbox clicks to handle recurring tasks.
@@ -25,6 +25,19 @@ export function createCheckboxClickHandler(
         this.setupClickHandler(view);
       }
 
+      private findMarkdownView(view: EditorView): MarkdownView | null {
+        let result: MarkdownView | null = null;
+        app.workspace.iterateAllLeaves((leaf) => {
+          if (leaf.view instanceof MarkdownView && leaf.view.editor) {
+            const editorView = (leaf.view.editor as any).cm as EditorView | undefined;
+            if (editorView === view) {
+              result = leaf.view;
+            }
+          }
+        });
+        return result;
+      }
+
       update(update: ViewUpdate) {
         // Re-setup click handler if view changed
         if (update.viewportChanged || update.docChanged) {
@@ -46,21 +59,11 @@ export function createCheckboxClickHandler(
         if (!dom) return;
 
         // Find the MarkdownView associated with this editor
-        let markdownView: MarkdownView | null = null;
-        app.workspace.iterateAllLeaves((leaf) => {
-          if (leaf.view instanceof MarkdownView && leaf.view.editor) {
-            const editorView = (leaf.view.editor as any).cm as EditorView | undefined;
-            if (editorView === view) {
-              markdownView = leaf.view;
-              return false; // Stop iteration
-            }
-          }
-        });
-
+        const markdownView = this.findMarkdownView(view);
         if (!markdownView) return;
 
-        const file = markdownView.file;
-        if (!file || !isInTasksFolder(file.path, settings)) {
+        const file = (markdownView as MarkdownView).file as TFile | null;
+        if (!file || !(isInAnyArea(file.path, settings) || isInInboxFolder(file.path, settings))) {
           return;
         }
 

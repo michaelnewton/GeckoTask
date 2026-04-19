@@ -201,14 +201,15 @@ export class HealthPanel extends ItemView {
   /**
    * Gets a unique task ID for tracking hidden tasks.
    */
-  private getHiddenTaskId(task: IndexedTask): string {
+  private getHiddenTaskId(item: IndexedTask | RecurringIssue): string {
+    const task = "task" in item ? item.task : item;
     return `${task.path}:${task.line}`;
   }
 
   /**
    * Renders a collapsible section with hide/show functionality.
    */
-  private renderSection<T extends IndexedTask>(
+  private renderSection<T extends IndexedTask | RecurringIssue>(
     sectionId: string,
     title: string,
     items: T[],

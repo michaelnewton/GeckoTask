@@ -1,6 +1,5 @@
 import { App, PluginSettingTab, Setting } from "obsidian";
 import GeckoTaskPlugin from "../main";
-import { normalizeInboxPath, getInboxDisplayPath } from "../utils/areaUtils";
 import { GeckoTaskSettings } from "./index";
 
 /**
@@ -9,112 +8,103 @@ import { GeckoTaskSettings } from "./index";
 export class GeckoTaskSettingTab extends PluginSettingTab {
   plugin: GeckoTaskPlugin;
 
-  /**
-   * Creates a new settings tab.
-   * @param app - Obsidian app instance
-   * @param plugin - GeckoTask plugin instance
-   */
   constructor(app: App, plugin: GeckoTaskPlugin) {
     super(app, plugin);
     this.plugin = plugin;
   }
 
-  /**
-   * Renders the settings UI with all configuration options.
-   */
   display(): void {
     const { containerEl } = this;
     containerEl.empty();
     containerEl.addClass("geckotask-settings");
 
-    containerEl.createEl("h2", { text: "Tasks Folder & Areas" });
-    
-    // Tasks folder
+    containerEl.createEl("h2", { text: "Areas & Structure" });
+
+    // Area paths
     new Setting(containerEl)
-      .setName("Tasks folder")
-      .setDesc("Base folder where all tasks are stored (e.g., 'tasks')")
+      .setName("Area paths")
+      .setDesc("Root-level area folder names, comma-separated (e.g., Personal, Work)")
       .addText(t => t
-        .setValue(this.plugin.settings.tasksFolder)
+        .setValue(this.plugin.settings.areaPaths.join(", "))
         .onChange(async (v) => {
-          this.plugin.settings.tasksFolder = v.trim() || "tasks";
-          // Update inbox path if it was using old tasksFolder
-          const currentInbox = getInboxDisplayPath(this.plugin.settings.inboxPath);
-          if (currentInbox.startsWith(this.plugin.settings.tasksFolder + "/")) {
-            // Keep relative path after tasksFolder
-          } else {
-            this.plugin.settings.inboxPath = `${this.plugin.settings.tasksFolder}/Inbox`;
-          }
+          const paths = v.split(",").map(p => p.trim()).filter(Boolean);
+          this.plugin.settings.areaPaths = paths.length > 0 ? paths : ["Personal"];
           await this.plugin.saveSettings();
         })
       );
 
-    // Enabled Areas checkbox
+    // Projects subfolder
     new Setting(containerEl)
-      .setName("Enabled Areas")
-      .setDesc("When enabled, areas are automatically detected from first-level directories in the tasks folder. Each directory directly under the tasks folder will be treated as an area.")
+      .setName("Projects subfolder")
+      .setDesc("Subfolder name within each area for project directories")
+      .addText(t => t
+        .setValue(this.plugin.settings.projectsSubfolder)
+        .onChange(async (v) => {
+          this.plugin.settings.projectsSubfolder = v.trim() || "1Projects";
+          await this.plugin.saveSettings();
+        })
+      );
+
+    // Area tasks subfolder
+    new Setting(containerEl)
+      .setName("Area tasks subfolder")
+      .setDesc("Subfolder name within each area for area-level single action tasks")
+      .addText(t => t
+        .setValue(this.plugin.settings.areaTasksSubfolder)
+        .onChange(async (v) => {
+          this.plugin.settings.areaTasksSubfolder = v.trim() || "2Areas";
+          await this.plugin.saveSettings();
+        })
+      );
+
+    // Task file name
+    new Setting(containerEl)
+      .setName("Task file name")
+      .setDesc("File name for task lists within project and area directories (without .md)")
+      .addText(t => t
+        .setValue(this.plugin.settings.tasksFileName)
+        .onChange(async (v) => {
+          this.plugin.settings.tasksFileName = v.trim() || "_tasks";
+          await this.plugin.saveSettings();
+        })
+      );
+
+    // Someday/Maybe file name
+    new Setting(containerEl)
+      .setName("Someday/Maybe file name")
+      .setDesc("File name for someday/maybe items (without .md)")
+      .addText(t => t
+        .setValue(this.plugin.settings.somedayMaybeFileName)
+        .onChange(async (v) => {
+          this.plugin.settings.somedayMaybeFileName = v.trim() || "_SomedayMaybe";
+          await this.plugin.saveSettings();
+        })
+      );
+
+    containerEl.createEl("h2", { text: "Inbox" });
+
+    // Inbox folder name
+    new Setting(containerEl)
+      .setName("Inbox folder name")
+      .setDesc("Vault root folder name for inbox items (one file per captured item)")
+      .addText(t => t
+        .setValue(this.plugin.settings.inboxFolderName)
+        .onChange(async (v) => {
+          this.plugin.settings.inboxFolderName = v.trim() || "Inbox";
+          await this.plugin.saveSettings();
+        })
+      );
+
+    containerEl.createEl("h2", { text: "Display" });
+
+    // Show completed tasks toggle
+    new Setting(containerEl)
+      .setName("Show completed tasks")
+      .setDesc("Show completed tasks in the task panel (completed tasks stay in place with completion timestamp)")
       .addToggle(t => t
-        .setValue(this.plugin.settings.areasEnabled)
+        .setValue(this.plugin.settings.showCompletedTasks)
         .onChange(async (v) => {
-          this.plugin.settings.areasEnabled = v;
-          await this.plugin.saveSettings();
-        })
-      );
-
-    // Single inbox path
-    new Setting(containerEl)
-      .setName("Inbox path")
-      .setDesc("Path to the single inbox file for all tasks (without .md extension)")
-      .addText(t => t
-        .setValue(getInboxDisplayPath(this.plugin.settings.inboxPath))
-        .onChange(async (v) => {
-          // Store without .md extension - will be normalized when used
-          this.plugin.settings.inboxPath = v.trim() || `${this.plugin.settings.tasksFolder}/Inbox`;
-          await this.plugin.saveSettings();
-        })
-      );
-
-    // Single Action file name
-    new Setting(containerEl)
-      .setName("Single Action file")
-      .setDesc("File name for single action tasks (without .md extension). Tasks in this file won't show a project name, similar to Inbox.")
-      .addText(t => t
-        .setValue(this.plugin.settings.singleActionFile)
-        .onChange(async (v) => {
-          this.plugin.settings.singleActionFile = v.trim() || "Single Action";
-          await this.plugin.saveSettings();
-        })
-      );
-
-    // Someday Maybe folder name
-    new Setting(containerEl)
-      .setName("Someday Maybe folder name")
-      .setDesc("Folder name for someday/maybe items per area (e.g., 'Someday Maybe'). This folder will be created under each area folder.")
-      .addText(t => t
-        .setValue(this.plugin.settings.somedayMaybeFolderName)
-        .onChange(async (v) => {
-          this.plugin.settings.somedayMaybeFolderName = v.trim() || "Someday Maybe";
-          await this.plugin.saveSettings();
-        })
-      );
-
-    containerEl.createEl("h2", { text: "Archive" });
-
-    new Setting(containerEl)
-      .setName("Archive pattern")
-      .setDesc("Use YYYY in the filename to group by year (e.g., Archive/Completed-YYYY.md)")
-      .addText(t => t
-        .setValue(this.plugin.settings.archivePattern)
-        .onChange(async (v) => { this.plugin.settings.archivePattern = v; await this.plugin.saveSettings(); })
-      );
-
-    new Setting(containerEl)
-      .setName("Archive older than (days)")
-      .addText(t => t
-        .setPlaceholder("7")
-        .setValue(String(this.plugin.settings.archiveOlderThanDays))
-        .onChange(async (v) => {
-          const n = Number(v);
-          if (!isNaN(n)) this.plugin.settings.archiveOlderThanDays = n;
+          this.plugin.settings.showCompletedTasks = v;
           await this.plugin.saveSettings();
         })
       );
@@ -143,7 +133,7 @@ export class GeckoTaskSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("Due date ranges")
-      .setDesc("Comma-separated list of due date ranges to show in filter dropdown (e.g., '7d, 14d, 30d, 60d, 90d'). Use format like '7d' for days or '30d' for 30 days.")
+      .setDesc("Comma-separated list of due date ranges to show in filter dropdown (e.g., '7d, 14d, 30d, 60d, 90d').")
       .addText(t => t
         .setValue(this.plugin.settings.dueDateRanges.join(", "))
         .onChange(async (v) => {
@@ -157,7 +147,7 @@ export class GeckoTaskSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("Custom collection points")
-      .setDesc("Comma-separated list of additional collection points for step 1A (e.g., 'Facebook, Slack, Twitter'). These will appear as additional fields in the Collect Loose Ends step.")
+      .setDesc("Comma-separated list of additional collection points for step 1A")
       .addText(t => t
         .setValue(this.plugin.settings.customCollectionPoints.join(", "))
         .onChange(async (v) => {
@@ -173,10 +163,9 @@ export class GeckoTaskSettingTab extends PluginSettingTab {
       .addText(t => t
         .setValue(this.plugin.settings.waitingForTag)
         .onChange(async (v) => {
-          // Ensure tag starts with # if not empty
           const trimmed = v.trim();
-          this.plugin.settings.waitingForTag = trimmed && !trimmed.startsWith("#") 
-            ? `#${trimmed}` 
+          this.plugin.settings.waitingForTag = trimmed && !trimmed.startsWith("#")
+            ? `#${trimmed}`
             : trimmed || "#WaitingFor";
           await this.plugin.saveSettings();
         })
@@ -188,10 +177,9 @@ export class GeckoTaskSettingTab extends PluginSettingTab {
       .addText(t => t
         .setValue(this.plugin.settings.nowTag)
         .onChange(async (v) => {
-          // Ensure tag starts with # if not empty
           const trimmed = v.trim();
-          this.plugin.settings.nowTag = trimmed && !trimmed.startsWith("#") 
-            ? `#${trimmed}` 
+          this.plugin.settings.nowTag = trimmed && !trimmed.startsWith("#")
+            ? `#${trimmed}`
             : trimmed || "#t/now";
           await this.plugin.saveSettings();
         })
@@ -199,7 +187,7 @@ export class GeckoTaskSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("Next actions due days")
-      .setDesc("Number of days ahead to show tasks in the next actions list (default: 3). Only tasks with due dates within this window will appear.")
+      .setDesc("Number of days ahead to show tasks in the next actions list (default: 3).")
       .addText(t => t
         .setPlaceholder("3")
         .setValue(String(this.plugin.settings.nextActionsDueDays))
@@ -258,8 +246,8 @@ export class GeckoTaskSettingTab extends PluginSettingTab {
         .setValue(this.plugin.settings.healthCheckQuickWinKeywords.join(", "))
         .onChange(async (v) => {
           const keywords = v.split(",").map(k => k.trim()).filter(Boolean);
-          this.plugin.settings.healthCheckQuickWinKeywords = keywords.length > 0 
-            ? keywords 
+          this.plugin.settings.healthCheckQuickWinKeywords = keywords.length > 0
+            ? keywords
             : ["message", "email", "call", "reply", "quick"];
           await this.plugin.saveSettings();
         })
@@ -311,12 +299,11 @@ export class GeckoTaskSettingTab extends PluginSettingTab {
         .setValue(this.plugin.settings.healthCheckBreakdownKeywords.join(", "))
         .onChange(async (v) => {
           const keywords = v.split(",").map(k => k.trim()).filter(Boolean);
-          this.plugin.settings.healthCheckBreakdownKeywords = keywords.length > 0 
-            ? keywords 
+          this.plugin.settings.healthCheckBreakdownKeywords = keywords.length > 0
+            ? keywords
             : ["and", "then", "also", "plus"];
           await this.plugin.saveSettings();
         })
       );
   }
 }
-

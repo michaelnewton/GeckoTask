@@ -2,11 +2,10 @@ import { App, TFile } from "obsidian";
 import { GeckoTaskSettings } from "../settings";
 import { IndexedTask } from "../view/tasks/TasksPanelTypes";
 import { parseTaskWithDescription } from "../models/TaskModel";
-import { inferAreaFromPath, isSpecialFile } from "./areaUtils";
+import { inferAreaFromPath, inferProjectFromPath, isInInboxFolder } from "./areaUtils";
 
 /**
  * Loads all tasks from a specific file.
- * This is a shared utility to eliminate duplication across multiple services and views.
  * @param app - Obsidian app instance
  * @param file - File to read tasks from
  * @param settings - Plugin settings
@@ -20,15 +19,7 @@ export async function loadTasksFromFile(
   const path = file.path;
   const tasks: IndexedTask[] = [];
 
-  const cache = app.metadataCache.getCache(path);
-  const lists = cache?.listItems;
-  if (!lists || lists.length === 0) return tasks;
-
-  // Check if file has any tasks before reading
-  const hasTasks = lists.some(li => li.task);
-  if (!hasTasks) return tasks;
-
-  // Read file content to get actual line text
+  // Read file content directly (avoids stale metadataCache after vault.process)
   let fileContent: string;
   try {
     fileContent = await app.vault.read(file);
@@ -37,23 +28,29 @@ export async function loadTasksFromFile(
   }
   const lines = fileContent.split("\n");
 
-  for (const li of lists) {
-    if (!li.task) continue;
-    const lineNo = li.position?.start?.line ?? 0;
-    if (lineNo < 0 || lineNo >= lines.length) continue;
-    
+  // Scan for task lines by regex instead of relying on metadataCache
+  for (let i = 0; i < lines.length; i++) {
+    if (!lines[i].match(/^\s*-\s*\[[ x]\]\s+/i)) continue;
+
     // Parse task with description
-    const { task: parsed, endLine } = parseTaskWithDescription(lines, lineNo);
+    const { task: parsed, endLine } = parseTaskWithDescription(lines, i);
     if (!parsed) continue;
 
-    const raw = lines[lineNo].trim();
+    const raw = lines[i].trim();
     const area = inferAreaFromPath(path, app, settings);
-    // Project is derived from file basename, not stored in metadata
-    const project = isSpecialFile(path, settings) ? undefined : file.basename;
+
+    // Derive project from path structure
+    let project: string | undefined;
+    if (isInInboxFolder(path, settings)) {
+      project = undefined;
+    } else {
+      const projectInfo = inferProjectFromPath(path, settings);
+      project = projectInfo?.project ?? undefined;
+    }
 
     tasks.push({
       path,
-      line: lineNo + 1,
+      line: i + 1,
       raw,
       title: parsed.title,
       description: parsed.description,
@@ -85,12 +82,11 @@ export async function loadTasksFromFiles(
   settings: GeckoTaskSettings
 ): Promise<IndexedTask[]> {
   const allTasks: IndexedTask[] = [];
-  
+
   for (const file of files) {
     const tasks = await loadTasksFromFile(app, file, settings);
     allTasks.push(...tasks);
   }
-  
+
   return allTasks;
 }
-

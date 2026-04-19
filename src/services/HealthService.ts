@@ -24,16 +24,17 @@ import {
 } from "./TaskTrackingService";
 import { isValidRecurrencePattern } from "./Recurrence";
 import {
-  isInTasksFolder,
-  normalizeInboxPath,
+  isInAnyArea,
+  isInInboxFolder,
   inferAreaFromPath,
-  isSpecialFile,
+  isAreaTasksFile,
+  isSomedayMaybeFile,
   getAreas,
-  isTasksFolderFile
+  getSortedProjectFiles,
+  getInboxFolderPath
 } from "../utils/areaUtils";
 import { parseTaskWithDescription } from "../models/TaskModel";
 import { loadTasksFromFiles } from "../utils/taskUtils";
-import { isInSomedayMaybeFolder } from "../utils/somedayMaybeUtils";
 import { formatISODate, getMomentNow, parseMomentDate } from "../utils/dateUtils";
 
 /**
@@ -60,7 +61,7 @@ export async function analyzeAllTasks(
   // Get file objects for modification dates
   const files = new Map<string, TFile>();
   for (const file of app.vault.getMarkdownFiles()) {
-    if (isInTasksFolder(file.path, settings) && !isTasksFolderFile(file.path, settings)) {
+    if (isInAnyArea(file.path, settings) || isInInboxFolder(file.path, settings)) {
       files.set(file.path, file);
     }
   }
@@ -117,10 +118,8 @@ export async function analyzeAllTasks(
  * @returns Array of all indexed tasks
  */
 async function loadAllTasks(app: App, settings: GeckoTaskSettings): Promise<IndexedTask[]> {
-  const files = app.vault.getMarkdownFiles()
-    .filter(f => isInTasksFolder(f.path, settings) && !isTasksFolderFile(f.path, settings));
-  
-  return await loadTasksFromFiles(app, files, settings);
+  const sortedFiles = getSortedProjectFiles(app, settings);
+  return await loadTasksFromFiles(app, sortedFiles, settings);
 }
 
 /**
@@ -238,9 +237,8 @@ export function identifyStaleTasks(
   const activeTasks = tasks.filter(t => !t.checked);
 
   for (const task of activeTasks) {
-    // Skip tasks in Someday Maybe folders - these are intentionally deferred
-    const isInSomedayMaybe = isInSomedayMaybeFolder(task.path, settings, app) ||
-                             task.area === "Someday Maybe";
+    // Skip tasks in Someday Maybe files - these are intentionally deferred
+    const isInSomedayMaybe = isSomedayMaybeFile(task.path, settings);
     if (isInSomedayMaybe) {
       continue;
     }
@@ -671,8 +669,7 @@ export function generateCleanupSuggestions(
   }
 
   // Inbox overflow
-  const inboxPath = normalizeInboxPath(settings.inboxPath);
-  const inboxTasks = activeTasks.filter(t => t.path === inboxPath);
+  const inboxTasks = activeTasks.filter(t => isInInboxFolder(t.path, settings));
   if (inboxTasks.length > settings.healthCheckInboxThreshold) {
     suggestions.push({
       type: "inbox-overflow",

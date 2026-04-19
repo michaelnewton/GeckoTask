@@ -252,6 +252,14 @@ If your plugin does not need CSS, delete this file.
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
+.geckotask-card.geckotask-completed {
+  opacity: 0.55;
+}
+
+.geckotask-card.geckotask-completed .task-card-title {
+  text-decoration: line-through;
+}
+
 .task-card-top {
   display: flex;
   align-items: flex-start;

@@ -110,7 +110,7 @@ export async function renderStep2F(
 
   if (somedayMaybeProjects.length === 0) {
     host.createEl("p", { 
-      text: `No Someday/Maybe projects found in ${settings.somedayMaybeFolderName} folders.` 
+      text: `No Someday/Maybe projects found.`
     });
     return;
   }

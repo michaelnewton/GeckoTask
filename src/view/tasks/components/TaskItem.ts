@@ -9,6 +9,7 @@ import { formatDueDate, formatScheduledDate, isOverdue, getPriorityColorClass, e
 import { updateTaskField, moveTask, openTaskInNote } from "../utils/taskOperations";
 import { TFile } from "obsidian";
 import { validateTaskTitle, ValidationResult } from "../../../services/ValidationService";
+import { isAreaTasksFile, isInInboxFolder } from "../../../utils/areaUtils";
 
 /**
  * Callbacks for task item actions.
@@ -38,12 +39,12 @@ export function renderTaskItem(
   task: IndexedTask,
   callbacks: TaskItemCallbacks
 ): void {
-  const card = host.createDiv({ cls: "geckotask-card" });
+  const card = host.createDiv({ cls: "geckotask-card" + (task.checked ? " geckotask-completed" : "") });
   
   // Top row: Checkbox + Recurring icon + Title
   const topRow = card.createDiv({ cls: "task-card-top" });
   const cb = topRow.createEl("input", { type: "checkbox", cls: "task-checkbox" });
-  cb.checked = false;
+  cb.checked = task.checked;
   
   // Add priority color class to checkbox
   const priorityClass = getPriorityColorClass(task.priority, settings);
@@ -233,14 +234,19 @@ export function renderTaskItem(
     descIcon.style.cursor = "pointer";
   }
   
-  // Right side: Project (or Area if in Single Action file)
+  // Right side: Project (or Area if area tasks file)
   const rightSide = bottomRow.createDiv({ cls: "task-card-bottom-right" });
-  // Check if this task is in the Single Action file
-  const basename = task.path.split("/").pop()?.replace(/\.md$/, "") || "";
-  const isSingleActionFile = basename === settings.singleActionFile;
-  
-  if (isSingleActionFile && task.area) {
-    // Show Area instead of project for Single Action file
+  // Check if this task is in an area tasks file or inbox
+  const isAreaLevel = isAreaTasksFile(task.path, settings);
+  const isInInbox = isInInboxFolder(task.path, settings);
+
+  if (isInInbox) {
+    // Show Inbox label
+    const inboxContainer = rightSide.createDiv({ cls: "task-project-container" });
+    const inboxText = inboxContainer.createEl("span", { cls: "task-project-text" });
+    inboxText.textContent = "# Inbox";
+  } else if (isAreaLevel && task.area) {
+    // Show Area instead of project for area tasks file
     const areaContainer = rightSide.createDiv({ cls: "task-project-container" });
     const areaText = areaContainer.createEl("span", { cls: "task-project-text" });
     areaText.textContent = `# ${task.area}`;

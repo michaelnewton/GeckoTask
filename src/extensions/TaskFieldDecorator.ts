@@ -2,7 +2,23 @@ import { App, MarkdownView, TFile } from "obsidian";
 import { ViewPlugin, Decoration, DecorationSet, ViewUpdate, EditorView } from "@codemirror/view";
 import { RangeSetBuilder } from "@codemirror/state";
 import { GeckoTaskSettings } from "../settings";
-import { isInTasksFolder } from "../utils/areaUtils";
+import { isInAnyArea, isInInboxFolder } from "../utils/areaUtils";
+
+/**
+ * Finds the TFile associated with a CodeMirror EditorView by matching against all leaves.
+ */
+function findFileForView(app: App, view: EditorView): TFile | null {
+  let result: TFile | null = null;
+  app.workspace.iterateAllLeaves((leaf) => {
+    if (leaf.view instanceof MarkdownView && leaf.view.editor) {
+      const editorView = (leaf.view.editor as any).cm as EditorView | undefined;
+      if (editorView === view) {
+        result = (leaf.view as MarkdownView).file;
+      }
+    }
+  });
+  return result;
+}
 
 /**
  * Creates a CodeMirror ViewPlugin that decorates task metadata fields in source/editing mode.
@@ -30,30 +46,15 @@ export function createTaskFieldDecorator(app: App, settings: GeckoTaskSettings) 
 
       buildDecorations(view: EditorView): DecorationSet {
         const builder = new RangeSetBuilder<Decoration>();
-        
-        // Get the file associated with this view by finding the MarkdownView
-        // The editor view is part of a MarkdownView in Obsidian
-        let file: TFile | null = null;
-        
-        // Try to find the file by iterating through all leaves
-        app.workspace.iterateAllLeaves((leaf) => {
-          if (leaf.view instanceof MarkdownView && leaf.view.editor) {
-            // Check if this editor's CodeMirror view matches
-            const editorView = (leaf.view.editor as any).cm as EditorView | undefined;
-            if (editorView === view) {
-              file = leaf.view.file;
-              return false; // Stop iteration
-            }
-          }
-        });
-        
-        if (!file || !isInTasksFolder(file.path, settings)) {
+
+        const file = findFileForView(app, view);
+        if (!file || !(isInAnyArea(file.path, settings) || isInInboxFolder(file.path, settings))) {
           return builder.finish();
         }
 
         const { doc } = view.state;
         const text = doc.toString();
-        
+
         // Pattern to match task fields like "priority:: urgent", "due:: 2025-11-07", etc.
         // Matches: fieldname:: value (where fieldname is one of the allowed field keys)
         // Value can be single word or multiple words, but stops at next field, tag, newline, or end
@@ -63,12 +64,12 @@ export function createTaskFieldDecorator(app: App, settings: GeckoTaskSettings) 
         // Match value as one or more words (non-whitespace, non-hash, non-newline), separated by single spaces
         // Stop before newline, next field, tag, or end
         const fieldPattern = new RegExp(`\\b(${fieldKeys})::\\s*([^\\n\\s#]+(?: [^\\n\\s#]+)*?)(?=\\s+${fieldKeys}::|\\s+#|\\n|$)`, "gi");
-        
+
         let match;
         while ((match = fieldPattern.exec(text)) !== null) {
           const start = match.index;
           const end = start + match[0].length;
-          
+
           // Create decoration with geckotask-field class
           const decoration = Decoration.mark({
             class: "geckotask-field",
@@ -77,7 +78,7 @@ export function createTaskFieldDecorator(app: App, settings: GeckoTaskSettings) 
               "data-field-value": match[2].trim()
             }
           });
-          
+
           builder.add(start, end, decoration);
         }
 
@@ -89,4 +90,3 @@ export function createTaskFieldDecorator(app: App, settings: GeckoTaskSettings) 
     }
   );
 }
-

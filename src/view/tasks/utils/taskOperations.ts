@@ -80,8 +80,9 @@ export async function toggleTask(app: App, task: IndexedTask, checked: boolean):
   if (checked && nextOccurrenceDue && nextOccurrenceDates) {
     // Build notice message based on which dates were set
     const dateParts: string[] = [];
-    if (nextOccurrenceDates.scheduled) dateParts.push(`scheduled: ${nextOccurrenceDates.scheduled}`);
-    if (nextOccurrenceDates.due) dateParts.push(`due: ${nextOccurrenceDates.due}`);
+    const { scheduled, due } = nextOccurrenceDates;
+    if (scheduled) dateParts.push(`scheduled: ${scheduled}`);
+    if (due) dateParts.push(`due: ${due}`);
     const dateMsg = dateParts.join(", ");
     new Notice(`Task completed. Next occurrence ${dateMsg}`);
   } else {

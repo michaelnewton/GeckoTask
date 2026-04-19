@@ -3,7 +3,7 @@ import { GeckoTaskSettings, DEFAULT_SETTINGS, GeckoTaskSettingTab } from "./sett
 import { TasksPanel, VIEW_TYPE_TASKS } from "./view/tasks/TasksPanel";
 import { WeeklyReviewPanel, VIEW_TYPE_WEEKLY_REVIEW } from "./view/weekly-review/WeeklyReviewPanel";
 import { HealthPanel, VIEW_TYPE_HEALTH } from "./view/health/HealthPanel";
-import { isInTasksFolder, inferAreaFromPath, isSpecialFile } from "./utils/areaUtils";
+import { isInAnyArea, isInInboxFolder, inferAreaFromPath, inferProjectFromPath } from "./utils/areaUtils";
 import { parseTaskWithDescription, formatTaskWithDescription, Task } from "./models/TaskModel";
 import { calculateNextOccurrenceDates } from "./services/Recurrence";
 import { IndexedTask } from "./view/tasks/TasksPanelTypes";
@@ -41,10 +41,10 @@ export default class GeckoTaskPlugin extends Plugin {
     // Register all commands
     registerCommands(this);
 
-    // Style task metadata fields in markdown preview (only for files in tasks folder)
+    // Style task metadata fields in markdown preview (only for files in area or inbox paths)
     this.registerMarkdownPostProcessor((element, context) => {
-      // Check if the file is in the tasks folder
-      if (context.sourcePath && isInTasksFolder(context.sourcePath, this.settings)) {
+      // Check if the file is in an area or inbox folder
+      if (context.sourcePath && (isInAnyArea(context.sourcePath, this.settings) || isInInboxFolder(context.sourcePath, this.settings))) {
         // Style task metadata fields (priority::, due::, etc.)
         // Use a small delay to ensure DOM is fully rendered
         this.registerInterval(window.setTimeout(() => {
@@ -78,7 +78,7 @@ export default class GeckoTaskPlugin extends Plugin {
         if (leaf?.view instanceof MarkdownView) {
           updateMarkdownViewStyling(this.app, this.settings, leaf.view.file);
           // Also update after a short delay to ensure content is rendered
-          this.registerInterval(window.setTimeout(() => updateMarkdownViewStyling(this.app, this.settings, leaf.view.file), 100));
+          this.registerInterval(window.setTimeout(() => updateMarkdownViewStyling(this.app, this.settings, (leaf.view as MarkdownView).file), 100));
         }
       })
     );
@@ -320,8 +320,14 @@ export default class GeckoTaskPlugin extends Plugin {
     const path = file.path;
     const raw = lines[lineNo].trim();
     const area = inferAreaFromPath(path, this.app, this.settings);
-    // Project is derived from file basename, not stored in metadata
-    const project = isSpecialFile(path, this.settings) ? undefined : file.basename;
+    // Derive project from path structure
+    let project: string | undefined;
+    if (isInInboxFolder(path, this.settings)) {
+      project = undefined;
+    } else {
+      const projectInfo = inferProjectFromPath(path, this.settings);
+      project = projectInfo?.project ?? undefined;
+    }
     
     return {
       path,
