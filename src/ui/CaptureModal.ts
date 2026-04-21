@@ -1,11 +1,11 @@
 import { App, AbstractInputSuggest, Modal, Setting, Notice, TFile } from "obsidian";
 import { GeckoTaskSettings } from "../settings";
 import { parseNLDate } from "../services/NLDate";
-import { formatTask, formatTaskWithDescription, Task, parseTaskWithDescription } from "../models/TaskModel";
-import { isInAnyArea, isInInboxFolder, getSortedProjectFiles, getProjectDisplayName, getInboxFolderPath, inferProjectFromPath } from "../utils/areaUtils";
+import { formatTaskWithDescription, Task, parseTaskWithDescription } from "../models/TaskModel";
+import { isInInboxFolder, getSortedProjectFiles, getProjectDisplayName } from "../utils/areaUtils";
 import { IndexedTask } from "../view/tasks/TasksPanelTypes";
 import { createProjectFile } from "../services/VaultIO";
-import { validateTaskTitle, validateTaskDescription, validateTaskDueDate, validateTaskScheduled, validateTaskTags, ValidationResult } from "../services/ValidationService";
+import { validateTaskTitle, validateTaskDescription, validateTaskDueDate, validateTaskScheduled, ValidationResult } from "../services/ValidationService";
 
 
 /**
@@ -78,7 +78,7 @@ class CaptureTagSuggest extends AbstractInputSuggest<string> {
     el.setText(suggestion);
   }
 
-  selectSuggestion(suggestion: string, evt: MouseEvent | KeyboardEvent): void {
+  selectSuggestion(suggestion: string, _evt: MouseEvent | KeyboardEvent): void {
     const token = this.getActiveToken();
     this.onSelectTag(suggestion, token);
     this.close();
@@ -207,16 +207,7 @@ export async function captureQuickTask(app: App, settings: GeckoTaskSettings, ex
           const feedbackEl = feedbackContainer.createDiv({
             cls: `geckotask-validation-${result.severity}`
           });
-
-          let icon = "";
-          if (result.severity === "warning") {
-            icon = "⚠️ ";
-          } else if (result.severity === "error") {
-            icon = "❌ ";
-          } else {
-            icon = "ℹ️ ";
-          }
-
+          const icon = result.severity === "warning" ? "⚠️ " : result.severity === "error" ? "❌ " : "ℹ️ ";
           feedbackEl.textContent = icon + result.message;
 
           if (result.suggestion) {

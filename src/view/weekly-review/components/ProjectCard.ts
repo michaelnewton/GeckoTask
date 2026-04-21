@@ -1,7 +1,6 @@
 import { App, setIcon } from "obsidian";
 import { GeckoTaskSettings } from "../../../settings";
 import { ProjectReviewInfo } from "../WeeklyReviewPanelTypes";
-import { IndexedTask } from "../../tasks/TasksPanelTypes";
 import { renderTaskCard, TaskCardCallbacks } from "./TaskCard";
 
 /**
@@ -34,7 +33,7 @@ export async function renderProjectCard(
   projectName.addEventListener("click", () => callbacks.onOpenProject(project.path));
   
   if (!project.hasNextAction) {
-    const warning = projectHeader.createEl("span", { 
+    projectHeader.createEl("span", { 
       text: "⚠️ No next action", 
       cls: "weekly-review-warning" 
     });

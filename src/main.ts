@@ -1,4 +1,4 @@
-import { App, Editor, MarkdownFileInfo, MarkdownView, Notice, Platform, Plugin, TFile, WorkspaceLeaf } from "obsidian";
+import { Editor, MarkdownView, Notice, Platform, Plugin, TFile, WorkspaceLeaf } from "obsidian";
 import { GeckoTaskSettings, DEFAULT_SETTINGS, GeckoTaskSettingTab } from "./settings";
 import { TasksPanel, VIEW_TYPE_TASKS } from "./view/tasks/TasksPanel";
 import { WeeklyReviewPanel, VIEW_TYPE_WEEKLY_REVIEW } from "./view/weekly-review/WeeklyReviewPanel";

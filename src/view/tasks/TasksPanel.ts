@@ -1,5 +1,4 @@
-import { App, ItemView, WorkspaceLeaf, TFile, Notice } from "obsidian";
-import { parseTaskWithDescription, formatTaskWithDescription, Task } from "../../models/TaskModel";
+import { ItemView, WorkspaceLeaf, Notice } from "obsidian";
 import { GeckoTaskSettings } from "../../settings";
 import { FilePickerModal } from "../../ui/FilePickerModal";
 import { captureQuickTask } from "../../ui/CaptureModal";
@@ -182,7 +181,7 @@ export class TasksPanel extends ItemView {
     // Show warning box for "Now" tab when there are more than 5 tasks
     if (this.currentTab === "today-overdue" && rows.length > 5) {
       const warningBox = list.createDiv({ cls: "geckotask-warning-box" });
-      const warningIcon = warningBox.createSpan({ cls: "geckotask-warning-icon", text: "⚠️" });
+      warningBox.createSpan({ cls: "geckotask-warning-icon", text: "⚠️" });
       const warningText = warningBox.createSpan({ cls: "geckotask-warning-text" });
       warningText.setText(`You have ${rows.length} tasks. Daily review tip: Choose 3–5 key tasks as today's focus.`);
     }

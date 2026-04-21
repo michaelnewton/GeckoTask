@@ -61,16 +61,8 @@ export class PromptModal extends Modal {
       const feedbackEl = feedbackContainer.createDiv({
         cls: `geckotask-validation-${result.severity}`
       });
-      
-      let icon = "";
-      if (result.severity === "warning") {
-        icon = "⚠️ ";
-      } else if (result.severity === "error") {
-        icon = "❌ ";
-      } else {
-        icon = "ℹ️ ";
-      }
-      
+
+      const icon = result.severity === "warning" ? "⚠️ " : result.severity === "error" ? "❌ " : "ℹ️ ";
       feedbackEl.textContent = icon + result.message;
       
       if (result.suggestion) {

@@ -45,7 +45,7 @@ function tryParseDate(input: string): string | undefined {
           return isoDate;
         }
       }
-    } catch (e) {
+    } catch (_e) {
       // moment parsing failed, continue to native Date
     }
   }
@@ -60,7 +60,7 @@ function tryParseDate(input: string): string | undefined {
         return isoDate;
       }
     }
-  } catch (e) {
+  } catch (_e) {
     // Native Date parsing failed
   }
   

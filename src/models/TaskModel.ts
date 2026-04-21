@@ -244,7 +244,7 @@ export function parseTaskWithDescription(lines: string[], startLine: number): { 
   if (!task) return { task: null, endLine: startLine };
 
   // Read subsequent indented lines as description
-  let descriptionLines: string[] = [];
+  const descriptionLines: string[] = [];
   let i = startLine + 1;
   
   while (i < lines.length) {

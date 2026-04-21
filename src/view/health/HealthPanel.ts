@@ -1,4 +1,4 @@
-import { App, ItemView, WorkspaceLeaf, TFile, Notice, Plugin, MarkdownView } from "obsidian";
+import { ItemView, WorkspaceLeaf, TFile, Notice, Plugin, MarkdownView } from "obsidian";
 import { GeckoTaskSettings } from "../../settings";
 import { IndexedTask } from "../tasks/TasksPanelTypes";
 import {
@@ -12,7 +12,7 @@ import {
   CleanupSuggestion
 } from "./HealthPanelTypes";
 import { analyzeAllTasks } from "../../services/HealthService";
-import { updateTaskTracking, getTaskId, markTaskReviewed, updateTaskPath } from "../../services/TaskTrackingService";
+import { updateTaskTracking, getTaskId, updateTaskPath } from "../../services/TaskTrackingService";
 import { parseTaskWithDescription, formatTaskWithDescription, Task } from "../../models/TaskModel";
 import { calculateNextOccurrenceDates } from "../../services/Recurrence";
 import { parseNLDate } from "../../services/NLDate";
@@ -20,7 +20,7 @@ import { captureQuickTask } from "../../ui/CaptureModal";
 import { FilePickerModal } from "../../ui/FilePickerModal";
 import { PromptModal } from "../../ui/PromptModal";
 import { ConfirmationModal } from "../../ui/ConfirmationModal";
-import { isInTasksFolder, isTasksFolderFile, inferAreaFromPath, isSpecialFile } from "../../utils/areaUtils";
+import { isInTasksFolder, isTasksFolderFile } from "../../utils/areaUtils";
 import { loadTasksFromFiles } from "../../utils/taskUtils";
 import { formatISODate, formatISODateTime } from "../../utils/dateUtils";
 
@@ -194,8 +194,8 @@ export class HealthPanel extends ItemView {
    */
   private createMetric(container: HTMLElement, label: string, value: string, warningClass: string = "") {
     const metric = container.createDiv({ cls: `health-metric ${warningClass}` });
-    const labelEl = metric.createEl("span", { cls: "health-metric-label", text: label });
-    const valueEl = metric.createEl("strong", { cls: "health-metric-value", text: value });
+    metric.createEl("span", { cls: "health-metric-label", text: label });
+    metric.createEl("strong", { cls: "health-metric-value", text: value });
   }
 
   /**
@@ -494,7 +494,7 @@ export class HealthPanel extends ItemView {
   /**
    * Breaks down a task into multiple sub-tasks.
    */
-  private async breakDownTask(task: TaskNeedingBreakdown) {
+  private async breakDownTask(_task: TaskNeedingBreakdown) {
     // For now, just show a notice - full breakdown modal can be added later
     new Notice("Break down functionality coming soon. Use the suggested breakdown as a guide.");
   }

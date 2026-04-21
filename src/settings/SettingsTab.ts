@@ -1,6 +1,5 @@
 import { App, PluginSettingTab, Setting } from "obsidian";
 import GeckoTaskPlugin from "../main";
-import { GeckoTaskSettings } from "./index";
 
 /**
  * Settings tab UI for configuring GeckoTask plugin options.

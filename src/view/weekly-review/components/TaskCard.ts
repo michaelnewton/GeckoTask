@@ -1,11 +1,7 @@
-import { App, setIcon, Notice } from "obsidian";
+import { App, setIcon } from "obsidian";
 import { GeckoTaskSettings } from "../../../settings";
 import { IndexedTask } from "../../tasks/TasksPanelTypes";
 import { captureQuickTask } from "../../../ui/CaptureModal";
-import { formatISODate } from "../../../utils/dateUtils";
-import { parseTaskWithDescription, formatTaskWithDescription, Task } from "../../../models/TaskModel";
-import { calculateNextOccurrence } from "../../../services/Recurrence";
-import { TFile } from "obsidian";
 
 /**
  * Callbacks for task card actions.

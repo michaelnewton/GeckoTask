@@ -69,7 +69,7 @@ export function createCheckboxClickHandler(
 
         // Create click handler
         this.clickHandler = (e: MouseEvent) => {
-          const target = e.target as HTMLElement;
+          const _target = e.target as HTMLElement;
           
           // Check if click is on a checkbox pattern in the editor
           // In CodeMirror, checkboxes are rendered as text, so we need to find the position

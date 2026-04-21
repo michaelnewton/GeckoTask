@@ -3,23 +3,17 @@ import { GeckoTaskSettings } from "../../../settings";
 import { IndexedTask } from "../../tasks/TasksPanelTypes";
 import { ProjectReviewInfo } from "../WeeklyReviewPanelTypes";
 import { Task, parseTaskWithDescription, formatTaskWithDescription } from "../../../models/TaskModel";
-import { formatISODate } from "../../../utils/dateUtils";
-import { calculateNextOccurrence } from "../../../services/Recurrence";
 import { parseNLDate } from "../../../services/NLDate";
 import {
   getInboxFolderPath,
   isInInboxFolder,
-  isInAnyArea,
   inferAreaFromPath,
   isAreaTasksFile,
   isSomedayMaybeFile,
   getAreas,
   getSortedProjectFiles,
   getAreaSomedayMaybePath,
-  inferProjectFromPath,
-  getProjectsPath,
-  getProjectTasksFilePath,
-  getAreaTasksFilePath
+  inferProjectFromPath
 } from "../../../utils/areaUtils";
 import { FilePickerModal } from "../../../ui/FilePickerModal";
 import { PromptModal } from "../../../ui/PromptModal";

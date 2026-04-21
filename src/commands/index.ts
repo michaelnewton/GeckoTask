@@ -3,7 +3,7 @@ import { GeckoTaskSettings } from "../settings";
 import { captureQuickTask } from "../ui/CaptureModal";
 import { moveTaskAtCursorInteractive, createProjectFile } from "../services/VaultIO";
 import { toggleCompleteAtCursor, setFieldAtCursor, addRemoveTagsAtCursor, normalizeTaskLine, deleteCompletedTasks } from "../services/TaskOps";
-import { getAreas, getAreaTasksFilePath, getProjectTasksFilePath, getAreaSomedayMaybePath, getProjectsPath, getAreaTasksPath } from "../utils/areaUtils";
+import { getAreaSomedayMaybePath } from "../utils/areaUtils";
 import type { GeckoTaskPlugin } from "../main";
 
 /**
@@ -40,7 +40,7 @@ export function registerCommands(plugin: GeckoTaskPlugin) {
     name: "Quick Add/Edit Task",
     icon: "plus-circle",
     hotkeys: [{ modifiers: ["Mod", "Shift"], key: "e" }],
-    editorCallback: async (editor: Editor, ctx: MarkdownView | MarkdownFileInfo) => {
+    editorCallback: async (editor: Editor, _ctx: MarkdownView | MarkdownFileInfo) => {
       const view = app.workspace.getActiveViewOfType(MarkdownView);
       if (!view || !view.file) {
         await captureQuickTask(app, settings);

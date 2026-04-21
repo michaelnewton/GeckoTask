@@ -9,7 +9,7 @@ import { isInAnyArea, isInInboxFolder } from "../utils/areaUtils";
  * @param settings - Plugin settings
  * @param file - The file to check, or null to remove styling from all views
  */
-export function updateMarkdownViewStyling(app: App, settings: GeckoTaskSettings, file: TFile | null): void {
+export function updateMarkdownViewStyling(app: App, settings: GeckoTaskSettings, _file: TFile | null): void {
   app.workspace.iterateAllLeaves((leaf) => {
     if (leaf.view instanceof MarkdownView) {
       const viewEl = leaf.view.containerEl;

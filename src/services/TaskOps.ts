@@ -1,5 +1,5 @@
 import { App, Editor, MarkdownView, Notice } from "obsidian";
-import { Task, parseTask, formatTask, withField, parseTaskWithDescription, formatTaskWithDescription } from "../models/TaskModel";
+import { Task, parseTask, parseTaskWithDescription, formatTaskWithDescription } from "../models/TaskModel";
 import { GeckoTaskSettings } from "../settings";
 import { parseNLDate } from "./NLDate";
 import { PromptModal } from "../ui/PromptModal";
@@ -29,7 +29,7 @@ function getLineTask(editor: Editor): { task: Task, lineNo: number } | null {
  * @param view - The markdown view
  * @param settings - Plugin settings
  */
-export async function toggleCompleteAtCursor(editor: Editor, view: MarkdownView, settings: GeckoTaskSettings) {
+export async function toggleCompleteAtCursor(editor: Editor, _view: MarkdownView, _settings: GeckoTaskSettings) {
   const ctx = getLineTask(editor);
   if (!ctx) { new Notice("GeckoTask: No task on this line."); return; }
   const currentLineNo = ctx.lineNo!;
@@ -161,7 +161,7 @@ export async function setFieldAtCursor(app: App, editor: Editor, key: "due"|"sch
  * @param editor - The editor instance
  * @param settings - Plugin settings
  */
-export async function addRemoveTagsAtCursor(app: App, editor: Editor, settings: GeckoTaskSettings) {
+export async function addRemoveTagsAtCursor(app: App, editor: Editor, _settings: GeckoTaskSettings) {
   const currentLineNo = editor.getCursor().line;
   
   // Get all lines from the editor to parse task with description
@@ -272,8 +272,6 @@ export async function deleteCompletedTasks(editor: Editor) {
 
     // Also remove the trailing newline if present
     if (endLine + 1 < editor.lineCount()) {
-      const nextLineStart = { line: endLine, ch: 0 };
-      const nextLineEnd = { line: endLine, ch: editor.getLine(endLine).length };
       // Check if this line is now empty (was the description's trailing newline)
       const lineContent = editor.getLine(endLine);
       if (lineContent.trim() === "") {

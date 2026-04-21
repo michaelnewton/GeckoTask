@@ -2,12 +2,8 @@ import { App } from "obsidian";
 import { GeckoTaskSettings } from "../../../settings";
 import { IndexedTask } from "../TasksPanelTypes";
 import { PromptModal } from "../../../ui/PromptModal";
-import { FilePickerModal } from "../../../ui/FilePickerModal";
-import { captureQuickTask } from "../../../ui/CaptureModal";
 import { parseNLDate } from "../../../services/NLDate";
 import { formatDueDate, formatScheduledDate, isOverdue, getPriorityColorClass, extractLabels, renderDescriptionLine } from "../utils/taskFormatting";
-import { updateTaskField, moveTask, openTaskInNote } from "../utils/taskOperations";
-import { TFile } from "obsidian";
 import { validateTaskTitle, ValidationResult } from "../../../services/ValidationService";
 import { isAreaTasksFile, isInInboxFolder } from "../../../utils/areaUtils";
 
@@ -319,16 +315,8 @@ function renderInlineValidationFeedback(container: HTMLElement, results: Validat
     const feedbackEl = feedbackContainer.createDiv({
       cls: `geckotask-validation-${result.severity}`
     });
-    
-    let icon = "";
-    if (result.severity === "warning") {
-      icon = "⚠️ ";
-    } else if (result.severity === "error") {
-      icon = "❌ ";
-    } else {
-      icon = "ℹ️ ";
-    }
-    
+
+    const icon = result.severity === "warning" ? "⚠️ " : result.severity === "error" ? "❌ " : "ℹ️ ";
     feedbackEl.textContent = icon + result.message;
     
     if (result.suggestion) {

@@ -1,6 +1,6 @@
 import { App, SuggestModal, TFile } from "obsidian";
 import { GeckoTaskSettings } from "../settings";
-import { getProjectDisplayName, getSortedProjectFiles, isInInboxFolder } from "../utils/areaUtils";
+import { getProjectDisplayName, getSortedProjectFiles } from "../utils/areaUtils";
 import { createProjectFile } from "../services/VaultIO";
 
 /**

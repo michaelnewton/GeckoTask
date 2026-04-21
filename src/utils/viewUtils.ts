@@ -1,4 +1,4 @@
-import { App, Platform, WorkspaceLeaf } from "obsidian";
+import { App } from "obsidian";
 import { VIEW_TYPE_TASKS } from "../view/tasks/TasksPanel";
 import { VIEW_TYPE_WEEKLY_REVIEW } from "../view/weekly-review/WeeklyReviewPanel";
 import { VIEW_TYPE_HEALTH } from "../view/health/HealthPanel";

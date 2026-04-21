@@ -26,14 +26,9 @@ import { isValidRecurrencePattern } from "./Recurrence";
 import {
   isInAnyArea,
   isInInboxFolder,
-  inferAreaFromPath,
-  isAreaTasksFile,
   isSomedayMaybeFile,
-  getAreas,
   getSortedProjectFiles,
-  getInboxFolderPath
 } from "../utils/areaUtils";
-import { parseTaskWithDescription } from "../models/TaskModel";
 import { loadTasksFromFiles } from "../utils/taskUtils";
 import { formatISODate, getMomentNow, parseMomentDate } from "../utils/dateUtils";
 
@@ -195,7 +190,7 @@ export function calculateHealthMetrics(
   const tasksWithNoDueDate = activeTasks.filter(t => !t.due).length;
 
   // Completed tasks older than threshold (using completed field)
-  const completedTasks = tasks.filter(t => t.checked);
+  const _completedTasks = tasks.filter(t => t.checked);
   // Note: We'd need completed date from task metadata, but for now we'll skip this
   const completedTasksOlderThanThreshold = 0; // Placeholder
 
@@ -608,7 +603,7 @@ export function analyzeRecurringTasks(tasks: IndexedTask[]): RecurringIssue[] {
   }
 
   // Check for duplicates
-  for (const [key, tasksWithPattern] of recurringByPattern.entries()) {
+  for (const [_key, tasksWithPattern] of recurringByPattern.entries()) {
     if (tasksWithPattern.length > 1) {
       for (const task of tasksWithPattern) {
         issues.push({
@@ -701,7 +696,7 @@ export function generateCleanupSuggestions(
   }
 
   // Completed tasks that could be archived
-  const completedTasks = tasks.filter(t => t.checked);
+  const _completedTasks = tasks.filter(t => t.checked);
   // Note: We'd need completed dates from task metadata for this
   // For now, we'll skip this suggestion
 

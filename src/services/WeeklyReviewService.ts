@@ -1,6 +1,5 @@
 import { App, TFile, TFolder } from "obsidian";
 import { GeckoTaskSettings } from "../settings";
-import { parseTaskWithDescription, Task } from "../models/TaskModel";
 import { IndexedTask } from "../view/tasks/TasksPanelTypes";
 import { ProjectReviewInfo } from "../view/weekly-review/WeeklyReviewPanelTypes";
 import {
@@ -12,8 +11,6 @@ import {
   getAreas,
   getSortedProjectFiles,
   getProjectsPath,
-  getAreaTasksFilePath,
-  getAreaSomedayMaybePath,
   getProjectTasksFilePath,
   inferProjectFromPath,
   getInboxFolderPath

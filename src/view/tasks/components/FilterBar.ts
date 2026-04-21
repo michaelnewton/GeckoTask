@@ -1,7 +1,7 @@
 import { App } from "obsidian";
 import { GeckoTaskSettings } from "../../../settings";
 import { TabType, FilterState, DueWindow } from "../TasksPanelTypes";
-import { getAreas, getProjectDisplayName, getSortedProjectFiles, isInInboxFolder } from "../../../utils/areaUtils";
+import { getAreas, getProjectDisplayName, getSortedProjectFiles } from "../../../utils/areaUtils";
 
 /**
  * Renders the filter UI controls.

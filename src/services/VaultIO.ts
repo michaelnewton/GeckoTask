@@ -1,7 +1,7 @@
 import { App, TFile, TFolder, Notice, Editor, Modal, Setting } from "obsidian";
 import { GeckoTaskSettings } from "../settings";
-import { parseTask, parseTaskWithDescription, formatTaskWithDescription, Task } from "../models/TaskModel";
-import { getAreas, getProjectTasksFilePath, isInInboxFolder } from "../utils/areaUtils";
+import { parseTaskWithDescription, formatTaskWithDescription, Task } from "../models/TaskModel";
+import { getAreas, getProjectTasksFilePath } from "../utils/areaUtils";
 import { getAllEditorLines } from "../utils/editorUtils";
 import { formatISODate } from "../utils/dateUtils";
 import { FilePickerModal } from "../ui/FilePickerModal";
@@ -20,7 +20,7 @@ async function getActiveLineTask(editor: Editor) {
  * Moves the task at the cursor to a different file via interactive file picker.
  */
 export async function moveTaskAtCursorInteractive(app: App, editor: Editor, settings: GeckoTaskSettings) {
-  const { task, lineNo, endLine, lines } = await getActiveLineTask(editor);
+  const { task, lineNo, endLine } = await getActiveLineTask(editor);
   if (!task) { new Notice("GeckoTask: No task on this line."); return; }
 
   const target = await new FilePickerModal(app, [], settings).openAndGet();

@@ -1,6 +1,6 @@
-import { App, ItemView, WorkspaceLeaf, Plugin } from "obsidian";
+import { ItemView, WorkspaceLeaf, Plugin } from "obsidian";
 import { GeckoTaskSettings } from "../../settings";
-import { ReviewStep, WizardState, SerializedWizardState, ProjectReviewInfo } from "./WeeklyReviewPanelTypes";
+import { WizardState, SerializedWizardState, ProjectReviewInfo } from "./WeeklyReviewPanelTypes";
 import { IndexedTask } from "../tasks/TasksPanelTypes";
 import { 
   ALL_STEPS,
@@ -23,7 +23,7 @@ import {
   openTaskInNote,
   openProjectFile
 } from "./utils/taskHelpers";
-import { renderTaskCard, TaskCardCallbacks } from "./components/TaskCard";
+import { TaskCardCallbacks } from "./components/TaskCard";
 import { renderStep1A } from "./steps/Step1A";
 import { renderStep1B } from "./steps/Step1B";
 import { renderStep1C } from "./steps/Step1C";
