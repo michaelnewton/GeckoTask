@@ -1,13 +1,12 @@
 {
   "compilerOptions": {
     "target": "ES2020",
-    "module": "CommonJS",          // ⬅️ change from ES2020/ESNext to CommonJS
+    "module": "CommonJS",
     "moduleResolution": "Node",
     "lib": ["ES2020", "DOM"],
     "strict": true,
     "skipLibCheck": true,
-    "rootDir": "src",
-    "outDir": "."
+    "noEmit": true
   },
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules", ".obsidian"]

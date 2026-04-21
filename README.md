@@ -22,6 +22,8 @@ GeckoTask is not in the Obsidian Community Plugins catalog yet, and release asse
 
 For updates, rebuild and replace all three files together so versions stay in sync.
 
+For automated checks and a **manual Obsidian smoke test** checklist, see [TESTING.md](TESTING.md).
+
 ## Quick Start in 5 Minutes
 
 ### Prerequisites

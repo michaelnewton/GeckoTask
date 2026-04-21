@@ -1,282 +1,173 @@
-# Obsidian community plugin
+# Obsidian community plugin (GeckoTask)
+
+## Documentation hierarchy (for contributors and agents)
+
+When guidance conflicts, prefer in this order:
+
+1. **[Obsidian Developer policies](https://docs.obsidian.md/Developer+policies)** and **[Plugin guidelines](https://docs.obsidian.md/Plugins/Releasing/Plugin+guidelines)** (security, privacy, releases, UX).
+2. **Common Obsidian plugin patterns** (TypeScript in `src/`, esbuild or similar producing root `main.js`, no accidental `tsc` littering the repo). The [obsidian-sample-plugin](https://github.com/obsidianmd/obsidian-sample-plugin) is one useful reference, not the only valid layout.
+3. **This `AGENTS.md`** for GeckoTask-specific release flow, command IDs, and project conventions. Do not treat this file as stricter than (1)–(2); avoid rules that duplicate a linter or the official docs.
 
 ## Project overview
 
-- Target: Obsidian Community Plugin (TypeScript → bundled JavaScript).
-- Entry point: `src/main.ts` compiled to `main.js` and loaded by Obsidian.
-- Required release artifacts: `main.js`, `manifest.json`, and optional `styles.css`.
+- Target: Obsidian community plugin (TypeScript in `src/`, bundled to root `main.js`).
+- Obsidian loads **`main.js`** per **`manifest.json`** (`"main": "main.js"`). Release artifacts: `main.js`, `manifest.json`, optional `styles.css`.
+- **Human onboarding:** clone, install, dev, and build commands are documented in [`README.md`](README.md). **`package.json`** lists all npm scripts.
 
 ## Environment & tooling
 
-- Node.js: use current LTS (Node 18+ recommended).
-- **Package manager: npm** (required for this sample - `package.json` defines npm scripts and dependencies).
-- **Bundler: esbuild** (required for this sample - `esbuild.config.mjs` and build scripts depend on it). Alternative bundlers like Rollup or webpack are acceptable for other projects if they bundle all external dependencies into `main.js`.
-- Types: `obsidian` type definitions.
-
-**Note**: This sample project has specific technical dependencies on npm and esbuild. If you're creating a plugin from scratch, you can choose different tools, but you'll need to replace the build configuration accordingly.
-
-### Install
-
-```bash
-npm install
-```
-
-### Dev (watch)
-
-```bash
-npm run dev
-```
-
-### Production build
-
-```bash
-npm run build
-```
+- **Node.js:** current LTS (Node 18+ recommended).
+- **Package manager:** npm (`package.json` scripts and lockfile).
+- **Shipped JS:** **esbuild** via [`esbuild.config.mjs`](esbuild.config.mjs) — entry [`src/main.ts`](src/main.ts), output root **`main.js`**. Obsidian does not run `tsc`.
+- **TypeScript:** used for **typechecking** only in this repo. [`tsconfig.json`](tsconfig.json) sets **`"noEmit": true`**. Do **not** run `tsc` expecting emitted `.js` beside or mirroring `src/`; the bundler owns output.
+- **CLI typecheck:** `npm run typecheck` runs `tsc --noEmit`.
+- **Types:** `obsidian` package.
 
 ## Linting
 
-- ESLint is configured for this repository via `eslint.config.mjs`.
-- Run lint checks with `npm run lint` and auto-fix safe issues with `npm run lint:fix`.
-- Linting targets TypeScript source files in `src/` and includes `eslint-plugin-obsidianmd` rules for Obsidian-specific checks.
+- ESLint: [`eslint.config.mjs`](eslint.config.mjs), `npm run lint` / `npm run lint:fix`.
+- Lint scope: `src/**/*.ts`, including `eslint-plugin-obsidianmd` where configured.
 
 ## File & folder conventions
 
-- **Organize code into multiple files**: Split functionality across separate modules rather than putting everything in `main.ts`.
-- Source lives in `src/`. Keep `main.ts` small and focused on plugin lifecycle (loading, unloading, registering commands).
-- **Example file structure**:
+- **Source** lives under **`src/`**. Split features across modules; keep [`src/main.ts`](src/main.ts) focused on **plugin lifecycle** (load/unload, registering views/commands) and thin wiring — see [`src/plugin/`](src/plugin) for grouped registration helpers.
+- **Non-trivial plugins** commonly use deeper trees than a minimal sample. GeckoTask layout (illustrative):
+
   ```
   src/
-    main.ts           # Plugin entry point, lifecycle management
-    settings.ts       # Settings interface and defaults
-    commands/         # Command implementations
-      command1.ts
-      command2.ts
-    ui/              # UI components, modals, views
-      modal.ts
-      view.ts
-    utils/           # Utility functions, helpers
-      helpers.ts
-      constants.ts
-    types.ts         # TypeScript interfaces and types
+    main.ts                 # Plugin entry: lifecycle, delegates to plugin/* helpers
+    plugin/                 # Registration bundles (markdown chrome, startup scheduling)
+    commands/               # Command registration (index.ts)
+    models/                   # Task parsing / types
+    services/                 # Task ops, vault I/O, recurrence, health, etc.
+    settings/                 # Settings interface, defaults, settings tab
+    ui/                       # Modals
+    utils/                    # Shared helpers
+    extensions/               # Editor extensions (checkbox, field decorator)
+    styling/                  # Markdown / view styling
+    view/
+      tasks/                  # Tasks side panel
+      weekly-review/          # Weekly review wizard + steps + components
+      health/                 # Health panel
   ```
-- Do not commit `node_modules/` (kept in `.gitignore`).
-- `main.js` is a generated artifact and is currently tracked in this repository for release/distribution workflow.
-- If you change that workflow later, update this rule and `.gitignore` together.
-- Keep the plugin small. Avoid large dependencies. Prefer browser-compatible packages.
-- Generated output should be placed at the plugin root or `dist/` depending on your build setup. Release artifacts must end up at the top level of the plugin folder in the vault (`main.js`, `manifest.json`, `styles.css`).
+
+- Do not commit `node_modules/`.
+- **`main.js`** is generated by esbuild and is **tracked** here for the current release workflow; if you switch to CI-only artifacts, update this doc and [`.gitignore`](.gitignore) together.
+- Prefer small, browser-compatible dependencies; bundle runtime into `main.js` (external only what esbuild marks external, e.g. `obsidian`, CodeMirror).
 
 ## Manifest rules (`manifest.json`)
 
-- Must include (non-exhaustive):  
-  - `id` (plugin ID; for local dev it should match the folder name)  
-  - `name`  
-  - `version` (Semantic Versioning `x.y.z`)  
-  - `minAppVersion`  
-  - `description`  
-  - `isDesktopOnly` (boolean)  
-  - Optional: `author`, `authorUrl`, `fundingUrl` (string or map)
-- Never change `id` after release. Treat it as stable API.
+- Must include (non-exhaustive): `id`, `name`, `version` (SemVer `x.y.z`), `minAppVersion`, `description`, `isDesktopOnly`; optional `author`, `authorUrl`, `fundingUrl`.
+- Never change `id` after release.
 - Keep `minAppVersion` accurate when using newer APIs.
-- Canonical requirements are coded here: https://github.com/obsidianmd/obsidian-releases/blob/master/.github/workflows/validate-plugin-entry.yml
+- Validator reference: https://github.com/obsidianmd/obsidian-releases/blob/master/.github/workflows/validate-plugin-entry.yml
 
 ## Testing
 
-- Manual install for testing: copy `main.js`, `manifest.json`, `styles.css` (if any) to:
-  ```
-  <Vault>/.obsidian/plugins/<plugin-id>/
-  ```
-- Reload Obsidian and enable the plugin in **Settings → Community plugins**.
-- Run `npm run lint` before creating a release tag to catch TypeScript and Obsidian-specific issues early.
+- Manual install: copy `main.js`, `manifest.json`, `styles.css` (if any) to `<Vault>/.obsidian/plugins/<plugin-id>/`, reload Obsidian, enable under **Settings → Community plugins**.
+- Run `npm run lint` (and `npm run typecheck`) before release tags.
+- Full checklist (automated commands + Obsidian smoke test + future CI ideas): [`TESTING.md`](TESTING.md).
 
 ## Commands & settings
 
-- Any user-facing commands should be added via `this.addCommand(...)`.
-- Prefer the existing `geckotask-*` command ID namespace for plugin-owned commands; only use non-prefixed IDs when intentionally shared with or mirroring other plugins/workflows.
-- If the plugin has configuration, provide a settings tab and sensible defaults.
-- Persist settings using `this.loadData()` / `this.saveData()`.
-- Use stable command IDs; avoid renaming once released.
+- Register user-facing commands with **`this.addCommand(...)`**.
+- **Stability:** command **`id` strings are stable API** — do not rename once released (hotkeys and community workflows depend on them). Prefer clear, unique ids.
+- **Naming:** `geckotask-*` is a **convention for new** plugin-owned commands where it reads well. Existing ids without that prefix (e.g. panel openers) are **intentional**; do not rename for style alone after release.
+
+**Canonical command ids** (as registered in [`src/commands/index.ts`](src/commands/index.ts); also see ribbon below):
+
+| Command id | Purpose (short) |
+|--------------|------------------|
+| `geckotask-open-panel` | Open Tasks panel |
+| `weekly-review-open-panel` | Open Weekly Review panel |
+| `health-open-panel` | Open Health Check panel |
+| `geckotask-quick-add` | Quick add/edit task |
+| `geckotask-toggle-complete` | Toggle complete at cursor |
+| `geckotask-move-task` | Move task (pick project) |
+| `geckotask-set-due` | Set due at cursor |
+| `geckotask-set-scheduled` | Set scheduled at cursor |
+| `geckotask-set-priority` | Set priority at cursor |
+| `geckotask-set-recur` | Set recurrence at cursor |
+| `geckotask-add-remove-tags` | Add/remove tags at cursor |
+| `geckotask-create-project` | Create project file |
+| `geckotask-normalize-task` | Normalize task line at cursor |
+| `geckotask-delete-completed` | Delete completed tasks in current file |
+
+- **Ribbon:** “Tasks Panel” ribbon icon calls the same open action as `geckotask-open-panel` (no separate command id).
+- Settings: [`GeckoTaskSettingTab`](src/settings/SettingsTab.ts), persist with **`loadData()`** / **`saveData()`**, defaults in [`src/settings/defaults.ts`](src/settings/defaults.ts).
 
 ## Versioning & releases
 
-- Bump `version` in `manifest.json` (SemVer) and update `versions.json` to map plugin version → minimum app version.
-- Create a GitHub release whose tag exactly matches `manifest.json`'s `version`. Do not use a leading `v`.
-- Attach `manifest.json`, `main.js`, and `styles.css` (if present) to the release as individual assets.
-- After the initial release, follow the process to add/update your plugin in the community catalog as required.
+- Bump `version` in `manifest.json` (SemVer) and [`package.json`](package.json); update [`versions.json`](versions.json) when `minAppVersion` changes.
+- GitHub release: tag **exactly** matches `manifest.json` version, **no** leading `v`. Attach `manifest.json`, `main.js`, `styles.css` if present.
 
-## Releasing
+## Releasing (this repo)
 
-Releases are manual and intentional. The GitHub Actions workflow only triggers
-when you push a version tag.
+Releases run from **version tags** (see [`.github/workflows/release.yml`](.github/workflows/release.yml)).
 
-### Steps to cut a release
-
-1. Update `version` in both `manifest.json` and `package.json`
-2. Update `versions.json` if `minAppVersion` has changed
-3. Run `npm run build` and verify the build succeeds
-4. Commit all changes
-5. Create a version tag (no "v" prefix): `git tag 0.2.0`
-6. Push the tag: `git push origin 0.2.0`
-7. GitHub Actions will build and create a release with `main.js`,
-   `manifest.json`, and `styles.css` attached
-
-### Important
-- Tags must NOT have a "v" prefix (Obsidian requirement)
-- The tag must match `manifest.json` version exactly
-- Regular commits and pushes do NOT trigger releases
+1. Update `version` in `manifest.json` and `package.json`.
+2. Update `versions.json` if `minAppVersion` changed.
+3. `npm run build` (and `npm run lint` / `npm run typecheck` as needed).
+4. Commit; tag `git tag 0.2.0` (example); `git push origin 0.2.0`.
+5. CI attaches `main.js`, `manifest.json`, `styles.css` to the release.
 
 ## Security, privacy, and compliance
 
-Follow Obsidian's **Developer Policies** and **Plugin Guidelines**. In particular:
+Follow Obsidian **Developer Policies** and **Plugin Guidelines** (see References). In particular: default offline; no hidden telemetry; no remote code execution; minimal vault scope; disclose external services; use **`this.register*`** for anything that must clean up on unload.
 
-- Default to local/offline operation. Only make network requests when essential to the feature.
-- No hidden telemetry. If you collect optional analytics or call third-party services, require explicit opt-in and document clearly in `README.md` and in settings.
-- Never execute remote code, fetch and eval scripts, or auto-update plugin code outside of normal releases.
-- Minimize scope: read/write only what's necessary inside the vault. Do not access files outside the vault.
-- Clearly disclose any external services used, data sent, and risks.
-- Respect user privacy. Do not collect vault contents, filenames, or personal information unless absolutely necessary and explicitly consented.
-- Avoid deceptive patterns, ads, or spammy notifications.
-- Register and clean up all DOM, app, and interval listeners using the provided `register*` helpers so the plugin unloads safely.
+## UX & copy
 
-## UX & copy guidelines (for UI text, commands, settings)
-
-- Prefer sentence case for headings, buttons, and titles.
-- Use clear, action-oriented imperatives in step-by-step copy.
-- Use **bold** to indicate literal UI labels. Prefer "select" for interactions.
-- Use arrow notation for navigation: **Settings → Community plugins**.
-- Keep in-app strings short, consistent, and free of jargon.
+- For UI strings, commands, and settings labels, follow the **[Obsidian style guide](https://help.obsidian.md/style-guide)** (sentence case, clear navigation like **Settings → Community plugins**, short copy).
 
 ## Performance
 
-- Keep startup light. Defer heavy work until needed.
-- Avoid long-running tasks during `onload`; use lazy initialization.
-- Batch disk access and avoid excessive vault scans.
-- Debounce/throttle expensive operations in response to file system events.
+- Keep **`onload`** light: defer heavy work; use lazy init where possible.
+- Avoid long synchronous work during `onload`; batch vault access; debounce/throttle expensive file-event handlers.
+- Prefer splitting **large registration blocks** into dedicated modules (see [`src/plugin/`](src/plugin)) when it improves clarity — not because of a fixed line count.
 
 ## Coding conventions
 
-- TypeScript with `"strict": true` preferred.
-- Use JSDoc (`/** ... */`) for all functions, classes, methods, interfaces, and exported constants.
-- Keep JSDoc concise: start with a one-line summary, then add detail only when useful.
-- Include `@param` for every parameter and `@returns` for non-void return values.
-- Add `@throws` when a function can throw errors.
-- Keep docs accurate when signatures change (parameter names/types and return values).
-- Prefer clear Google-style phrasing while using valid JSDoc syntax.
-- Do not change runtime logic when adding or updating documentation.
-- **Keep `main.ts` minimal**: Focus only on plugin lifecycle (onload, onunload, addCommand calls). Delegate all feature logic to separate modules.
-- **Split large files**: If any file exceeds ~200-300 lines, consider breaking it into smaller, focused modules.
-- **Use clear module boundaries**: Each file should have a single, well-defined responsibility.
-- Bundle everything into `main.js` (no unbundled runtime deps).
-- Avoid Node/Electron APIs if you want mobile compatibility; set `isDesktopOnly` accordingly.
-- Prefer `async/await` over promise chains; handle errors gracefully.
+- TypeScript with **`strict`** (see [`tsconfig.json`](tsconfig.json)).
+- **Documentation:** rely on **types** for API shape. Use concise **`/** ... */`** on **public exports** and non-obvious behavior; add **`@param` / `@returns` / `@throws`** when they add clarity beyond types. Optional **`eslint-plugin-jsdoc`** only if the team wants machine-enforced doc rules.
+- Do not change runtime behavior when updating comments only.
+- Bundle runtime into **`main.js`**; respect mobile vs desktop (`isDesktopOnly`, avoid desktop-only APIs on mobile).
+- Prefer `async/await` with sensible error handling.
 
 ## Mobile
 
-- Where feasible, test on iOS and Android.
-- Don't assume desktop-only behavior unless `isDesktopOnly` is `true`.
-- Avoid large in-memory structures; be mindful of memory and storage constraints.
+- Test on iOS/Android where feasible; avoid desktop-only assumptions unless `isDesktopOnly` is `true`.
 
 ## Agent do/don't
 
-**Do**
-- Add commands with stable IDs (don't rename once released).
-- Provide defaults and validation in settings.
-- Write idempotent code paths so reload/unload doesn't leak listeners or intervals.
-- Use `this.register*` helpers for everything that needs cleanup.
+**Do:** stable command ids; settings defaults and validation; idempotent load/unload; **`this.register*`** for listeners, DOM, intervals.
 
-**Don't**
-- Introduce network calls without an obvious user-facing reason and documentation.
-- Ship features that require cloud services without clear disclosure and explicit opt-in.
-- Store or transmit vault contents unless essential and consented.
+**Don't:** network calls without user-facing need and docs; undisclosed cloud dependencies; collecting vault contents without consent.
 
-## Common tasks
+## Canonical implementation pointers
 
-### Organize code across multiple files
+Prefer reading and extending these instead of duplicating large snippets here:
 
-**main.ts** (minimal, lifecycle only):
-```ts
-import { Plugin } from "obsidian";
-import { MySettings, DEFAULT_SETTINGS } from "./settings";
-import { registerCommands } from "./commands";
-
-export default class MyPlugin extends Plugin {
-  settings: MySettings;
-
-  async onload() {
-    this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
-    registerCommands(this);
-  }
-}
-```
-
-**settings.ts**:
-```ts
-export interface MySettings {
-  enabled: boolean;
-  apiKey: string;
-}
-
-export const DEFAULT_SETTINGS: MySettings = {
-  enabled: true,
-  apiKey: "",
-};
-```
-
-**commands/index.ts**:
-```ts
-import { Plugin } from "obsidian";
-import { doSomething } from "./my-command";
-
-export function registerCommands(plugin: Plugin) {
-  plugin.addCommand({
-    id: "do-something",
-    name: "Do something",
-    callback: () => doSomething(plugin),
-  });
-}
-```
-
-### Add a command
-
-```ts
-this.addCommand({
-  id: "your-command-id",
-  name: "Do the thing",
-  callback: () => this.doTheThing(),
-});
-```
-
-### Persist settings
-
-```ts
-interface MySettings { enabled: boolean }
-const DEFAULT_SETTINGS: MySettings = { enabled: true };
-
-async onload() {
-  this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
-  await this.saveData(this.settings);
-}
-```
-
-### Register listeners safely
-
-```ts
-this.registerEvent(this.app.workspace.on("file-open", f => { /* ... */ }));
-this.registerDomEvent(window, "resize", () => { /* ... */ });
-this.registerInterval(window.setInterval(() => { /* ... */ }, 1000));
-```
+- Plugin lifecycle and view/command registration: [`src/main.ts`](src/main.ts)
+- Markdown preview/editor chrome registration: [`src/plugin/registerMarkdownChrome.ts`](src/plugin/registerMarkdownChrome.ts)
+- Auto-open Tasks panel retries: [`src/plugin/scheduleAutoOpenTasksPanel.ts`](src/plugin/scheduleAutoOpenTasksPanel.ts)
+- Checkbox / recurrence handling: [`src/services/taskCheckboxToggle.ts`](src/services/taskCheckboxToggle.ts)
+- Cursor → `IndexedTask`: [`src/services/taskAtCursor.ts`](src/services/taskAtCursor.ts)
+- Commands list: [`src/commands/index.ts`](src/commands/index.ts)
+- Settings shape and defaults: [`src/settings/index.ts`](src/settings/index.ts), [`src/settings/defaults.ts`](src/settings/defaults.ts)
 
 ## Troubleshooting
 
-- Plugin doesn't load after build: ensure `main.js` and `manifest.json` are at the top level of the plugin folder under `<Vault>/.obsidian/plugins/<plugin-id>/`. 
-- Build issues: if `main.js` is missing, run `npm run build` or `npm run dev` to compile your TypeScript source code.
-- Commands not appearing: verify `addCommand` runs after `onload` and IDs are unique.
-- Settings not persisting: ensure `loadData`/`saveData` are awaited and you re-render the UI after changes.
-- Mobile-only issues: confirm you're not using desktop-only APIs; check `isDesktopOnly` and adjust.
+- Plugin does not load: ensure `main.js` and `manifest.json` sit at `<Vault>/.obsidian/plugins/<plugin-id>/` (plugin id folder matches `manifest.json` `id`).
+- Missing `main.js`: run `npm run build` or `npm run dev`.
+- Commands missing: ensure `addCommand` runs from `onload` and ids are unique.
+- Settings not persisting: await `loadData`/`saveData` and refresh UI after changes.
+- Mobile issues: check desktop-only APIs and `isDesktopOnly`.
 
 ## References
 
-- Obsidian sample plugin: https://github.com/obsidianmd/obsidian-sample-plugin
-- API documentation: https://docs.obsidian.md
-- Developer policies: https://docs.obsidian.md/Developer+policies
-- Plugin guidelines: https://docs.obsidian.md/Plugins/Releasing/Plugin+guidelines
-- Style guide: https://help.obsidian.md/style-guide
+- Sample plugin: https://github.com/obsidianmd/obsidian-sample-plugin  
+- API: https://docs.obsidian.md  
+- Developer policies: https://docs.obsidian.md/Developer+policies  
+- Plugin guidelines: https://docs.obsidian.md/Plugins/Releasing/Plugin+guidelines  
+- Style guide: https://help.obsidian.md/style-guide  
+- Cursor rules / `AGENTS.md` guidance: https://cursor.com/docs/context/rules  

@@ -5,6 +5,7 @@
 	"scripts": {
 		"build": "node esbuild.config.mjs production",
 		"dev": "node esbuild.config.mjs",
+		"typecheck": "tsc --noEmit",
 		"lint": "eslint \"src/**/*.ts\"",
 		"lint:fix": "eslint \"src/**/*.ts\" --fix"
 	},
