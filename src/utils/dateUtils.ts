@@ -8,6 +8,8 @@ interface MomentLike {
   format: (pattern: string) => string;
   diff: (other: MomentLike, unit: string) => number;
   startOf: (period: MomentPeriod) => MomentLike;
+  endOf: (period: MomentPeriod) => MomentLike;
+  add: (amount: number, unit: "days" | "weeks" | "months" | "years") => MomentLike;
 }
 
 interface MomentFactory {

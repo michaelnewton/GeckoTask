@@ -30,7 +30,7 @@ import {
   getSortedProjectFiles,
 } from "../utils/areaUtils";
 import { loadTasksFromFiles } from "../utils/taskUtils";
-import { formatISODate, getMomentNow, parseMomentDate } from "../utils/dateUtils";
+import { formatISODate } from "../utils/dateUtils";
 
 /**
  * Main analysis function that processes all tasks and generates a health report.
@@ -374,9 +374,11 @@ export function identifyMustMoveItems(
 ): MustMoveItem[] {
   const mustMove: MustMoveItem[] = [];
   const activeTasks = tasks.filter(t => !t.checked);
-  const today = getMomentNow();
-  const nextWeek = today.clone().add(7, "days");
-  const nextTwoWeeks = today.clone().add(14, "days");
+  const today = new Date();
+  const nextWeek = new Date(today);
+  nextWeek.setDate(nextWeek.getDate() + 7);
+  const nextTwoWeeks = new Date(today);
+  nextTwoWeeks.setDate(nextTwoWeeks.getDate() + 14);
 
   for (const task of activeTasks) {
     const reasons: string[] = [];
@@ -395,9 +397,9 @@ export function identifyMustMoveItems(
 
     // Check for due date in next 7-14 days
     if (task.due) {
-      const dueDate = parseMomentDate(task.due);
-      if (dueDate.isAfter(today) && dueDate.isBefore(nextTwoWeeks)) {
-        if (dueDate.isBefore(nextWeek)) {
+      const dueDate = new Date(task.due);
+      if (!Number.isNaN(dueDate.getTime()) && dueDate > today && dueDate < nextTwoWeeks) {
+        if (dueDate < nextWeek) {
           reasons.push("Due within 7 days");
         } else {
           reasons.push("Due within 14 days");
