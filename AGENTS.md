@@ -35,9 +35,9 @@ npm run build
 
 ## Linting
 
-- This repository does not currently define a lint script in `package.json`.
-- If you add ESLint locally, run it against source files in `src/` (for example: `npx eslint ./src/`).
-- ESLint reports suggestions and issues by file and line number.
+- ESLint is configured for this repository via `eslint.config.mjs`.
+- Run lint checks with `npm run lint` and auto-fix safe issues with `npm run lint:fix`.
+- Linting targets TypeScript source files in `src/` and includes `eslint-plugin-obsidianmd` rules for Obsidian-specific checks.
 
 ## File & folder conventions
 
@@ -86,10 +86,12 @@ npm run build
   <Vault>/.obsidian/plugins/<plugin-id>/
   ```
 - Reload Obsidian and enable the plugin in **Settings → Community plugins**.
+- Run `npm run lint` before creating a release tag to catch TypeScript and Obsidian-specific issues early.
 
 ## Commands & settings
 
 - Any user-facing commands should be added via `this.addCommand(...)`.
+- Prefer the existing `geckotask-*` command ID namespace for plugin-owned commands; only use non-prefixed IDs when intentionally shared with or mirroring other plugins/workflows.
 - If the plugin has configuration, provide a settings tab and sensible defaults.
 - Persist settings using `this.loadData()` / `this.saveData()`.
 - Use stable command IDs; avoid renaming once released.

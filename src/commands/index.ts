@@ -1,5 +1,4 @@
-import { App, Editor, MarkdownFileInfo, MarkdownView, Notice } from "obsidian";
-import { GeckoTaskSettings } from "../settings";
+import { Editor, MarkdownFileInfo, MarkdownView, Notice } from "obsidian";
 import { captureQuickTask } from "../ui/CaptureModal";
 import { moveTaskAtCursorInteractive, createProjectFile } from "../services/VaultIO";
 import { toggleCompleteAtCursor, setFieldAtCursor, addRemoveTagsAtCursor, normalizeTaskLine, deleteCompletedTasks } from "../services/TaskOps";
