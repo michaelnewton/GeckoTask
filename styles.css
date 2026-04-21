@@ -20,15 +20,10 @@ If your plugin does not need CSS, delete this file.
   width: 100% !important;
   box-sizing: border-box !important;
   overflow-x: hidden !important;
-  display: flex !important;
-  flex-wrap: nowrap !important;
-  align-items: flex-start !important;
 }
 
 .geckotask-settings .setting-item-info {
-  flex: 0 0 auto !important;
   min-width: 0 !important;
-  max-width: 50% !important;
   box-sizing: border-box !important;
   overflow-x: hidden !important;
   overflow-wrap: break-word !important;
@@ -36,24 +31,30 @@ If your plugin does not need CSS, delete this file.
 }
 
 .geckotask-settings .setting-item-control {
-  flex: 1 1 0% !important;
   min-width: 0 !important;
-  max-width: 50% !important;
   box-sizing: border-box !important;
   overflow-x: hidden !important;
 }
 
 .geckotask-settings .setting-item-control input[type="text"],
-.geckotask-settings .setting-item-control input[type="number"],
 .geckotask-settings .setting-item-control textarea,
 .geckotask-settings .setting-item-control select {
-  width: 100% !important;
+  width: 22rem !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  min-width: 0 !important;
+}
+
+.geckotask-settings .setting-item-control input[type="number"] {
+  width: 7rem !important;
   max-width: 100% !important;
   box-sizing: border-box !important;
   min-width: 0 !important;
 }
 
 .geckotask-settings .setting-item-description {
+  white-space: normal !important;
+  line-height: 1.35 !important;
   word-wrap: break-word !important;
   overflow-wrap: break-word !important;
   max-width: 100% !important;
@@ -63,22 +64,25 @@ If your plugin does not need CSS, delete this file.
 
 @media (max-width: 768px), (hover: none) and (pointer: coarse) {
   .geckotask-settings .setting-item {
-    flex-direction: column !important;
-    flex-wrap: nowrap !important;
-    align-items: stretch !important;
+    display: block !important;
   }
 
   .geckotask-settings .setting-item-info {
     width: 100% !important;
     max-width: 100% !important;
     margin-bottom: 8px !important;
-    flex: none !important;
   }
 
   .geckotask-settings .setting-item-control {
     width: 100% !important;
     max-width: 100% !important;
-    flex: none !important;
+  }
+
+  .geckotask-settings .setting-item-control input[type="text"],
+  .geckotask-settings .setting-item-control input[type="number"],
+  .geckotask-settings .setting-item-control textarea,
+  .geckotask-settings .setting-item-control select {
+    width: 100% !important;
   }
 }
 

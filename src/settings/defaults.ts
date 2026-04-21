@@ -11,6 +11,7 @@ export const DEFAULT_SETTINGS: GeckoTaskSettings = {
   somedayMaybeFileName: "_SomedayMaybe",
   inboxFolderName: "Inbox",
   showCompletedTasks: false,
+  autoOpenTasksPanel: true,
   allowedPriorities: ["low","med","high","urgent"],
   nlDateParsing: true,
   dueDateRanges: ["7d", "14d", "30d", "60d", "90d"],

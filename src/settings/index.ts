@@ -9,6 +9,7 @@ export interface GeckoTaskSettings {
   somedayMaybeFileName: string;          // Someday/maybe file name (without .md), default "_SomedayMaybe"
   inboxFolderName: string;               // Inbox folder at vault root, default "Inbox"
   showCompletedTasks: boolean;           // Whether to show completed tasks in panels, default true
+  autoOpenTasksPanel: boolean;           // Whether to auto-open Tasks panel on startup
   allowedPriorities: string[];           // ["low","med","high","urgent"]
   nlDateParsing: boolean;
   dueDateRanges: string[];               // Configurable due date ranges (e.g., ["7d", "14d", "30d", "60d"])

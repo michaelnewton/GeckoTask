@@ -109,6 +109,17 @@ export class GeckoTaskSettingTab extends PluginSettingTab {
         })
       );
 
+    new Setting(containerEl)
+      .setName("Auto-open Tasks panel")
+      .setDesc("Automatically open the Tasks panel when Obsidian starts")
+      .addToggle(t => t
+        .setValue(this.plugin.settings.autoOpenTasksPanel)
+        .onChange(async (v) => {
+          this.plugin.settings.autoOpenTasksPanel = v;
+          await this.plugin.saveSettings();
+        })
+      );
+
     containerEl.createEl("h2", { text: "Task Options" });
 
     new Setting(containerEl)
@@ -188,56 +199,76 @@ export class GeckoTaskSettingTab extends PluginSettingTab {
     new Setting(containerEl)
       .setName("Next actions due days")
       .setDesc("Number of days ahead to show tasks in the next actions list (default: 3).")
-      .addText(t => t
-        .setPlaceholder("3")
-        .setValue(String(this.plugin.settings.nextActionsDueDays))
-        .onChange(async (v) => {
-          const n = Number(v);
-          if (!isNaN(n) && n > 0) this.plugin.settings.nextActionsDueDays = n;
-          await this.plugin.saveSettings();
-        })
-      );
+      .addText(t => {
+        t.inputEl.type = "number";
+        t.inputEl.inputMode = "numeric";
+        t.inputEl.step = "1";
+        t.inputEl.min = "1";
+        return t
+          .setPlaceholder("3")
+          .setValue(String(this.plugin.settings.nextActionsDueDays))
+          .onChange(async (v) => {
+            const n = Number(v);
+            if (!isNaN(n) && n > 0) this.plugin.settings.nextActionsDueDays = n;
+            await this.plugin.saveSettings();
+          });
+      });
 
     containerEl.createEl("h2", { text: "Health Check" });
 
     new Setting(containerEl)
       .setName("Stale file threshold (days)")
       .setDesc("Files not modified in this time are considered stale")
-      .addText(t => t
-        .setPlaceholder("90")
-        .setValue(String(this.plugin.settings.healthCheckStaleFileDays))
-        .onChange(async (v) => {
-          const n = Number(v);
-          if (!isNaN(n) && n > 0) this.plugin.settings.healthCheckStaleFileDays = n;
-          await this.plugin.saveSettings();
-        })
-      );
+      .addText(t => {
+        t.inputEl.type = "number";
+        t.inputEl.inputMode = "numeric";
+        t.inputEl.step = "1";
+        t.inputEl.min = "1";
+        return t
+          .setPlaceholder("90")
+          .setValue(String(this.plugin.settings.healthCheckStaleFileDays))
+          .onChange(async (v) => {
+            const n = Number(v);
+            if (!isNaN(n) && n > 0) this.plugin.settings.healthCheckStaleFileDays = n;
+            await this.plugin.saveSettings();
+          });
+      });
 
     new Setting(containerEl)
       .setName("Stale task threshold (days)")
       .setDesc("Tasks with no due date older than this are considered stale")
-      .addText(t => t
-        .setPlaceholder("90")
-        .setValue(String(this.plugin.settings.healthCheckStaleTaskDays))
-        .onChange(async (v) => {
-          const n = Number(v);
-          if (!isNaN(n) && n > 0) this.plugin.settings.healthCheckStaleTaskDays = n;
-          await this.plugin.saveSettings();
-        })
-      );
+      .addText(t => {
+        t.inputEl.type = "number";
+        t.inputEl.inputMode = "numeric";
+        t.inputEl.step = "1";
+        t.inputEl.min = "1";
+        return t
+          .setPlaceholder("90")
+          .setValue(String(this.plugin.settings.healthCheckStaleTaskDays))
+          .onChange(async (v) => {
+            const n = Number(v);
+            if (!isNaN(n) && n > 0) this.plugin.settings.healthCheckStaleTaskDays = n;
+            await this.plugin.saveSettings();
+          });
+      });
 
     new Setting(containerEl)
       .setName("Unmodified task threshold (days)")
       .setDesc("Tasks not modified in this time are flagged")
-      .addText(t => t
-        .setPlaceholder("60")
-        .setValue(String(this.plugin.settings.healthCheckUnmodifiedTaskDays))
-        .onChange(async (v) => {
-          const n = Number(v);
-          if (!isNaN(n) && n > 0) this.plugin.settings.healthCheckUnmodifiedTaskDays = n;
-          await this.plugin.saveSettings();
-        })
-      );
+      .addText(t => {
+        t.inputEl.type = "number";
+        t.inputEl.inputMode = "numeric";
+        t.inputEl.step = "1";
+        t.inputEl.min = "1";
+        return t
+          .setPlaceholder("60")
+          .setValue(String(this.plugin.settings.healthCheckUnmodifiedTaskDays))
+          .onChange(async (v) => {
+            const n = Number(v);
+            if (!isNaN(n) && n > 0) this.plugin.settings.healthCheckUnmodifiedTaskDays = n;
+            await this.plugin.saveSettings();
+          });
+      });
 
     new Setting(containerEl)
       .setName("Quick win keywords")
@@ -256,41 +287,56 @@ export class GeckoTaskSettingTab extends PluginSettingTab {
     new Setting(containerEl)
       .setName("High task count threshold")
       .setDesc("Projects with more tasks than this are flagged")
-      .addText(t => t
-        .setPlaceholder("30")
-        .setValue(String(this.plugin.settings.healthCheckHighTaskCount))
-        .onChange(async (v) => {
-          const n = Number(v);
-          if (!isNaN(n) && n > 0) this.plugin.settings.healthCheckHighTaskCount = n;
-          await this.plugin.saveSettings();
-        })
-      );
+      .addText(t => {
+        t.inputEl.type = "number";
+        t.inputEl.inputMode = "numeric";
+        t.inputEl.step = "1";
+        t.inputEl.min = "1";
+        return t
+          .setPlaceholder("30")
+          .setValue(String(this.plugin.settings.healthCheckHighTaskCount))
+          .onChange(async (v) => {
+            const n = Number(v);
+            if (!isNaN(n) && n > 0) this.plugin.settings.healthCheckHighTaskCount = n;
+            await this.plugin.saveSettings();
+          });
+      });
 
     new Setting(containerEl)
       .setName("Inbox overflow threshold")
       .setDesc("Inbox with more untriaged items than this is flagged")
-      .addText(t => t
-        .setPlaceholder("20")
-        .setValue(String(this.plugin.settings.healthCheckInboxThreshold))
-        .onChange(async (v) => {
-          const n = Number(v);
-          if (!isNaN(n) && n > 0) this.plugin.settings.healthCheckInboxThreshold = n;
-          await this.plugin.saveSettings();
-        })
-      );
+      .addText(t => {
+        t.inputEl.type = "number";
+        t.inputEl.inputMode = "numeric";
+        t.inputEl.step = "1";
+        t.inputEl.min = "1";
+        return t
+          .setPlaceholder("20")
+          .setValue(String(this.plugin.settings.healthCheckInboxThreshold))
+          .onChange(async (v) => {
+            const n = Number(v);
+            if (!isNaN(n) && n > 0) this.plugin.settings.healthCheckInboxThreshold = n;
+            await this.plugin.saveSettings();
+          });
+      });
 
     new Setting(containerEl)
       .setName("Breakdown title length threshold")
       .setDesc("Titles longer than this may need breakdown")
-      .addText(t => t
-        .setPlaceholder("100")
-        .setValue(String(this.plugin.settings.healthCheckBreakdownTitleLength))
-        .onChange(async (v) => {
-          const n = Number(v);
-          if (!isNaN(n) && n > 0) this.plugin.settings.healthCheckBreakdownTitleLength = n;
-          await this.plugin.saveSettings();
-        })
-      );
+      .addText(t => {
+        t.inputEl.type = "number";
+        t.inputEl.inputMode = "numeric";
+        t.inputEl.step = "1";
+        t.inputEl.min = "1";
+        return t
+          .setPlaceholder("100")
+          .setValue(String(this.plugin.settings.healthCheckBreakdownTitleLength))
+          .onChange(async (v) => {
+            const n = Number(v);
+            if (!isNaN(n) && n > 0) this.plugin.settings.healthCheckBreakdownTitleLength = n;
+            await this.plugin.saveSettings();
+          });
+      });
 
     new Setting(containerEl)
       .setName("Breakdown keywords")

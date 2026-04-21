@@ -113,6 +113,7 @@ export default class GeckoTaskPlugin extends Plugin {
 
     // Activate the Tasks panel on load (wait for workspace layout to be ready)
     // On mobile, this may not work the same way, so we'll try but not fail if it doesn't work
+    if (this.settings.autoOpenTasksPanel) {
     let activationAttempted = false;
     let retryTimeoutId: number | null = null;
     const maxRetries = Platform.isMobileApp ? 20 : 15; // More retries on mobile
@@ -159,6 +160,7 @@ export default class GeckoTaskPlugin extends Plugin {
         }
       })
     );
+    } // end autoOpenTasksPanel
 
   }
 
