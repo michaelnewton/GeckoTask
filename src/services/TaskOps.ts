@@ -222,10 +222,10 @@ export async function addRemoveTagsAtCursor(app: App, editor: Editor, settings: 
  */
 export function normalizeTaskLine(editor: Editor) {
   const currentLineNo = editor.getCursor().line;
-  
+
   // Get all lines from the editor to parse task with description
   const lines = getAllEditorLines(editor);
-  
+
   // Parse the task with its description
   const { task: parsed, endLine } = parseTaskWithDescription(lines, currentLineNo);
   if (!parsed) { new Notice("GeckoTask: No task on this line."); return; }
@@ -233,8 +233,54 @@ export function normalizeTaskLine(editor: Editor) {
   // Format the normalized task with description
   const normalizedLines = formatTaskWithDescription(parsed);
   const normalizedText = normalizedLines.join("\n");
-  
+
   // Replace the entire task block (including description) with the normalized version
   replaceTaskBlock(editor, currentLineNo, endLine, normalizedText);
 }
 
+/**
+ * Deletes all completed tasks from the current file.
+ * @param editor - The editor instance
+ */
+export async function deleteCompletedTasks(editor: Editor) {
+  const lines = getAllEditorLines(editor);
+  const completedTasks: { startLine: number; endLine: number; title: string }[] = [];
+
+  // Find all completed tasks (scan from bottom to top to avoid line number shifts)
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const line = lines[i];
+    // Check if this line is a completed task
+    if (/^\s*-\s*\[[xX]\]/.test(line)) {
+      const { task: parsed, endLine } = parseTaskWithDescription(lines, i);
+      if (parsed && parsed.checked) {
+        completedTasks.push({ startLine: i, endLine, title: parsed.title });
+      }
+    }
+  }
+
+  if (completedTasks.length === 0) {
+    new Notice("GeckoTask: No completed tasks found to delete.");
+    return;
+  }
+
+  // Delete each completed task block (from top to bottom now that we have the ranges)
+  for (const { startLine, endLine } of completedTasks) {
+    const endLineContent = editor.getLine(endLine);
+    const startPos = { line: startLine, ch: 0 };
+    const endPos = { line: endLine, ch: endLineContent.length };
+    editor.replaceRange("", startPos, endPos);
+
+    // Also remove the trailing newline if present
+    if (endLine + 1 < editor.lineCount()) {
+      const nextLineStart = { line: endLine, ch: 0 };
+      const nextLineEnd = { line: endLine, ch: editor.getLine(endLine).length };
+      // Check if this line is now empty (was the description's trailing newline)
+      const lineContent = editor.getLine(endLine);
+      if (lineContent.trim() === "") {
+        editor.replaceRange("", { line: endLine, ch: 0 }, { line: endLine + 1, ch: 0 });
+      }
+    }
+  }
+
+  new Notice(`GeckoTask: Deleted ${completedTasks.length} completed task${completedTasks.length !== 1 ? 's' : ''}.`);
+}

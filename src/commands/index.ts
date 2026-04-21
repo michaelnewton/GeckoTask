@@ -2,7 +2,7 @@ import { Editor, MarkdownFileInfo, MarkdownView, Modal, Notice, Setting, TFile, 
 import { GeckoTaskSettings } from "../settings";
 import { captureQuickTask } from "../ui/CaptureModal";
 import { moveTaskAtCursorInteractive, createProjectFile } from "../services/VaultIO";
-import { toggleCompleteAtCursor, setFieldAtCursor, addRemoveTagsAtCursor, normalizeTaskLine } from "../services/TaskOps";
+import { toggleCompleteAtCursor, setFieldAtCursor, addRemoveTagsAtCursor, normalizeTaskLine, deleteCompletedTasks } from "../services/TaskOps";
 import { getAreas, getAreaTasksFilePath, getProjectTasksFilePath, getAreaSomedayMaybePath, getProjectsPath, getAreaTasksPath } from "../utils/areaUtils";
 import type { GeckoTaskPlugin } from "../main";
 
@@ -138,6 +138,15 @@ export function registerCommands(plugin: GeckoTaskPlugin) {
     icon: "wand-2",
     editorCallback: (editor: Editor, _ctx: MarkdownView | MarkdownFileInfo) => {
       normalizeTaskLine(editor);
+    }
+  });
+
+  plugin.addCommand({
+    id: "geckotask-delete-completed",
+    name: "Delete Completed Tasks (current file)",
+    icon: "trash-2",
+    editorCallback: (editor: Editor, _ctx: MarkdownView | MarkdownFileInfo) => {
+      deleteCompletedTasks(editor);
     }
   });
 
