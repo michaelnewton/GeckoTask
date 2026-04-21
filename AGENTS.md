@@ -101,6 +101,27 @@ npm run build
 - Attach `manifest.json`, `main.js`, and `styles.css` (if present) to the release as individual assets.
 - After the initial release, follow the process to add/update your plugin in the community catalog as required.
 
+## Releasing
+
+Releases are manual and intentional. The GitHub Actions workflow only triggers
+when you push a version tag.
+
+### Steps to cut a release
+
+1. Update `version` in both `manifest.json` and `package.json`
+2. Update `versions.json` if `minAppVersion` has changed
+3. Run `npm run build` and verify the build succeeds
+4. Commit all changes
+5. Create a version tag (no "v" prefix): `git tag 0.2.0`
+6. Push the tag: `git push origin 0.2.0`
+7. GitHub Actions will build and create a release with `main.js`,
+   `manifest.json`, and `styles.css` attached
+
+### Important
+- Tags must NOT have a "v" prefix (Obsidian requirement)
+- The tag must match `manifest.json` version exactly
+- Regular commits and pushes do NOT trigger releases
+
 ## Security, privacy, and compliance
 
 Follow Obsidian's **Developer Policies** and **Plugin Guidelines**. In particular:

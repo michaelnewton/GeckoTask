@@ -21,7 +21,34 @@ lerna-debug.log*
 # obsidian
 data.json
 .obsidian
+
+# Build output (main.js is tracked for releases)
+# If you switch to CI-built releases, add main.js here too
+
+# Compiled JS output (tsc leftovers)
+commands/*.js
+extensions/*.js
+models/*.js
+services/*.js
+settings/*.js
+ui/*.js
+utils/*.js
+styling/*.js
+view/**/*.js
+
+# Claude/AI tooling
+.claude/
+
+# Cursor
+.cursor/
+.cursorignore
+
+# Hot reload (dev only)
 .hotreload
+
+# Environment
+.env
+.env.*
 
 # local tooling
 .venv/
@@ -47,8 +74,3 @@ $RECYCLE.BIN/
 *.swo
 *~
 .*.sw?
-
-# Environment files (optional - uncomment if you use them)
-# .env
-# .env.local
-# .env.*.local

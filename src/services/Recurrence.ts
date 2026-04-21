@@ -240,11 +240,11 @@ export function isValidRecurrencePattern(pattern: string): boolean {
 
 /**
  * Calculates the scheduled and/or due dates for the next occurrence of a recurring task
- * based on GTD rules. Preserves the date type(s) from the existing task:
+ * Preserves the date type(s) from the existing task:
  * - If existing task has scheduled → next occurrence gets scheduled
  * - If existing task has due → next occurrence gets due
  * - If existing task has both → next occurrence gets both
- * - If existing task has neither → next occurrence gets scheduled only (default GTD behavior)
+ * - If existing task has neither → next occurrence gets scheduled only (default behavior)
  * @param recurPattern - The recurrence pattern (e.g., "every Tuesday", "every 10 days")
  * @param fromDate - The date to calculate from (typically completion date or current date)
  * @param existingTask - The existing task to determine which date types to preserve
@@ -263,11 +263,11 @@ export function calculateNextOccurrenceDates(
   const hasScheduled = !!existingTask.scheduled;
   const hasDue = !!existingTask.due;
 
-  // GTD rules:
+  // Date preservation rules:
   // - If existing has scheduled → next gets scheduled
   // - If existing has due → next gets due
   // - If existing has both → next gets both
-  // - If existing has neither → next gets scheduled only (default GTD behavior)
+  // - If existing has neither → next gets scheduled only (default behavior)
   const result: { scheduled?: string; due?: string } = {};
 
   if (hasScheduled) {
@@ -278,7 +278,7 @@ export function calculateNextOccurrenceDates(
     result.due = nextDate;
   }
 
-  // If neither exists, default to scheduled (GTD: most recurring tasks use scheduled)
+  // If neither exists, default to scheduled (most recurring tasks use scheduled dates)
   if (!hasScheduled && !hasDue) {
     result.scheduled = nextDate;
   }

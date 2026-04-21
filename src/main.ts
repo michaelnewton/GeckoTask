@@ -128,7 +128,6 @@ export default class GeckoTaskPlugin extends Plugin {
         if (retryTimeoutId !== null) {
           window.clearTimeout(retryTimeoutId);
         }
-        console.log(`GeckoTask: Tasks panel activated successfully (${Platform.isMobileApp ? 'mobile' : 'desktop'})`);
       } catch (error) {
         // Workspace might not be ready yet, will retry
         if (retryCount < maxRetries) {
@@ -138,10 +137,7 @@ export default class GeckoTaskPlugin extends Plugin {
           retryTimeoutId = window.setTimeout(tryActivatePanel, delay) as unknown as number;
           this.registerInterval(retryTimeoutId);
         } else {
-          // On mobile, this is less critical - user can open manually
-          if (Platform.isMobileApp) {
-            console.log("GeckoTask: Could not auto-open Tasks panel on mobile. Use the command or ribbon icon to open it manually.");
-          } else {
+          if (!Platform.isMobileApp) {
             console.warn("GeckoTask: Could not auto-open Tasks panel after retries:", error);
           }
         }
@@ -264,7 +260,7 @@ export default class GeckoTaskPlugin extends Plugin {
     if (parsed.recur && parsed.recur.length > 0 && parsed.checked && parsed.completion && justAddedCompletedDate) {
       const nextDates = calculateNextOccurrenceDates(parsed.recur, today, parsed);
       if (nextDates) {
-        // Create new task with next occurrence (preserve date types based on GTD rules)
+        // Create new task with next occurrence (preserve date types from existing task)
         const newTask: Task = {
           ...parsed,
           checked: false,

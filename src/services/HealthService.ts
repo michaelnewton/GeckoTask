@@ -582,7 +582,7 @@ export function analyzeRecurringTasks(tasks: IndexedTask[]): RecurringIssue[] {
       });
     }
 
-    // GTD rules: recurring tasks should have scheduled dates (most common) or due dates (if consequences)
+    // Recurring tasks should have scheduled dates (most common) or due dates (if time-sensitive)
     // Flag tasks with neither as "habit disguised as task"
     const hasScheduled = !!task.scheduled;
     const hasDue = !!task.due;
@@ -590,12 +590,12 @@ export function analyzeRecurringTasks(tasks: IndexedTask[]): RecurringIssue[] {
     if (!hasScheduled && !hasDue) {
       issues.push({
         task,
-        issue: "Recurring task missing scheduled or due date (GTD: habit disguised as task)"
+        issue: "Recurring task missing scheduled or due date (may be a habit disguised as a task)"
       });
     } else if (!hasScheduled) {
       // If it has due but no scheduled, that's valid (due-only for deadlines)
       // But most recurring tasks should have scheduled, so we can flag it as a suggestion
-      // Actually, per GTD rules, due-only is valid for recurring tasks with consequences
+      // Actually, due-only is valid for recurring tasks with hard deadlines
       // So we won't flag this as an error, just note it
     }
 

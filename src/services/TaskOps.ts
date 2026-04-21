@@ -60,7 +60,7 @@ export async function toggleCompleteAtCursor(editor: Editor, view: MarkdownView,
   if (checked && parsed.recur && parsed.recur.length > 0) {
     const nextDates = calculateNextOccurrenceDates(parsed.recur, today, parsed);
     if (nextDates) {
-      // Create new task with next occurrence (preserve date types based on GTD rules)
+      // Create new task with next occurrence (preserve date types from existing task)
       const newTask: Task = {
         ...parsed,
         checked: false,

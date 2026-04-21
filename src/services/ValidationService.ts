@@ -9,10 +9,10 @@ export interface ValidationResult {
 }
 
 /**
- * Strong action verbs that represent clear, physical "next actions" in GTD.
- * 
+ * Strong action verbs that represent clear, physical "next actions".
+ *
  * These are verbs that describe visible physical actions you can take in the world.
- * Good GTD task titles start with these verbs followed by a concrete object.
+ * Good task titles start with these verbs followed by a concrete object.
  * 
  * Examples: "Call dentist", "Review proposal", "Draft report", "Buy groceries"
  */
