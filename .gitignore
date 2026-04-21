@@ -12,10 +12,6 @@ yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
 
-# Don't include the compiled main.js file in the repo.
-# They should be uploaded to GitHub releases instead.
-main.js
-
 # Exclude sourcemaps
 *.map
 
@@ -25,6 +21,10 @@ main.js
 # obsidian
 data.json
 .obsidian
+.hotreload
+
+# local tooling
+.venv/
 
 # OS files
 # macOS

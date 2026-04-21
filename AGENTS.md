@@ -3,7 +3,7 @@
 ## Project overview
 
 - Target: Obsidian Community Plugin (TypeScript → bundled JavaScript).
-- Entry point: `main.ts` compiled to `main.js` and loaded by Obsidian.
+- Entry point: `src/main.ts` compiled to `main.js` and loaded by Obsidian.
 - Required release artifacts: `main.js`, `manifest.json`, and optional `styles.css`.
 
 ## Environment & tooling
@@ -35,10 +35,9 @@ npm run build
 
 ## Linting
 
-- To use eslint install eslint from terminal: `npm install -g eslint`
-- To use eslint to analyze this project use this command: `eslint main.ts`
-- eslint will then create a report with suggestions for code improvement by file and line number.
-- If your source code is in a folder, such as `src`, you can use eslint with this command to analyze all files in that folder: `eslint ./src/`
+- This repository does not currently define a lint script in `package.json`.
+- If you add ESLint locally, run it against source files in `src/` (for example: `npx eslint ./src/`).
+- ESLint reports suggestions and issues by file and line number.
 
 ## File & folder conventions
 
@@ -60,7 +59,9 @@ npm run build
       constants.ts
     types.ts         # TypeScript interfaces and types
   ```
-- **Do not commit build artifacts**: Never commit `node_modules/`, `main.js`, or other generated files to version control.
+- Do not commit `node_modules/` (kept in `.gitignore`).
+- `main.js` is a generated artifact and is currently tracked in this repository for release/distribution workflow.
+- If you change that workflow later, update this rule and `.gitignore` together.
 - Keep the plugin small. Avoid large dependencies. Prefer browser-compatible packages.
 - Generated output should be placed at the plugin root or `dist/` depending on your build setup. Release artifacts must end up at the top level of the plugin folder in the vault (`main.js`, `manifest.json`, `styles.css`).
 
@@ -131,6 +132,13 @@ Follow Obsidian's **Developer Policies** and **Plugin Guidelines**. In particula
 ## Coding conventions
 
 - TypeScript with `"strict": true` preferred.
+- Use JSDoc (`/** ... */`) for all functions, classes, methods, interfaces, and exported constants.
+- Keep JSDoc concise: start with a one-line summary, then add detail only when useful.
+- Include `@param` for every parameter and `@returns` for non-void return values.
+- Add `@throws` when a function can throw errors.
+- Keep docs accurate when signatures change (parameter names/types and return values).
+- Prefer clear Google-style phrasing while using valid JSDoc syntax.
+- Do not change runtime logic when adding or updating documentation.
 - **Keep `main.ts` minimal**: Focus only on plugin lifecycle (onload, onunload, addCommand calls). Delegate all feature logic to separate modules.
 - **Split large files**: If any file exceeds ~200-300 lines, consider breaking it into smaller, focused modules.
 - **Use clear module boundaries**: Each file should have a single, well-defined responsibility.
