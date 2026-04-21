@@ -10,8 +10,21 @@ GeckoTask is for Obsidian users who want a GTD-friendly workflow without leaving
 
 ## Quick Install
 
+GeckoTask is not in the Obsidian Community Plugins catalog yet. You can install a **prebuilt release** with [BRAT](https://github.com/TfTHacker/obsidian42-brat) (Beta Reviewers Auto-update Tool), or **build from source** and copy files manually.
+
+BRAT installs from this repo’s [GitHub Releases](https://github.com/geckom/GeckoTask/releases). Each release must attach `main.js`, `manifest.json`, and `styles.css` (this project’s [release workflow](.github/workflows/release.yml) adds those when a maintainer pushes a semver tag like `0.1.0`). If there is no release yet, use **Manual install** below.
+
+### Install with BRAT
+
+1. In Obsidian, open **Settings → Community plugins**, turn off **Restricted mode** if needed, then **Browse** and install **BRAT** ([`obsidian42-brat`](https://github.com/TfTHacker/obsidian42-brat)). Official docs: [tfthacker.com/BRAT](https://tfthacker.com/BRAT).
+2. Enable **BRAT**.
+3. Open the **Command palette** and run **BRAT: Plugins: Add a beta plugin for testing (with or without version)**.
+4. When asked for the repository, enter **`geckom/GeckoTask`** or **`https://github.com/geckom/GeckoTask`**. Confirm to add the plugin; BRAT will download the latest (or pre-)release that includes the required assets.
+5. Open **Settings → Community plugins**, find **GeckoTask**, and enable it.
+
+To update later, use BRAT’s commands (for example **BRAT: Plugins: Check for updates to all beta plugins and UPDATE**) or its settings; see the [BRAT documentation](https://tfthacker.com/BRAT).
+
 ### Manual Install
-GeckoTask is not in the Obsidian Community Plugins catalog yet, and release assets are not published yet.
 
 1. Clone this repository locally.
 2. Build the plugin artifacts:
@@ -23,8 +36,6 @@ GeckoTask is not in the Obsidian Community Plugins catalog yet, and release asse
 4. Reload Obsidian and enable GeckoTask in `Settings -> Community plugins`.
 
 For updates, rebuild and replace all three files together so versions stay in sync.
-
-For automated checks and a **manual Obsidian smoke test** checklist, see [TESTING.md](TESTING.md).
 
 ## ☕ Support
 
@@ -389,6 +400,10 @@ npm run build
 ```
 
 Build output is `main.js` in repo root (with `manifest.json` and `styles.css`).
+
+### Testing
+
+For automated checks and a **manual Obsidian smoke test** checklist, see [TESTING.md](TESTING.md).
 
 Before cutting a release, run a production build and test in a clean vault profile.
 
