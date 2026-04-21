@@ -1,3 +1,5 @@
+[![Buy Me A Coffee](https://img.shields.io/badge/Support-Buy%20Me%20A%20Coffee-yellow?logo=buymeacoffee)](https://buymeacoffee.com/geckom)
+
 # GeckoTask
 
 GeckoTask is an Obsidian plugin that turns notes into a practical task system. It helps you capture tasks fast, organize work by area and project, plan with due and scheduled dates, and review everything in dedicated Tasks, Weekly Review, and Health Check panels.
@@ -23,6 +25,18 @@ GeckoTask is not in the Obsidian Community Plugins catalog yet, and release asse
 For updates, rebuild and replace all three files together so versions stay in sync.
 
 For automated checks and a **manual Obsidian smoke test** checklist, see [TESTING.md](TESTING.md).
+
+## ☕ Support
+
+If this plugin saves you time or improves your workflow, you can support its development:
+
+<a href="https://buymeacoffee.com/geckom" target="_blank">
+  <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" 
+       alt="Buy Me A Coffee" 
+       height="45">
+</a>
+
+No pressure — everything will remain free and open.
 
 ## Quick Start in 5 Minutes
 
