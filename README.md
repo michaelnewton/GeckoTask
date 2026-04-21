@@ -47,7 +47,7 @@ GeckoTask infers area/project from file path (not from `project::` metadata). Th
 - **Projects**: `{Area}/1Projects/{ProjectName}/`
 - **Areas**: top-level folders listed in `Area paths` (for example `Personal`, `Work`)
 - **Resources**: keep outside GeckoTask-managed task files, or in separate notes linked from tasks
-- **Archive**: keep outside active task paths (migration can move old task archive to `tasks-archive/`)
+- **Archive**: keep outside active task paths
 
 Current structure is root-based:
 
@@ -153,9 +153,8 @@ The Tasks panel is the daily command center for GeckoTask.
 - `GeckoTask: Normalize Task Line (at cursor)`
 - `GeckoTask: Delete Completed Tasks (current file)`
 
-### Project and Migration
+### Project
 - `GeckoTask: Create Project File`
-- `GeckoTask: Migrate from old tasks folder structure`
 
 ## Weekly Review
 
@@ -381,13 +380,6 @@ where !completed
 sort priority desc, due asc
 ```
 ````
-
-## Notes on Migration
-
-If you used an older `tasks/`-centered layout, run the migration command. It:
-- creates `tasks-backup/` first,
-- converts old task locations into the current area/project structure,
-- moves old `Archive` to `tasks-archive` when needed.
 
 ## License
 
