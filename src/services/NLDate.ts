@@ -1,11 +1,21 @@
 import { formatISODate } from "../utils/dateUtils";
 
+interface MomentDateLike {
+  isValid: () => boolean;
+  format: (pattern: string) => string;
+}
+
+interface MomentFactory {
+  (input?: string): MomentDateLike;
+}
+
 /**
  * Gets the moment.js instance if available.
  * @returns Moment.js instance or undefined
  */
-function getMoment(): any {
-  return (window as any).moment;
+function getMoment(): MomentFactory | undefined {
+  const maybeMoment = (window as Window & { moment?: MomentFactory }).moment;
+  return maybeMoment;
 }
 
 /**

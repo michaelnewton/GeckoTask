@@ -3,6 +3,14 @@ import { ViewPlugin, ViewUpdate, EditorView } from "@codemirror/view";
 import { GeckoTaskSettings } from "../settings";
 import { isInAnyArea, isInInboxFolder } from "../utils/areaUtils";
 
+type EditorWithCm = { cm?: EditorView };
+
+function getEditorView(editor: unknown): EditorView | undefined {
+  if (!editor || typeof editor !== "object") return undefined;
+  const maybeEditor = editor as EditorWithCm;
+  return maybeEditor.cm;
+}
+
 /**
  * Creates a CodeMirror ViewPlugin that intercepts checkbox clicks to handle recurring tasks.
  * @param app - The Obsidian app instance
@@ -29,7 +37,7 @@ export function createCheckboxClickHandler(
         let result: MarkdownView | null = null;
         app.workspace.iterateAllLeaves((leaf) => {
           if (leaf.view instanceof MarkdownView && leaf.view.editor) {
-            const editorView = (leaf.view.editor as any).cm as EditorView | undefined;
+            const editorView = getEditorView(leaf.view.editor);
             if (editorView === view) {
               result = leaf.view;
             }

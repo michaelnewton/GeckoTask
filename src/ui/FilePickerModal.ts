@@ -6,7 +6,7 @@ import { createProjectFile } from "../services/VaultIO";
 /**
  * Special marker to represent "Create new project" option.
  */
-const CREATE_NEW_PROJECT_MARKER = "__CREATE_NEW_PROJECT__" as any;
+const CREATE_NEW_PROJECT_MARKER = "__CREATE_NEW_PROJECT__" as const;
 
 /**
  * Modal for picking a file from a list of suggestions.

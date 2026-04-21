@@ -1,4 +1,4 @@
-import { Editor, MarkdownFileInfo, MarkdownView, Modal, Notice, Setting, TFile, TFolder } from "obsidian";
+import { App, Editor, MarkdownFileInfo, MarkdownView, Modal, Notice, Setting, TFile, TFolder } from "obsidian";
 import { GeckoTaskSettings } from "../settings";
 import { captureQuickTask } from "../ui/CaptureModal";
 import { moveTaskAtCursorInteractive, createProjectFile } from "../services/VaultIO";
@@ -186,9 +186,9 @@ function isAreaTaskFileName(basename: string): boolean {
   return AREA_TASK_FILE_NAMES.includes(basename);
 }
 
-async function runMigration(app: any, settings: GeckoTaskSettings, plugin: GeckoTaskPlugin): Promise<void> {
+async function runMigration(app: App, settings: GeckoTaskSettings, plugin: GeckoTaskPlugin): Promise<void> {
   // Check if old tasksFolder exists (try common case variants)
-  let tasksFolder: any = null;
+  let tasksFolder: TFolder | null = null;
   let oldTasksFolder = "";
   for (const candidate of ["Tasks", "tasks"]) {
     const found = app.vault.getAbstractFileByPath(candidate);
@@ -426,7 +426,7 @@ async function runMigration(app: any, settings: GeckoTaskSettings, plugin: Gecko
 
           // Remove old project folder if only non-essential files remain
           const remaining = child.children;
-          const onlyJunk = remaining.every((c: any) =>
+          const onlyJunk = remaining.every((c) =>
             c instanceof TFile && (c.name === ".DS_Store" || c.name.endsWith(".bak") || c.name.endsWith(".backup"))
           );
           if (remaining.length === 0 || onlyJunk) {
@@ -454,8 +454,8 @@ async function runMigration(app: any, settings: GeckoTaskSettings, plugin: Gecko
 
     // 4. Remove old tasks folder if only non-essential files remain (leave Archive in place)
     const remainingChildren = [...tasksFolder.children];
-    const archiveChild = remainingChildren.find((c: any) => c instanceof TFolder && c.name === "Archive");
-    const nonArchiveNonJunk = remainingChildren.filter((c: any) => {
+    const archiveChild = remainingChildren.find((c) => c instanceof TFolder && c.name === "Archive");
+    const nonArchiveNonJunk = remainingChildren.filter((c) => {
       if (c instanceof TFolder && c.name === "Archive") return false;
       if (c instanceof TFile && (c.name === ".DS_Store" || c.name.endsWith(".bak") || c.name.endsWith(".backup"))) return false;
       return true;
@@ -486,7 +486,7 @@ async function runMigration(app: any, settings: GeckoTaskSettings, plugin: Gecko
 /**
  * Recursively copies a folder and all its contents to a new location.
  */
-async function copyFolderRecursive(app: any, source: TFolder, targetPath: string): Promise<void> {
+async function copyFolderRecursive(app: App, source: TFolder, targetPath: string): Promise<void> {
   await ensureFolder(app, targetPath);
   for (const child of source.children) {
     if (child instanceof TFile) {
@@ -522,7 +522,7 @@ function slugify(title: string): string {
     .slice(0, 80);
 }
 
-async function ensureFolder(app: any, path: string): Promise<void> {
+async function ensureFolder(app: App, path: string): Promise<void> {
   const existing = app.vault.getAbstractFileByPath(path);
   if (existing instanceof TFolder) return;
   await app.vault.createFolder(path);

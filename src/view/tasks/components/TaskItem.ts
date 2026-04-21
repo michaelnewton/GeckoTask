@@ -334,12 +334,12 @@ function renderInlineValidationFeedback(container: HTMLElement, results: Validat
 /**
  * Debounce helper for validation.
  */
-function debounceValidation<T extends (...args: any[]) => void>(
-  func: T,
+function debounceValidation<TArgs extends unknown[]>(
+  func: (...args: TArgs) => void,
   wait: number
-): (...args: Parameters<T>) => void {
+): (...args: TArgs) => void {
   let timeout: ReturnType<typeof setTimeout> | null = null;
-  return (...args: Parameters<T>) => {
+  return (...args: TArgs) => {
     if (timeout) {
       clearTimeout(timeout);
     }

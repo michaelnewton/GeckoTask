@@ -22,11 +22,15 @@ interface Draft {
   recur?: string;
 }
 
+interface TagsMetadataCache {
+  getTags?: () => Record<string, unknown>;
+}
+
 /**
  * Retrieves the vault's cached tags, normalized and sorted for display.
  */
 function getVaultTags(app: App): string[] {
-  const cache = (app.metadataCache as any).getTags?.() ?? {};
+  const cache = (app.metadataCache as TagsMetadataCache).getTags?.() ?? {};
   const rawTags = Object.keys(cache)
     .map(tag => tag.trim())
     .filter(Boolean);
@@ -222,12 +226,12 @@ export async function captureQuickTask(app: App, settings: GeckoTaskSettings, ex
         }
       }
 
-      private debounceValidation<T extends (...args: any[]) => void>(
-        func: T,
+      private debounceValidation<TArgs extends unknown[]>(
+        func: (...args: TArgs) => void,
         wait: number
-      ): (...args: Parameters<T>) => void {
+      ): (...args: TArgs) => void {
         let timeout: ReturnType<typeof setTimeout> | null = null;
-        return (...args: Parameters<T>) => {
+        return (...args: TArgs) => {
           if (timeout) {
             clearTimeout(timeout);
           }

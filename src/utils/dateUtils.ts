@@ -2,6 +2,18 @@
  * Utility functions for date formatting and manipulation.
  */
 
+type MomentPeriod = "day" | "week" | "month" | "year";
+
+interface MomentLike {
+  format: (pattern: string) => string;
+  diff: (other: MomentLike, unit: string) => number;
+  startOf: (period: MomentPeriod) => MomentLike;
+}
+
+interface MomentFactory {
+  (input?: string | Date): MomentLike;
+}
+
 /**
  * Formats a date as ISO string (YYYY-MM-DD).
  * @param date - The date to format
@@ -31,8 +43,9 @@ export function formatISODateTime(date: Date): string {
  * Gets the moment.js instance if available.
  * @returns Moment.js instance or undefined
  */
-function getMoment(): any {
-  return (window as any).moment;
+function getMoment(): MomentFactory | undefined {
+  const maybeMoment = (window as Window & { moment?: MomentFactory }).moment;
+  return maybeMoment;
 }
 
 /**
@@ -60,7 +73,7 @@ export function formatDate(date: string | Date, format: string): string {
  * Gets the current date/time using moment.js.
  * @returns Moment.js object or current Date
  */
-export function getMomentNow(): any {
+export function getMomentNow(): MomentLike | Date {
   const moment = getMoment();
   if (moment) {
     return moment();
@@ -73,7 +86,7 @@ export function getMomentNow(): any {
  * @param dateString - Date string to parse
  * @returns Moment.js object or Date
  */
-export function parseMomentDate(dateString: string): any {
+export function parseMomentDate(dateString: string): MomentLike | Date {
   const moment = getMoment();
   if (moment) {
     return moment(dateString);

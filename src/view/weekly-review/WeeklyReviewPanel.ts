@@ -490,9 +490,9 @@ export class WeeklyReviewPanel extends ItemView {
    * @param ms - Debounce delay in milliseconds
    * @returns Debounced function
    */
-  private debounce<T extends (...args:any[])=>any>(fn: T, ms: number): T {
+  private debounce<T extends (...args: unknown[]) => void>(fn: T, ms: number): T {
     let h: number | undefined;
-    return ((...args: any[]) => {
+    return ((...args: Parameters<T>) => {
       window.clearTimeout(h);
       h = window.setTimeout(() => fn(...args), ms);
     }) as unknown as T;

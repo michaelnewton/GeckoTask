@@ -80,12 +80,12 @@ export class PromptModal extends Modal {
   /**
    * Debounce helper for validation.
    */
-  private debounceValidation<T extends (...args: any[]) => void>(
-    func: T,
+  private debounceValidation<TArgs extends unknown[]>(
+    func: (...args: TArgs) => void,
     wait: number
-  ): (...args: Parameters<T>) => void {
+  ): (...args: TArgs) => void {
     let timeout: ReturnType<typeof setTimeout> | null = null;
-    return (...args: Parameters<T>) => {
+    return (...args: TArgs) => {
       if (timeout) {
         clearTimeout(timeout);
       }

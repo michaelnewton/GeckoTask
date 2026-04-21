@@ -4,6 +4,14 @@ import { RangeSetBuilder } from "@codemirror/state";
 import { GeckoTaskSettings } from "../settings";
 import { isInAnyArea, isInInboxFolder } from "../utils/areaUtils";
 
+type EditorWithCm = { cm?: EditorView };
+
+function getEditorView(editor: unknown): EditorView | undefined {
+  if (!editor || typeof editor !== "object") return undefined;
+  const maybeEditor = editor as EditorWithCm;
+  return maybeEditor.cm;
+}
+
 /**
  * Finds the TFile associated with a CodeMirror EditorView by matching against all leaves.
  */
@@ -11,7 +19,7 @@ function findFileForView(app: App, view: EditorView): TFile | null {
   let result: TFile | null = null;
   app.workspace.iterateAllLeaves((leaf) => {
     if (leaf.view instanceof MarkdownView && leaf.view.editor) {
-      const editorView = (leaf.view.editor as any).cm as EditorView | undefined;
+      const editorView = getEditorView(leaf.view.editor);
       if (editorView === view) {
         result = (leaf.view as MarkdownView).file;
       }

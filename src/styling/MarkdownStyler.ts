@@ -3,6 +3,14 @@ import { EditorView } from "@codemirror/view";
 import { GeckoTaskSettings } from "../settings";
 import { isInAnyArea, isInInboxFolder } from "../utils/areaUtils";
 
+type EditorWithCm = { cm?: EditorView };
+
+function getEditorView(editor: unknown): EditorView | undefined {
+  if (!editor || typeof editor !== "object") return undefined;
+  const maybeEditor = editor as EditorWithCm;
+  return maybeEditor.cm;
+}
+
 /**
  * Updates the styling class on markdown views based on whether the file is in the tasks folder.
  * @param app - The Obsidian app instance
@@ -28,7 +36,7 @@ export function updateMarkdownViewStyling(app: App, settings: GeckoTaskSettings,
         
         // Also add to CodeMirror editor if it exists (for source view)
         if (leaf.view.editor) {
-          const cmEditor = (leaf.view.editor as any).cm as EditorView | undefined;
+          const cmEditor = getEditorView(leaf.view.editor);
           if (cmEditor) {
             const cmEl = cmEditor.dom;
             if (cmEl) {
@@ -48,7 +56,7 @@ export function updateMarkdownViewStyling(app: App, settings: GeckoTaskSettings,
         
         // Also remove from CodeMirror editor
         if (leaf.view.editor) {
-          const cmEditor = (leaf.view.editor as any).cm as EditorView | undefined;
+          const cmEditor = getEditorView(leaf.view.editor);
           if (cmEditor) {
             const cmEl = cmEditor.dom;
             if (cmEl) {

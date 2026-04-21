@@ -82,7 +82,7 @@ export interface RecurringIssue {
 export interface CleanupSuggestion {
   type: "high-task-count" | "stale-file" | "inbox-overflow" | "area-imbalance" | "completed-archive";
   message: string;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
 }
 
 /**
