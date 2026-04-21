@@ -1,123 +1,168 @@
 # GeckoTask
 
-**GeckoTask** is a Markdown-first task manager for Obsidian that provides fast task capture, metadata management, and archiving while working seamlessly with Dataview for powerful task queries and displays.
+GeckoTask is an Obsidian plugin that turns your notes into a complete task management system. It lets you quickly capture tasks, organize them by area and project, plan with due/scheduled dates and recurrence, and manage work through dedicated Tasks, Weekly Review, and Health Check panels. Everything is stored in plain Markdown files with inline fields (`due::`, `priority::`, `scheduled::`, `recur::`), so your tasks are easy to edit, portable across tools, and ready for Dataview queries.
 
-## Overview
+## Quick Start in 5 Minutes
 
-GeckoTask is designed around the principle that your tasks should be **plain Markdown files** that you can edit anywhere, sync with any tool, and query with Dataview. It provides a powerful task management system with three main panels:
+1. Install and enable GeckoTask in Obsidian.
+2. Open `Settings -> GeckoTask` and set your `Area paths` (for example: `Personal, Work`).
+3. Run `GeckoTask: Create Project File` and create your first project under an area.
+4. Run `GeckoTask: Quick Add/Edit Task` (or press `Mod+Shift+E`) to capture a task.
+5. Open `GeckoTask: Open Tasks Panel` to triage and edit tasks.
+6. Run `GeckoTask: Open Weekly Review Panel` to process inbox and review projects.
+7. Run `GeckoTask: Open Health Check Panel` to catch stale items and cleanup opportunities.
 
-- **Tasks Panel**: Browse, filter, and manage all your tasks with inline editing
-- **Weekly Review Panel**: Guided GTD-style weekly review workflow
-- **Health Check Panel**: Analyze your task system for issues and opportunities
+## What It Does
 
-Tasks are stored as standard Markdown checkboxes with inline metadata, organized in a simple folder structure. Projects are represented as files, and areas are represented as folders. This makes your task system transparent, portable, and compatible with any Markdown editor.
+- Tasks side panel with tabs, filters, inline edits, and quick actions
+- Weekly Review panel with guided GTD-style steps
+- Health Check panel for stale items, quick wins, and cleanup signals
+- Quick capture/edit modal from command palette or hotkey
+- Recurring task support (`🔁 every ...`) with automatic next occurrence creation
+- Metadata styling in preview and source modes for faster scanning
 
-## Features
+## Panels at a Glance
 
-### Core Functionality
+GeckoTask has three primary panels, each with a distinct job:
 
-- **Fast Task Capture**: Quick-add modal for creating tasks with metadata (due date, priority, tags, project)
-- **Tasks Panel**: Side panel view for browsing, filtering, and managing tasks with inline editing
-- **Weekly Review Panel**: Guided GTD-style weekly review workflow with step-by-step wizard
-- **Health Check Panel**: Comprehensive analysis of your task system to identify issues and opportunities
-- **Folder-Based Organization**: Organize tasks by areas (Work, Personal) and projects using folder structure
-- **Recurring Tasks**: Support for recurring tasks with automatic next occurrence generation (Tasks plugin compatible)
-- **Multi-line Descriptions**: Support for task descriptions stored as indented lines below task lines
-- **Natural Language Dates**: Parse dates like "today", "tomorrow", "next monday", "in 3 days"
-- **Task Movement**: Easily move tasks between projects while preserving metadata
-- **Archiving**: Archive completed tasks with origin context preserved
-- **Markdown Styling**: Automatic styling of task metadata fields in markdown preview and source view
-- **Dataview Integration**: Tasks use consistent inline metadata that works perfectly with Dataview queries
+### Tasks Panel (daily execution)
+- Use this during the day to decide what to do now, next, and soon.
+- Best for triage, filtering, quick edits, moving tasks, and completing work.
+- Open with `GeckoTask: Open Tasks Panel`.
 
-### Task Format
+### Weekly Review Panel (weekly system maintenance)
+- Use this once a week (or more) to run a structured GTD-style review.
+- Best for processing inbox, reviewing projects, checking waiting-for items, and generating new commitments.
+- Open with `GeckoTask: Open Weekly Review Panel`.
 
-Tasks use standard Markdown checkboxes with inline metadata:
+### Health Check Panel (diagnostics and cleanup)
+- Use this to identify drift and system quality issues across your task base.
+- Best for spotting stale tasks/files, inbox overflow, oversized task titles, and quick wins.
+- Open with `GeckoTask: Open Health Check Panel`.
 
-```markdown
-- [ ] Write agent router tests  #work #router priority:: high  due:: 2025-11-15
-```
+## Current Task Storage Model
 
-**Note:** The `project::` field is not stored in metadata for regular project files. Projects are derived from the file basename (e.g., `tasks/Work/RouterRevamp.md` → project: `RouterRevamp`). For special files (Inbox, Single Action), project is undefined.
+GeckoTask infers area/project from file path (not from `project::` metadata). The structure is designed to align with PARA:
 
-Tasks can include recurrence patterns (Tasks plugin compatible):
+- **Projects**: `{Area}/1Projects/{ProjectName}/`
+- **Areas**: top-level folders listed in `Area paths` (for example `Personal`, `Work`)
+- **Resources**: keep outside GeckoTask-managed task files, or in separate notes linked from tasks
+- **Archive**: keep outside active task paths (migration can move old task archive to `tasks-archive/`)
 
-```markdown
-- [ ] Weekly team meeting 🔁 every Tuesday due:: 2025-11-11
-- [ ] Backup files 🔁 every 10 days due:: 2025-11-07
-- [ ] Bi-weekly report 🔁 every 2 weeks on Tuesday due:: 2025-11-11
-```
+Current structure is root-based:
 
-When a recurring task is completed, the plugin automatically creates the next occurrence with an updated due date.
-
-Tasks can also include multi-line descriptions:
-
-```markdown
-- [ ] Write agent router tests  #work #router priority:: high  due:: 2025-11-15
-  This is a multi-line description.
-  It can span multiple lines.
-```
-
-
-## How Tasks and Projects Are Stored
-
-### Task Storage
-
-Tasks are stored as standard Markdown checkboxes in `.md` files within your tasks folder. Each task is a single line (or multiple lines with indented descriptions) with inline metadata:
-
-```markdown
-- [ ] Write agent router tests  #work #router priority:: high  due:: 2025-11-15
-```
-
-**Key points about task storage:**
-- Tasks are plain Markdown - you can edit them in any editor
-- Metadata is stored inline using the format `key:: value`
-- Tasks can have multi-line descriptions stored as indented lines below the task line
-- Completed tasks get a `completion:: YYYY-MM-DDTHH:mm:ss` timestamp field (date + time) automatically added
-- Recurring tasks use the Tasks plugin format: `🔁 every Tuesday` or `recur:: every 10 days`
-
-### Project and Area Organization
-
-GeckoTask uses a **folder-based organization system** where:
-- **Projects** are represented as individual `.md` files (e.g., `tasks/Work/RouterRevamp.md`)
-- **Areas** are represented as folders (e.g., `tasks/Work/`, `tasks/Personal/`)
-- The project name is derived from the file basename (e.g., `RouterRevamp.md` → project: `RouterRevamp`)
-- The area name is derived from the folder name (e.g., `tasks/Work/` → area: `Work`)
-
-**Important:** Projects and areas are **not stored in task metadata**. They are inferred from the file location. This means:
-- Moving a task to a different file changes its project
-- Moving a task to a different folder changes its area
-- Special files like `Inbox.md` and `Single Action.md` have no project (undefined)
-
-### Vault Structure
-
-```
+```text
 /
-├── tasks/                          # Base tasks folder (configurable)
-│   ├── Inbox.md                    # Single inbox for all areas
-│   ├── Work/                       # Area: Work
-│   │   ├── ProjectA.md            # Project: ProjectA
-│   │   ├── ProjectB.md            # Project: ProjectB
-│   │   └── Someday Maybe/         # Someday/Maybe folder for Work area
-│   │       └── FutureProject.md
-│   ├── Personal/                  # Area: Personal
-│   │   └── ProjectX.md            # Project: ProjectX
-│   └── Single Action.md           # Single action tasks (no project)
-├── Archive/                        # Archive folder
-│   └── Completed-YYYY.md          # Archived tasks by year
-└── Dashboards/
-    └── Tasks.md                    # Dataview queries
+├── Inbox/                                    # one file per inbox item
+│   ├── call-bank.md
+│   └── follow-up-vendor.md
+├── Personal/                                 # area (configured in settings)
+│   ├── 1Projects/
+│   │   └── RouterRevamp/
+│   │       ├── _tasks.md
+│   │       └── _SomedayMaybe.md
+│   └── 2Areas/
+│       ├── _tasks.md
+│       └── _SomedayMaybe.md
+└── Work/
+    └── 1Projects/...
 ```
 
-### Special Files and Folders
+Default naming is configurable:
+- `projectsSubfolder`: `1Projects`
+- `areaTasksSubfolder`: `2Areas`
+- `tasksFileName`: `_tasks`
+- `somedayMaybeFileName`: `_SomedayMaybe`
+- `inboxFolderName`: `Inbox`
 
-- **Inbox.md**: Single inbox file for capturing tasks quickly (no project assigned)
-- **Single Action.md**: File for single-action tasks that don't belong to a project
-- **Someday Maybe/**: Folder within each area for future projects and ideas
-- **Archive/**: Folder for archived completed tasks (preserves origin context)
+## Task Format
+
+```markdown
+- [ ] Write router tests #work priority:: high due:: 2026-04-24 scheduled:: 2026-04-22
+  Optional multi-line description line 1
+  Optional multi-line description line 2
+```
+
+Recurring examples:
+
+```markdown
+- [ ] Team sync 🔁 every Tuesday due:: 2026-04-28
+- [ ] Backup docs 🔁 every 10 days
+```
+
+When a recurring task is completed, GeckoTask inserts the next occurrence directly below it.
+
+## Natural Language Dates
+
+GeckoTask supports natural language date input for task date fields when `Natural language due parsing` is enabled in settings.
+
+You can use natural language in:
+- `GeckoTask: Set Due (at cursor)`
+- `GeckoTask: Set Scheduled (at cursor)`
+- quick capture/edit flows when entering date fields
+
+### Examples
+
+- `today` -> current date
+- `tomorrow` -> current date + 1 day
+- `next monday` -> next upcoming Monday
+- `in 3 days` -> current date + 3 days
+- `in 2 weeks` -> current date + 14 days
+- `2026-05-01` -> explicit ISO date (kept as-is)
+
+If a phrase cannot be parsed, GeckoTask keeps your input value so you can still store explicit date text.
+
+## Tasks Panel
+
+The Tasks panel is the daily command center for GeckoTask.
+
+### Tabs
+- **Now**: tasks due today/overdue plus tasks tagged with your configured `Now tag`
+- **Next**: next-action focused view
+- **Inbox**: items located in the inbox folder
+- **Waiting**: tasks tagged with your configured waiting-for tag
+- **All Tasks**: full list with all filters
+
+### Filtering and Editing
+- Filter by area, project path, priority, due bucket, and text query
+- Click task title to edit inline
+- Click field badges to update `due`, `scheduled`, `priority`, or recurrence
+- Open task in note, move to another file, or toggle completion from the panel
+
+### Behavior
+- Auto-refreshes on vault and metadata changes
+- Can hide/show completed tasks based on settings
+- Supports multi-line task descriptions
+
+## Commands
+
+### Panels
+- `GeckoTask: Open Tasks Panel`
+- `GeckoTask: Open Weekly Review Panel`
+- `GeckoTask: Open Health Check Panel`
+
+### Task Actions
+- `GeckoTask: Quick Add/Edit Task` (hotkey: `Mod+Shift+E`)
+- `GeckoTask: Complete/Uncomplete Task at Cursor`
+- `GeckoTask: Move Task (pick project)`
+- `GeckoTask: Set Due (at cursor)`
+- `GeckoTask: Set Scheduled (at cursor)`
+- `GeckoTask: Set Priority (at cursor)`
+- `GeckoTask: Set Recurrence (at cursor)`
+- `GeckoTask: Add/Remove Tags (at cursor)`
+- `GeckoTask: Normalize Task Line (at cursor)`
+- `GeckoTask: Delete Completed Tasks (current file)`
+
+### Project and Migration
+- `GeckoTask: Create Project File`
+- `GeckoTask: Migrate from old tasks folder structure`
 
 ## Weekly Review
 
-The **Weekly Review Panel** provides a guided GTD-style weekly review workflow. It's a step-by-step wizard that helps you get clear, get current, and get creative with your task system.
+Weekly Review is a guided GTD-style flow covering:
+- **Get Clear**: collect and process loose ends/inbox
+- **Get Current**: review actions, projects, waiting-for, and someday/maybe
+- **Get Creative**: brainstorm and capture new opportunities
 
 ### Overview
 
@@ -203,306 +248,147 @@ Configure in **Settings → GeckoTask**:
 - **Inbox threshold**: Threshold for inbox overflow (default: 20)
 - **Breakdown title length**: Title length threshold for tasks needing breakdown (default: 100)
 
-## Commands
+Thresholds and keyword lists are configurable in settings.
 
-### Panel Commands
+## Settings
 
-- **GeckoTask: Open Tasks Panel** - Opens the side panel for task management
-- **GeckoTask: Open Weekly Review Panel** - Opens the weekly review wizard
-- **GeckoTask: Open Health Check Panel** - Opens the health check analysis
+Open `Settings -> GeckoTask`.
 
-### Task Management Commands
+### Areas and Structure
+- Area paths (`Personal, Work, ...`)
+- Projects subfolder
+- Area tasks subfolder
+- Task file name
+- Someday/Maybe file name
 
-- **GeckoTask: Quick Add/Edit Task** - Opens modal to create or edit a task (edits if cursor is on a task)
-- **GeckoTask: Complete/Uncomplete Task at Cursor** - Toggles task completion
-- **GeckoTask: Move Task (pick project)** - Move task to a different project file
-- **GeckoTask: Set Due (at cursor)** - Set or update due date
-- **GeckoTask: Set Priority (at cursor)** - Set or update priority
-- **GeckoTask: Set Recurrence (at cursor)** - Set or update recurrence pattern
-- **GeckoTask: Add/Remove Tags (at cursor)** - Manage task tags
-- **GeckoTask: Normalize Task Line (at cursor)** - Normalize task metadata order and spacing
+### Inbox and Display
+- Inbox folder name
+- Show completed tasks
 
-### Archive Commands
+### Task Options
+- Natural language date parsing
+- Allowed priorities
+- Due date ranges
 
-- **GeckoTask: Archive Completed in Current File** - Archive completed tasks from current file
-- **GeckoTask: Archive All Completed (older than N days)** - Archive completed tasks across vault
+### Weekly Review
+- Custom collection points
+- Waiting For tag
+- Now tag
+- Next actions due days
 
-### Project Commands
+### Health Check
+- Stale file threshold (days)
+- Stale task threshold (days)
+- Unmodified task threshold (days)
+- Quick win keywords
+- High task count threshold
+- Inbox overflow threshold
+- Breakdown title length threshold
+- Breakdown keywords
 
-- **GeckoTask: Create Project File** - Create a new project file with frontmatter
+## Recommended Settings
+
+These are practical starting points for most users.
+
+### Suggested baseline
+- **Area paths**: `Personal, Work` (add more only when they represent true responsibility domains)
+- **Projects subfolder**: `1Projects`
+- **Area tasks subfolder**: `2Areas`
+- **Task file name**: `_tasks`
+- **Someday/Maybe file name**: `_SomedayMaybe`
+- **Inbox folder name**: `Inbox`
+- **Show completed tasks**: `off` (turn on when reviewing completed flow)
+- **Natural language date parsing**: `on`
+- **Allowed priorities**: `low, med, high, urgent`
+- **Due date ranges**: `7d, 14d, 30d, 60d, 90d`
+- **Waiting For tag**: `#WaitingFor`
+- **Now tag**: `#t/now`
+- **Next actions due days**: `3`
+
+### Suggested Health Check thresholds
+- **Stale file threshold**: `90` days
+- **Stale task threshold**: `90` days
+- **Unmodified task threshold**: `60` days
+- **High task count threshold**: `30`
+- **Inbox overflow threshold**: `20`
+- **Breakdown title length threshold**: `100`
+
+### Suggested profile adjustments
+- **Lighter system (few active projects)**: lower `Inbox overflow` to `10-15`, lower `High task count` to `15-20`
+- **Heavy workload (many parallel projects)**: raise `High task count` to `40-60`, keep stale thresholds similar
+- **Strict weekly cadence**: reduce `Unmodified task threshold` to `30-45` to surface drift earlier
 
 ## Installation
 
-### From Obsidian
+### Manual
+1. Download release assets (`main.js`, `manifest.json`, `styles.css`) from the [GitHub releases page](https://github.com/geckom/GeckoTask/releases).
+2. Copy them into `<your-vault>/.obsidian/plugins/geckotask/`.
+3. Reload Obsidian and enable GeckoTask in Community Plugins.
 
-1. Open Obsidian Settings
-2. Go to **Community plugins**
-3. Click **Browse** and search for "GeckoTask"
-4. Click **Install**, then **Enable**
+### Community Plugins Browser
+If GeckoTask is published in the Obsidian community catalog, install it from `Settings -> Community plugins -> Browse`.
 
-### Manual Installation
+## Development
 
-1. Download the latest release from the [Releases page](https://github.com/geckom/GeckoTask/releases)
-2. Extract the files (`main.js`, `manifest.json`, `styles.css`) to your vault's `.obsidian/plugins/geckotask/` folder
-3. Reload Obsidian
-4. Enable the plugin in **Settings → Community plugins**
+### Prerequisites
+- Node.js 18+
+- npm
 
-## Configuration
-
-Open **Settings → GeckoTask** to configure:
-
-### Basic Settings
-
-- **Tasks folder**: Base folder for all tasks (default: `tasks`)
-- **Areas enabled**: When enabled, areas are auto-detected from first-level directories in tasks folder
-- **Inbox path**: Path to the single inbox file (default: `tasks/Inbox`)
-- **Single Action file**: File name for single action tasks without a project (default: `Single Action`)
-- **Someday Maybe folder name**: Folder name for someday/maybe items per area (default: `Someday Maybe`)
-
-### Archive Settings
-
-- **Archive pattern**: Pattern for archive files (default: `Archive/Completed-YYYY.md`)
-- **Archive older than (days)**: Days before archiving completed tasks (default: 7)
-
-### Task Settings
-
-- **Natural language due parsing**: Enable parsing of dates like "today", "tomorrow" (default: on)
-- **Allowed priorities**: Comma-separated list of priority values (default: `low, med, high, urgent`)
-- **Due date ranges**: Comma-separated list of configurable due date ranges for filter dropdown (default: `7d, 14d, 30d, 60d, 90d`)
-
-### Weekly Review Settings
-
-- **Custom collection points**: Custom collection points for step 1A (e.g., `Facebook, Slack, Twitter`)
-- **Waiting-for tag**: Tag for waiting-for tasks (default: `#WaitingFor`)
-- **Now tag**: Tag for "now" tasks shown in today view (default: `#t/now`)
-- **Next actions due days**: Number of days ahead to show tasks in next actions list (default: 3)
-
-### Health Check Settings
-
-- **Stale file days**: Files not modified in this time are considered stale (default: 90)
-- **Stale task days**: Tasks with no due date older than this (default: 90)
-- **Unmodified task days**: Tasks not modified in this time (default: 60)
-- **Quick win keywords**: Keywords that indicate quick wins (default: `order, book, cancel, check, confirm, set up, make, appointment, call, email, message, reply, buy, refill`)
-- **High task count**: Threshold for high task count projects (default: 30)
-- **Inbox threshold**: Threshold for inbox overflow (default: 20)
-- **Completed archive days**: Completed tasks older than this can be archived (default: 30)
-- **Breakdown title length**: Title length threshold for tasks needing breakdown (default: 100)
-- **Breakdown keywords**: Keywords suggesting a task needs breakdown (default: `and, then, also, plus`)
-
-## Usage
-
-### Vault Structure
-
-GeckoTask organizes tasks in a folder structure:
-
-```
-/
-├── tasks/
-│   ├── Inbox.md                    # Single inbox for all areas
-│   ├── Work/
-│   │   ├── ProjectA.md
-│   │   └── ProjectB.md
-│   ├── Personal/
-│   │   └── ProjectX.md
-│   └── Single Action.md           # Single action tasks (no project shown)
-├── Archive/
-│   └── Completed-YYYY.md           # Archived tasks
-└── Dashboards/
-    └── Tasks.md                    # Dataview queries
+### Local Setup
+```bash
+npm install
+npm run dev
 ```
 
-### Quick Start Guide
+### Build
+```bash
+npm run build
+```
 
-1. **Set up your folder structure**: Create a `tasks` folder in your vault (or configure a different name in settings)
-   - Create an `Inbox.md` file in the tasks folder
-   - Optionally create area folders like `Work/` and `Personal/`
-   - Create project files as needed (e.g., `Work/ProjectA.md`)
+Build output is `main.js` in repo root (alongside `manifest.json` and `styles.css`).
 
-2. **Create your first task**: 
-   - Use **GeckoTask: Quick Add/Edit Task** from the command palette
-   - Or open `tasks/Inbox.md` and manually add a task: `- [ ] My first task`
+## Dataview Examples
 
-3. **Open the Tasks Panel**: 
-   - Click the ribbon icon (check-circle) or use **GeckoTask: Open Tasks Panel**
-   - Browse, filter, and manage all your tasks
+Because GeckoTask stores standard markdown tasks with inline fields, Dataview works well out of the box.
 
-4. **Try Weekly Review**: 
-   - Use **GeckoTask: Open Weekly Review Panel** to start a guided weekly review
-   - Follow the step-by-step wizard to get clear, get current, and get creative
+Today's tasks:
 
-5. **Check your system health**: 
-   - Use **GeckoTask: Open Health Check Panel** to analyze your task system
-   - Identify issues, quick wins, and areas for improvement
-
-6. **Customize settings**: 
-   - Go to **Settings → GeckoTask** to configure folders, priorities, and other options
-
-### Tasks Panel
-
-The Tasks Panel provides a rich interface for managing all your tasks:
-
-**Tabs:**
-- **"Now"**: Shows tasks due today or overdue, or tasks tagged with the "now" tag (default: `#t/now`)
-- **"Next"**: Shows next actions - all Single Action tasks and the first uncompleted task from each project file (within configured days ahead)
-- **"Inbox"**: Shows only tasks from the inbox file
-- **"Waiting"**: Shows only tasks tagged with the waiting-for tag (default: `#WaitingFor`)
-- **"All Tasks"**: Shows all tasks with full filtering options
-
-**Filtering:**
-- **Area**: Filter by area (Work, Personal, etc.)
-- **Project**: Filter by project file
-- **Priority**: Filter by priority level (low, med, high, urgent)
-- **Due date**: Multiple filter options:
-  - Fixed options: any, today, overdue, none
-  - Configurable day ranges from settings: 7d, 14d, 30d, 60d, 90d
-  - Relative periods: this-week, next-week, this-month, next-month
-- **Search**: Searches task titles and tags
-
-**Task Display:**
-- **Sorting**: Tasks are sorted by due date, priority, area, project, and title
-- **Inline Editing**: 
-  - Click task title to edit
-  - Click badges to change due date, priority, or recurrence pattern
-- **Recurrence Display**: Shows recurrence pattern (🔁) badge for recurring tasks (click to edit)
-- **Description Support**: Multi-line descriptions can be toggled visible/hidden via icon (📄)
-- **Tag Display**: Displays hashtags (task tags) for filtering and organization
-
-**Actions:**
-- **Toggle completion**: Handles recurring task regeneration automatically
-- **Edit task**: Open task in edit modal
-- **Open in note**: Opens the file and scrolls to the task line
-- **Move to project**: Move task to a different project file
-
-**Features:**
-- **Mobile optimized**: Touch device detection, tap-to-reveal action buttons on mobile
-- **Auto-refresh**: Panel automatically updates when vault changes
-- **Badge styling**: Visual badges for priority, due dates, and recurrence patterns
-
-### Dataview Integration
-
-GeckoTask tasks work seamlessly with Dataview. Example queries:
-
-**Today's tasks:**
 ````markdown
 ```dataview
-task from "tasks"
+task
 where !completed and due = date(today)
-sort priority desc, due asc
+sort due asc
 ```
 ````
 
-**Overdue tasks:**
+Overdue tasks:
+
 ````markdown
 ```dataview
-task from "tasks"
+task
 where !completed and due < date(today)
 sort due asc
 ```
 ````
 
-**By project:**
+Tasks by priority:
+
 ````markdown
 ```dataview
-table file.link as Project, rows
-from "tasks/Work"
+table priority, due
+from ""
 where !completed
-group by project
+sort priority desc, due asc
 ```
 ````
 
-## Development
+## Notes on Migration
 
-### Prerequisites
-
-- Node.js 18+ (LTS recommended)
-- npm
-
-### Setup
-
-1. Clone the repository
-2. Run `npm install` to install dependencies
-3. Run `npm run dev` to start development in watch mode
-4. For production build, run `npm run build`
-
-### Project Structure
-
-```
-src/
-├── main.ts                    # Plugin entry point
-├── commands/
-│   └── index.ts               # Command registration
-├── extensions/
-│   ├── CheckboxClickHandler.ts # Checkbox click handling
-│   └── TaskFieldDecorator.ts  # Task field styling in editor
-├── models/
-│   └── TaskModel.ts           # Task parsing and formatting
-├── services/
-│   ├── Archive.ts             # Archiving functionality
-│   ├── HealthService.ts       # Health check analysis
-│   ├── NLDate.ts              # Natural language date parsing
-│   ├── Recurrence.ts          # Recurrence pattern parsing and calculation
-│   ├── TaskOps.ts             # Task operations (complete, set fields)
-│   ├── TaskTrackingService.ts # Task tracking for health checks
-│   ├── VaultIO.ts             # File operations (move, create)
-│   └── WeeklyReviewService.ts # Weekly review functionality
-├── settings/
-│   ├── defaults.ts            # Default settings values
-│   ├── index.ts               # Settings interface
-│   └── SettingsTab.ts         # Settings UI
-├── styling/
-│   └── MarkdownStyler.ts      # Markdown preview styling
-├── ui/
-│   ├── CaptureModal.ts        # Task capture modal
-│   ├── ConfirmationModal.ts   # Confirmation dialogs
-│   ├── FilePickerModal.ts     # File picker for moving tasks
-│   └── PromptModal.ts         # Generic prompt modal
-├── utils/
-│   ├── areaUtils.ts           # Area/folder utilities
-│   ├── dateUtils.ts           # Date formatting utilities
-│   ├── editorUtils.ts         # Editor manipulation utilities
-│   ├── fileUtils.ts           # File operations utilities
-│   ├── somedayMaybeUtils.ts   # Someday/maybe utilities
-│   ├── taskUtils.ts           # Task loading utilities
-│   └── viewUtils.ts           # View utilities
-└── view/
-    ├── health/                 # Health check panel
-    ├── tasks/                 # Tasks panel
-    └── weekly-review/         # Weekly review panel
-```
-
-### Building
-
-- **Development**: `npm run dev` (watch mode)
-- **Production**: `npm run build` (creates `main.js`)
-
-### Manual Installation for Development
-
-1. Build the plugin: `npm run build`
-2. Copy `main.js`, `manifest.json`, and `styles.css` to `.obsidian/plugins/geckotask/`
-3. Reload Obsidian
-
-## Design Philosophy
-
-- **Markdown-first**: Tasks are plain Markdown that can be edited anywhere
-- **Folder-based organization**: Areas and projects are inferred from folder structure, not stored in metadata
-- **Dataview-friendly**: Consistent inline metadata works with Dataview queries
-- **Mobile-compatible**: Works on iOS, Android, and desktop with touch-optimized UI
-- **Sync-friendly**: Compatible with Obsidian Sync, Syncthing, and Git
-- **Visual distinction**: Task metadata fields are automatically styled in markdown preview and source view for better readability
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
+If you used an older `tasks/`-centered layout, run the migration command. It:
+- creates `tasks-backup/` first,
+- converts old task locations into the current area/project structure,
+- moves old `Archive` to `tasks-archive` when needed.
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Support
-
-For issues, feature requests, or questions, please open an issue on GitHub.
-
-## Acknowledgments
-
-- Built for Obsidian using the Obsidian Plugin API
-- Designed to work seamlessly with the Dataview plugin
+MIT (see `LICENSE`).
