@@ -51,8 +51,8 @@ export class FilePickerModal extends SuggestModal<TFile | typeof CREATE_NEW_PROJ
   renderSuggestion(item: TFile | typeof CREATE_NEW_PROJECT_MARKER, el: HTMLElement) {
     if (item === CREATE_NEW_PROJECT_MARKER) {
       el.setText("➕ Create new project");
-      el.style.cursor = "pointer";
-      el.style.fontWeight = "bold";
+      el.addClass("geckotask-clickable");
+      el.addClass("geckotask-font-bold");
       el.addEventListener("click", (e) => {
         e.stopPropagation();
         this.onChooseSuggestion(item);
@@ -64,7 +64,7 @@ export class FilePickerModal extends SuggestModal<TFile | typeof CREATE_NEW_PROJ
     const displayName = getProjectDisplayName(f.path, this.app, this.settings);
     el.setText(displayName);
 
-    el.style.cursor = "pointer";
+    el.addClass("geckotask-clickable");
     el.addEventListener("click", (e) => {
       e.stopPropagation();
       this.onChooseSuggestion(f);

@@ -53,10 +53,7 @@ export async function renderStep2D(
 
   // Controls for showing reviewed projects and resetting
   const controls = host.createDiv({ cls: "weekly-review-step-controls" });
-  controls.style.marginBottom = "12px";
-  controls.style.display = "flex";
-  controls.style.gap = "8px";
-  controls.style.flexWrap = "wrap";
+  controls.addClass("geckotask-step-controls-layout");
 
   if (reviewedProjects.length > 0) {
     const showReviewedBtn = controls.createEl("button", {
@@ -116,9 +113,7 @@ export async function renderStep2D(
   // Render reviewed projects if toggled on
   if (wizardState.showReviewedProjects && reviewedProjects.length > 0) {
     const reviewedSection = host.createDiv({ cls: "weekly-review-reviewed-section" });
-    reviewedSection.style.marginTop = "20px";
-    reviewedSection.style.paddingTop = "20px";
-    reviewedSection.style.borderTop = "1px solid var(--background-modifier-border)";
+    reviewedSection.addClass("geckotask-reviewed-section-separator");
     
     reviewedSection.createEl("h4", { 
       text: `Reviewed Projects (${reviewedProjects.length})`,

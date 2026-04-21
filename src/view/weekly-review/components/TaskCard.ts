@@ -46,8 +46,7 @@ export async function renderTaskCard(
     text: task.title, 
     cls: "weekly-review-task-title" 
   });
-  taskTitle.style.cursor = "pointer";
-  taskTitle.style.textDecoration = "underline";
+  taskTitle.addClass("geckotask-linklike");
   taskTitle.addEventListener("click", () => callbacks.onOpenTask(task));
   
   if (task.description) {
@@ -63,8 +62,7 @@ export async function renderTaskCard(
       text: `Due: ${task.due}`, 
       cls: "weekly-review-task-due" 
     });
-    dueSpan.style.cursor = "pointer";
-    dueSpan.style.textDecoration = "underline";
+    dueSpan.addClass("geckotask-linklike");
     dueSpan.addEventListener("click", async () => {
       await callbacks.onUpdateDueDate(task);
       await callbacks.onRerender();
@@ -81,8 +79,7 @@ export async function renderTaskCard(
       text: `Project: ${task.project}`, 
       cls: "weekly-review-task-project" 
     });
-    projectSpan.style.cursor = "pointer";
-    projectSpan.style.textDecoration = "underline";
+    projectSpan.addClass("geckotask-linklike");
     projectSpan.addEventListener("click", () => callbacks.onOpenProject(task.path));
   }
 

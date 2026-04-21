@@ -70,9 +70,7 @@ export class PromptModal extends Modal {
           cls: `geckotask-validation-${result.severity} geckotask-validation-suggestion`
         });
         suggestionEl.textContent = `💡 ${result.suggestion}`;
-        suggestionEl.style.fontSize = "0.85em";
-        suggestionEl.style.marginTop = "2px";
-        suggestionEl.style.opacity = "0.8";
+        suggestionEl.addClass("geckotask-validation-suggestion-subtle");
       }
     }
   }

@@ -1,4 +1,4 @@
-import { App, AbstractInputSuggest, Modal, Setting, Notice, TFile } from "obsidian";
+import { App, AbstractInputSuggest, Modal, Setting, Notice, TFile, normalizePath } from "obsidian";
 import { GeckoTaskSettings } from "../settings";
 import { parseNLDate } from "../services/NLDate";
 import { formatTaskWithDescription, Task, parseTaskWithDescription } from "../models/TaskModel";
@@ -219,9 +219,7 @@ export async function captureQuickTask(app: App, settings: GeckoTaskSettings, ex
               cls: `geckotask-validation-${result.severity} geckotask-validation-suggestion`
             });
             suggestionEl.textContent = `💡 ${result.suggestion}`;
-            suggestionEl.style.fontSize = "0.85em";
-            suggestionEl.style.marginTop = "2px";
-            suggestionEl.style.opacity = "0.8";
+            suggestionEl.addClass("geckotask-validation-suggestion-subtle");
           }
         }
       }
@@ -261,7 +259,7 @@ export async function captureQuickTask(app: App, settings: GeckoTaskSettings, ex
         const titleContainer = titleSetting.settingEl;
         titleSetting.addText(t => {
           t.setValue(this.draft.title);
-          t.inputEl.style.width = "100%";
+          t.inputEl.addClass("geckotask-w-full");
           t.onChange(v => this.draft.title = v);
           t.inputEl.addEventListener("keydown", (evt) => {
             if (evt.key === "Enter") {
@@ -327,7 +325,7 @@ export async function captureQuickTask(app: App, settings: GeckoTaskSettings, ex
           };
 
           populateOptions();
-          d.selectEl.style.width = "100%";
+          d.selectEl.addClass("geckotask-w-full");
 
           d.onChange(async (v) => {
             if (v === CREATE_NEW_PROJECT_VALUE) {
@@ -358,7 +356,7 @@ export async function captureQuickTask(app: App, settings: GeckoTaskSettings, ex
           t.setPlaceholder("Multi-line description...");
           t.setValue(this.draft.description || "");
           t.inputEl.rows = isMobile ? 2 : 4;
-          t.inputEl.style.width = "100%";
+          t.inputEl.addClass("geckotask-w-full");
           t.onChange(v => this.draft.description = v.trim() || undefined);
           t.inputEl.addEventListener("keydown", (evt) => {
             if (evt.key === "Enter" && (evt.ctrlKey || evt.metaKey)) {
@@ -430,7 +428,7 @@ export async function captureQuickTask(app: App, settings: GeckoTaskSettings, ex
         tagsSetting.addText(t => {
           t.setPlaceholder("#work #bug");
           t.setValue((this.draft.tags || []).join(" "));
-          t.inputEl.style.width = "100%";
+          t.inputEl.addClass("geckotask-w-full");
           this.tagsInputElement = t.inputEl;
           t.onChange(v => {
             this.draft.tags = v.split(/\s+/).filter(Boolean);
@@ -452,17 +450,13 @@ export async function captureQuickTask(app: App, settings: GeckoTaskSettings, ex
 
         // Quick tag buttons
         const quickTagButtonsContainer = contentEl.createDiv({ cls: "geckotask-quick-tag-buttons" });
-        quickTagButtonsContainer.style.marginTop = "8px";
-        quickTagButtonsContainer.style.marginBottom = "8px";
-        quickTagButtonsContainer.style.display = "flex";
-        quickTagButtonsContainer.style.gap = "8px";
-        quickTagButtonsContainer.style.flexWrap = "wrap";
+        quickTagButtonsContainer.addClass("geckotask-quick-tag-buttons-layout");
 
         const createTagChip = (tag: string): HTMLElement => {
           const tagContainer = quickTagButtonsContainer.createEl("span", {
             cls: "task-tag-container geckotask-quick-tag-chip"
           });
-          tagContainer.style.cursor = "pointer";
+          tagContainer.addClass("geckotask-clickable");
 
           const tagIcon = tagContainer.createEl("span", { cls: "task-tag-icon" });
           tagIcon.textContent = "🏷️";
@@ -478,22 +472,12 @@ export async function captureQuickTask(app: App, settings: GeckoTaskSettings, ex
 
         const updateButtonStates = () => {
           const nowActive = hasTag(settings.nowTag);
-          if (nowActive) {
-            nowTagChip.style.background = "var(--interactive-active)";
-            nowTagChip.style.color = "var(--text-on-accent)";
-          } else {
-            nowTagChip.style.background = "var(--background-modifier-border)";
-            nowTagChip.style.color = "var(--text-muted)";
-          }
+          nowTagChip.toggleClass("geckotask-quick-tag-chip-active", nowActive);
+          nowTagChip.toggleClass("geckotask-quick-tag-chip-inactive", !nowActive);
 
           const waitingActive = hasTag(settings.waitingForTag);
-          if (waitingActive) {
-            waitingForTagChip.style.background = "var(--interactive-active)";
-            waitingForTagChip.style.color = "var(--text-on-accent)";
-          } else {
-            waitingForTagChip.style.background = "var(--background-modifier-border)";
-            waitingForTagChip.style.color = "var(--text-muted)";
-          }
+          waitingForTagChip.toggleClass("geckotask-quick-tag-chip-active", waitingActive);
+          waitingForTagChip.toggleClass("geckotask-quick-tag-chip-inactive", !waitingActive);
         };
 
         updateButtonStates();
@@ -521,7 +505,7 @@ export async function captureQuickTask(app: App, settings: GeckoTaskSettings, ex
         dueSetting.addText(t => {
           t.setPlaceholder("today / 2025-11-15");
           t.setValue(this.draft.due || "");
-          t.inputEl.style.width = "100%";
+          t.inputEl.addClass("geckotask-w-full");
           t.onChange(v => {
             if (v) {
               const parsed = parseNLDate(v);
@@ -558,7 +542,7 @@ export async function captureQuickTask(app: App, settings: GeckoTaskSettings, ex
         scheduledSetting.addText(t => {
           t.setPlaceholder("today / 2025-11-15");
           t.setValue(this.draft.scheduled || "");
-          t.inputEl.style.width = "100%";
+          t.inputEl.addClass("geckotask-w-full");
           t.onChange(v => {
             if (v) {
               const parsed = parseNLDate(v);
@@ -593,7 +577,7 @@ export async function captureQuickTask(app: App, settings: GeckoTaskSettings, ex
         new Setting(contentEl).setName("Recurrence (optional)").addText(t => {
           t.setPlaceholder("every Tuesday / every 10 days");
           t.setValue(this.draft.recur || "");
-          t.inputEl.style.width = "100%";
+          t.inputEl.addClass("geckotask-w-full");
           t.onChange(v => this.draft.recur = v.trim() || undefined);
           t.inputEl.addEventListener("keydown", (evt) => {
             if (evt.key === "Enter") {
@@ -607,7 +591,7 @@ export async function captureQuickTask(app: App, settings: GeckoTaskSettings, ex
           d.addOption("", "(none)");
           for (const p of settings.allowedPriorities) d.addOption(p, p);
           d.setValue(this.draft.priority || "");
-          d.selectEl.style.width = "100%";
+          d.selectEl.addClass("geckotask-w-full");
           d.onChange(v => this.draft.priority = v || undefined);
         });
 
@@ -652,9 +636,9 @@ async function appendTask(app: App, d: Draft, settings: GeckoTaskSettings) {
 
   if (d.projectPath === INBOX_VALUE) {
     // Create a new file in the Inbox folder
-    const inboxFolder = settings.inboxFolderName;
+    const inboxFolder = normalizePath(settings.inboxFolderName);
     const slug = slugify(d.title);
-    const filePath = `${inboxFolder}/${slug}.md`;
+    const filePath = normalizePath(`${inboxFolder}/${slug}.md`);
 
     // Ensure inbox folder exists
     const existingFolder = app.vault.getAbstractFileByPath(inboxFolder);
@@ -666,7 +650,7 @@ async function appendTask(app: App, d: Draft, settings: GeckoTaskSettings) {
     let finalPath = filePath;
     let counter = 1;
     while (app.vault.getAbstractFileByPath(finalPath)) {
-      finalPath = `${inboxFolder}/${slug}-${counter}.md`;
+      finalPath = normalizePath(`${inboxFolder}/${slug}-${counter}.md`);
       counter++;
     }
 
@@ -675,7 +659,7 @@ async function appendTask(app: App, d: Draft, settings: GeckoTaskSettings) {
     new Notice(`GeckoTask: Added to Inbox`);
   } else {
     // Append to existing project/area tasks file
-    const file = app.vault.getAbstractFileByPath(d.projectPath);
+    const file = app.vault.getAbstractFileByPath(normalizePath(d.projectPath));
     if (!file || !(file instanceof TFile)) {
       new Notice(`GeckoTask: File not found ${d.projectPath}`);
       return;
@@ -755,12 +739,12 @@ async function updateTask(app: App, existingTask: IndexedTask, d: Draft, setting
       await app.vault.modify(sourceFile, lines.join("\n"));
 
       // Create new inbox file
-      const inboxFolder = settings.inboxFolderName;
+      const inboxFolder = normalizePath(settings.inboxFolderName);
       const slug = slugify(d.title);
-      let finalPath = `${inboxFolder}/${slug}.md`;
+      let finalPath = normalizePath(`${inboxFolder}/${slug}.md`);
       let counter = 1;
       while (app.vault.getAbstractFileByPath(finalPath)) {
-        finalPath = `${inboxFolder}/${slug}-${counter}.md`;
+        finalPath = normalizePath(`${inboxFolder}/${slug}-${counter}.md`);
         counter++;
       }
 

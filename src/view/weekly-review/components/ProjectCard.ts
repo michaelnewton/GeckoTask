@@ -28,8 +28,7 @@ export async function renderProjectCard(
   const projectName = projectHeader.createEl("h4", { 
     text: `${project.name}${project.area ? ` (${project.area})` : ""}` 
   });
-  projectName.style.cursor = "pointer";
-  projectName.style.textDecoration = "underline";
+  projectName.addClass("geckotask-linklike");
   projectName.addEventListener("click", () => callbacks.onOpenProject(project.path));
   
   if (!project.hasNextAction) {
@@ -41,9 +40,7 @@ export async function renderProjectCard(
 
   // Button container
   const buttonContainer = projectHeader.createDiv({ cls: "weekly-review-project-buttons" });
-  buttonContainer.style.display = "flex";
-  buttonContainer.style.gap = "6px";
-  buttonContainer.style.alignItems = "center";
+  buttonContainer.addClass("geckotask-inline-flex-center-gap-6");
 
   // Add Task button
   const addTaskBtn = buttonContainer.createEl("button", { 

@@ -1,4 +1,4 @@
-import { App, Editor, MarkdownFileInfo, MarkdownView, Modal, Notice, Setting, TFile, TFolder } from "obsidian";
+import { App, Editor, MarkdownFileInfo, MarkdownView, Modal, Notice, Setting, TFile, TFolder, normalizePath } from "obsidian";
 import { GeckoTaskSettings } from "../settings";
 import { captureQuickTask } from "../ui/CaptureModal";
 import { moveTaskAtCursorInteractive, createProjectFile } from "../services/VaultIO";
@@ -291,7 +291,7 @@ async function runMigration(app: App, settings: GeckoTaskSettings, plugin: Gecko
       const taskLines = lines.filter((l: string) => l.trim().startsWith("- ["));
 
       // Create Inbox folder
-      const inboxFolder = settings.inboxFolderName;
+      const inboxFolder = normalizePath(settings.inboxFolderName);
       const existingInboxFolder = app.vault.getAbstractFileByPath(inboxFolder);
       if (!existingInboxFolder) {
         await app.vault.createFolder(inboxFolder);
@@ -302,10 +302,10 @@ async function runMigration(app: App, settings: GeckoTaskSettings, plugin: Gecko
       for (const taskLine of taskLines) {
         const title = taskLine.replace(/^\s*- \[[ x]\]\s+/, "").trim().replace(/\s*\[[^\]]*\]\s*/g, "").replace(/\s*\{[^}]*}\s*/g, "").slice(0, 60);
         const slug = slugify(title);
-        let finalPath = `${inboxFolder}/${slug || "untitled"}.md`;
+        let finalPath = normalizePath(`${inboxFolder}/${slug || "untitled"}.md`);
         let counter = 1;
         while (app.vault.getAbstractFileByPath(finalPath)) {
-          finalPath = `${inboxFolder}/${slug || "untitled"}-${counter}.md`;
+          finalPath = normalizePath(`${inboxFolder}/${slug || "untitled"}-${counter}.md`);
           counter++;
         }
         await app.vault.create(finalPath, taskLine + "\n");
@@ -315,7 +315,7 @@ async function runMigration(app: App, settings: GeckoTaskSettings, plugin: Gecko
       // If there was non-checkbox content, preserve it as a single inbox note
       const nonTaskContent = lines.filter((l: string) => !l.trim().startsWith("- [")).join("\n").trim();
       if (nonTaskContent.length > 0) {
-        const notePath = `${inboxFolder}/inbox-notes.md`;
+        const notePath = normalizePath(`${inboxFolder}/inbox-notes.md`);
         await app.vault.create(notePath, nonTaskContent + "\n");
       }
 
@@ -325,7 +325,7 @@ async function runMigration(app: App, settings: GeckoTaskSettings, plugin: Gecko
 
     // 2. Migrate area subfolders
     for (const area of areas) {
-      const areaPath = `${oldTasksFolder}/${area}`;
+      const areaPath = normalizePath(`${oldTasksFolder}/${area}`);
       const areaFolder = app.vault.getAbstractFileByPath(areaPath);
       if (!(areaFolder instanceof TFolder)) continue;
 
@@ -353,7 +353,7 @@ async function runMigration(app: App, settings: GeckoTaskSettings, plugin: Gecko
 
           // Regular project file → create project dir and rename to _tasks.md
           const projectName = basename;
-          const projectDir = `${area}/${settings.projectsSubfolder}/${projectName}`;
+          const projectDir = normalizePath(`${area}/${settings.projectsSubfolder}/${projectName}`);
           await ensureFolder(app, projectDir);
           const targetPath = `${projectDir}/${settings.tasksFileName}.md`;
           await app.vault.rename(child, targetPath);
@@ -383,7 +383,7 @@ async function runMigration(app: App, settings: GeckoTaskSettings, plugin: Gecko
             for (const smChild of [...child.children]) {
               if (!(smChild instanceof TFile && smChild.extension === "md")) {
                 try {
-                  await app.vault.rename(smChild, `${area}/${smChild.name}`);
+                  await app.vault.rename(smChild, normalizePath(`${area}/${smChild.name}`));
                 } catch {
                   // Non-critical: leave in place
                 }
@@ -398,7 +398,7 @@ async function runMigration(app: App, settings: GeckoTaskSettings, plugin: Gecko
 
           // Treat other folders as project folders → rename contents to _tasks.md
           const projectName = folderName;
-          const projectDir = `${area}/${settings.projectsSubfolder}/${projectName}`;
+          const projectDir = normalizePath(`${area}/${settings.projectsSubfolder}/${projectName}`);
           await ensureFolder(app, projectDir);
 
           for (const subChild of [...child.children]) {
@@ -417,7 +417,7 @@ async function runMigration(app: App, settings: GeckoTaskSettings, plugin: Gecko
             } else if (subChild instanceof TFile) {
               // Move non-md files into the project dir so they aren't lost
               try {
-                await app.vault.rename(subChild, `${projectDir}/${subChild.name}`);
+                await app.vault.rename(subChild, normalizePath(`${projectDir}/${subChild.name}`));
               } catch {
                 // Non-critical
               }
@@ -444,7 +444,7 @@ async function runMigration(app: App, settings: GeckoTaskSettings, plugin: Gecko
         if (basename === "Inbox") continue;
 
         const defaultArea = settings.areaPaths[0] || "Personal";
-        const projectDir = `${defaultArea}/${settings.projectsSubfolder}/${basename}`;
+        const projectDir = normalizePath(`${defaultArea}/${settings.projectsSubfolder}/${basename}`);
         await ensureFolder(app, projectDir);
         const targetPath = `${projectDir}/${settings.tasksFileName}.md`;
         await app.vault.rename(child, targetPath);
@@ -487,15 +487,15 @@ async function runMigration(app: App, settings: GeckoTaskSettings, plugin: Gecko
  * Recursively copies a folder and all its contents to a new location.
  */
 async function copyFolderRecursive(app: App, source: TFolder, targetPath: string): Promise<void> {
-  await ensureFolder(app, targetPath);
+  await ensureFolder(app, normalizePath(targetPath));
   for (const child of source.children) {
     if (child instanceof TFile) {
       const content = await app.vault.read(child);
       const relativePath = child.path.substring(source.path.length + 1);
-      await app.vault.create(`${targetPath}/${relativePath}`, content);
+      await app.vault.create(normalizePath(`${targetPath}/${relativePath}`), content);
     } else if (child instanceof TFolder) {
       const relativePath = child.path.substring(source.path.length + 1);
-      await copyFolderRecursive(app, child, `${targetPath}/${relativePath}`);
+      await copyFolderRecursive(app, child, normalizePath(`${targetPath}/${relativePath}`));
     }
   }
 }
@@ -523,7 +523,8 @@ function slugify(title: string): string {
 }
 
 async function ensureFolder(app: App, path: string): Promise<void> {
-  const existing = app.vault.getAbstractFileByPath(path);
+  const normalizedPath = normalizePath(path);
+  const existing = app.vault.getAbstractFileByPath(normalizedPath);
   if (existing instanceof TFolder) return;
-  await app.vault.createFolder(path);
+  await app.vault.createFolder(normalizedPath);
 }

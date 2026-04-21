@@ -422,38 +422,27 @@ export class WeeklyReviewPanel extends ItemView {
 
     // Completion content - centered
     const completionContent = this.container.createDiv({ cls: "weekly-review-completion" });
-    completionContent.style.textAlign = "center";
-    completionContent.style.padding = "40px 20px";
-    completionContent.style.display = "flex";
-    completionContent.style.flexDirection = "column";
-    completionContent.style.alignItems = "center";
-    completionContent.style.gap = "24px";
+    completionContent.addClass("geckotask-completion-layout");
 
     // Congratulations message
     const congratsTitle = completionContent.createEl("h2", { 
       text: "🎉 Congratulations! 🎉",
       cls: "weekly-review-completion-title"
     });
-    congratsTitle.style.margin = "0";
-    congratsTitle.style.fontSize = "2em";
-    congratsTitle.style.color = "var(--text-normal)";
+    congratsTitle.addClass("geckotask-completion-title");
 
     const congratsMessage = completionContent.createEl("p", {
       text: "You finished your weekly review!",
       cls: "weekly-review-completion-message"
     });
-    congratsMessage.style.fontSize = "1.2em";
-    congratsMessage.style.color = "var(--text-muted)";
-    congratsMessage.style.margin = "0";
+    congratsMessage.addClass("geckotask-completion-message");
 
     // Restart button - positioned differently from Back/Next buttons
     const restartBtn = completionContent.createEl("button", {
       text: "Start New Review",
       cls: "weekly-review-btn weekly-review-btn-primary"
     });
-    restartBtn.style.marginTop = "20px";
-    restartBtn.style.padding = "12px 24px";
-    restartBtn.style.fontSize = "1.1em";
+    restartBtn.addClass("geckotask-completion-restart-btn");
     restartBtn.addEventListener("click", async () => {
       // Clear state when starting new review from completion screen
       await this.clearState();

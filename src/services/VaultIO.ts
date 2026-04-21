@@ -1,4 +1,4 @@
-import { App, TFile, TFolder, Notice, Editor, Modal, Setting } from "obsidian";
+import { App, TFile, TFolder, Notice, Editor, Modal, Setting, normalizePath } from "obsidian";
 import { GeckoTaskSettings } from "../settings";
 import { parseTaskWithDescription, formatTaskWithDescription, Task } from "../models/TaskModel";
 import { getAreas, getProjectTasksFilePath } from "../utils/areaUtils";
@@ -101,7 +101,7 @@ export async function createProjectFile(app: App, settings: GeckoTaskSettings): 
               }
 
               const projectName = this.projectName.trim();
-              const projectDir = `${this.area}/${settings.projectsSubfolder}/${projectName}`;
+              const projectDir = normalizePath(`${this.area}/${settings.projectsSubfolder}/${projectName}`);
               const taskFilePath = getProjectTasksFilePath(this.area, projectName, settings);
 
               // Check if file already exists
@@ -115,7 +115,7 @@ export async function createProjectFile(app: App, settings: GeckoTaskSettings): 
 
               try {
                 // Create intermediate directories
-                await ensureFolder(app, `${this.area}/${settings.projectsSubfolder}`);
+                await ensureFolder(app, normalizePath(`${this.area}/${settings.projectsSubfolder}`));
                 await ensureFolder(app, projectDir);
 
                 const today = new Date();
@@ -161,7 +161,8 @@ created: ${created}
  * Ensures a folder exists, creating it and any parent folders if needed.
  */
 async function ensureFolder(app: App, path: string): Promise<void> {
-  const existing = app.vault.getAbstractFileByPath(path);
+  const normalizedPath = normalizePath(path);
+  const existing = app.vault.getAbstractFileByPath(normalizedPath);
   if (existing instanceof TFolder) return;
-  await app.vault.createFolder(path);
+  await app.vault.createFolder(normalizedPath);
 }

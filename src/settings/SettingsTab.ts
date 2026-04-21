@@ -1,5 +1,18 @@
-import { App, PluginSettingTab, Setting } from "obsidian";
+import { App, PluginSettingTab, Setting, normalizePath } from "obsidian";
 import GeckoTaskPlugin from "../main";
+
+function normalizeFolderSegment(value: string, fallback: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) return fallback;
+  return normalizePath(trimmed).replace(/^\/+|\/+$/g, "") || fallback;
+}
+
+function normalizeFileStem(value: string, fallback: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) return fallback;
+  const normalized = normalizePath(trimmed).replace(/^\/+|\/+$/g, "").replace(/\.md$/i, "");
+  return normalized || fallback;
+}
 
 /**
  * Settings tab UI for configuring GeckoTask plugin options.
@@ -26,7 +39,10 @@ export class GeckoTaskSettingTab extends PluginSettingTab {
       .addText(t => t
         .setValue(this.plugin.settings.areaPaths.join(", "))
         .onChange(async (v) => {
-          const paths = v.split(",").map(p => p.trim()).filter(Boolean);
+          const paths = v
+            .split(",")
+            .map(p => normalizePath(p.trim()).replace(/^\/+|\/+$/g, ""))
+            .filter(Boolean);
           this.plugin.settings.areaPaths = paths.length > 0 ? paths : ["Personal"];
           await this.plugin.saveSettings();
         })
@@ -39,7 +55,7 @@ export class GeckoTaskSettingTab extends PluginSettingTab {
       .addText(t => t
         .setValue(this.plugin.settings.projectsSubfolder)
         .onChange(async (v) => {
-          this.plugin.settings.projectsSubfolder = v.trim() || "1Projects";
+          this.plugin.settings.projectsSubfolder = normalizeFolderSegment(v, "1Projects");
           await this.plugin.saveSettings();
         })
       );
@@ -51,7 +67,7 @@ export class GeckoTaskSettingTab extends PluginSettingTab {
       .addText(t => t
         .setValue(this.plugin.settings.areaTasksSubfolder)
         .onChange(async (v) => {
-          this.plugin.settings.areaTasksSubfolder = v.trim() || "2Areas";
+          this.plugin.settings.areaTasksSubfolder = normalizeFolderSegment(v, "2Areas");
           await this.plugin.saveSettings();
         })
       );
@@ -63,7 +79,7 @@ export class GeckoTaskSettingTab extends PluginSettingTab {
       .addText(t => t
         .setValue(this.plugin.settings.tasksFileName)
         .onChange(async (v) => {
-          this.plugin.settings.tasksFileName = v.trim() || "_tasks";
+          this.plugin.settings.tasksFileName = normalizeFileStem(v, "_tasks");
           await this.plugin.saveSettings();
         })
       );
@@ -75,7 +91,7 @@ export class GeckoTaskSettingTab extends PluginSettingTab {
       .addText(t => t
         .setValue(this.plugin.settings.somedayMaybeFileName)
         .onChange(async (v) => {
-          this.plugin.settings.somedayMaybeFileName = v.trim() || "_SomedayMaybe";
+          this.plugin.settings.somedayMaybeFileName = normalizeFileStem(v, "_SomedayMaybe");
           await this.plugin.saveSettings();
         })
       );
@@ -89,7 +105,7 @@ export class GeckoTaskSettingTab extends PluginSettingTab {
       .addText(t => t
         .setValue(this.plugin.settings.inboxFolderName)
         .onChange(async (v) => {
-          this.plugin.settings.inboxFolderName = v.trim() || "Inbox";
+          this.plugin.settings.inboxFolderName = normalizeFolderSegment(v, "Inbox");
           await this.plugin.saveSettings();
         })
       );

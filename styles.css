@@ -260,6 +260,134 @@ If your plugin does not need CSS, delete this file.
   opacity: 0.55;
 }
 
+/* Shared utility classes for dynamic UI elements */
+.geckotask-clickable {
+  cursor: pointer;
+}
+
+.geckotask-linklike {
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.geckotask-dimmed {
+  opacity: 0.6;
+}
+
+.geckotask-font-bold {
+  font-weight: 700;
+}
+
+.geckotask-ml-auto {
+  margin-left: auto;
+}
+
+.geckotask-my-8 {
+  margin-top: 8px;
+  margin-bottom: 8px;
+}
+
+.geckotask-breakdown-list {
+  margin-top: 4px;
+  padding-left: 20px;
+}
+
+.geckotask-step-controls-layout {
+  margin-bottom: 12px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.geckotask-reviewed-section-separator {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--background-modifier-border);
+}
+
+.geckotask-inline-flex-center-gap-6 {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.geckotask-inline-validation-popover {
+  position: absolute;
+  z-index: 1000;
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  padding: 6px 8px;
+  margin-top: 4px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  max-width: 400px;
+}
+
+.geckotask-validation-suggestion-subtle {
+  font-size: 0.85em;
+  margin-top: 2px;
+  opacity: 0.8;
+}
+
+.geckotask-inline-title-input {
+  width: 100%;
+  padding: 2px 4px;
+}
+
+.geckotask-completion-layout {
+  text-align: center;
+  padding: 40px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+}
+
+.geckotask-completion-title {
+  margin: 0;
+  font-size: 2em;
+  color: var(--text-normal);
+}
+
+.geckotask-completion-message {
+  font-size: 1.2em;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.geckotask-completion-restart-btn {
+  margin-top: 20px;
+  padding: 12px 24px;
+  font-size: 1.1em;
+}
+
+.geckotask-w-full {
+  width: 100%;
+}
+
+.geckotask-quick-tag-buttons-layout {
+  margin-top: 8px;
+  margin-bottom: 8px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.geckotask-quick-tag-chip-active {
+  background: var(--interactive-active);
+  color: var(--text-on-accent);
+}
+
+.geckotask-quick-tag-chip-inactive {
+  background: var(--background-modifier-border);
+  color: var(--text-muted);
+}
+
+.geckotask-muted-small-text {
+  font-size: 0.9em;
+  color: var(--text-muted);
+}
+
 .geckotask-card.geckotask-completed .task-card-title {
   text-decoration: line-through;
 }

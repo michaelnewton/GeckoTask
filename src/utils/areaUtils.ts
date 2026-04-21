@@ -1,4 +1,4 @@
-import { App, TFolder, TFile } from "obsidian";
+import { App, TFolder, TFile, normalizePath } from "obsidian";
 import { GeckoTaskSettings } from "../settings";
 
 /**
@@ -15,7 +15,7 @@ export function getAreas(_app: App, settings: GeckoTaskSettings): string[] {
  * Returns the area path (just the area name since areas are root-level).
  */
 export function getAreaPath(area: string, _settings: GeckoTaskSettings): string {
-  return area;
+  return normalizePath(area);
 }
 
 /**
@@ -48,7 +48,7 @@ export function inferAreaFromPath(filePath: string, _app: App, settings: GeckoTa
  * e.g., "Personal/1Projects"
  */
 export function getProjectsPath(area: string, settings: GeckoTaskSettings): string {
-  return `${area}/${settings.projectsSubfolder}`;
+  return normalizePath(`${area}/${settings.projectsSubfolder}`);
 }
 
 /**
@@ -56,7 +56,7 @@ export function getProjectsPath(area: string, settings: GeckoTaskSettings): stri
  * e.g., "Personal/2Areas"
  */
 export function getAreaTasksPath(area: string, settings: GeckoTaskSettings): string {
-  return `${area}/${settings.areaTasksSubfolder}`;
+  return normalizePath(`${area}/${settings.areaTasksSubfolder}`);
 }
 
 /**
@@ -64,7 +64,7 @@ export function getAreaTasksPath(area: string, settings: GeckoTaskSettings): str
  * e.g., "Personal/2Areas/_tasks.md"
  */
 export function getAreaTasksFilePath(area: string, settings: GeckoTaskSettings): string {
-  return `${area}/${settings.areaTasksSubfolder}/${settings.tasksFileName}.md`;
+  return normalizePath(`${area}/${settings.areaTasksSubfolder}/${settings.tasksFileName}.md`);
 }
 
 /**
@@ -72,7 +72,7 @@ export function getAreaTasksFilePath(area: string, settings: GeckoTaskSettings):
  * e.g., "Personal/2Areas/_SomedayMaybe.md"
  */
 export function getAreaSomedayMaybePath(area: string, settings: GeckoTaskSettings): string {
-  return `${area}/${settings.areaTasksSubfolder}/${settings.somedayMaybeFileName}.md`;
+  return normalizePath(`${area}/${settings.areaTasksSubfolder}/${settings.somedayMaybeFileName}.md`);
 }
 
 /**
@@ -80,7 +80,7 @@ export function getAreaSomedayMaybePath(area: string, settings: GeckoTaskSetting
  * e.g., "Personal/1Projects/RouterRevamp/_tasks.md"
  */
 export function getProjectTasksFilePath(area: string, project: string, settings: GeckoTaskSettings): string {
-  return `${area}/${settings.projectsSubfolder}/${project}/${settings.tasksFileName}.md`;
+  return normalizePath(`${area}/${settings.projectsSubfolder}/${project}/${settings.tasksFileName}.md`);
 }
 
 /**
@@ -88,7 +88,7 @@ export function getProjectTasksFilePath(area: string, project: string, settings:
  * e.g., "Personal/1Projects/RouterRevamp/_SomedayMaybe.md"
  */
 export function getProjectSomedayMaybePath(area: string, project: string, settings: GeckoTaskSettings): string {
-  return `${area}/${settings.projectsSubfolder}/${project}/${settings.somedayMaybeFileName}.md`;
+  return normalizePath(`${area}/${settings.projectsSubfolder}/${project}/${settings.somedayMaybeFileName}.md`);
 }
 
 /**
@@ -96,14 +96,15 @@ export function getProjectSomedayMaybePath(area: string, project: string, settin
  * e.g., "Inbox"
  */
 export function getInboxFolderPath(settings: GeckoTaskSettings): string {
-  return settings.inboxFolderName;
+  return normalizePath(settings.inboxFolderName);
 }
 
 /**
  * Checks if a file path is inside the inbox folder.
  */
 export function isInInboxFolder(filePath: string, settings: GeckoTaskSettings): boolean {
-  return filePath.startsWith(settings.inboxFolderName + "/");
+  const inboxFolder = getInboxFolderPath(settings);
+  return filePath.startsWith(inboxFolder + "/");
 }
 
 /**

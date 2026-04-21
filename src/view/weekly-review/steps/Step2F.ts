@@ -23,15 +23,12 @@ async function renderSomedayMaybeProjectCard(
   const projectName = projectHeader.createEl("h4", { 
     text: `${project.name}${project.area ? ` (${project.area})` : ""}` 
   });
-  projectName.style.cursor = "pointer";
-  projectName.style.textDecoration = "underline";
+  projectName.addClass("geckotask-linklike");
   projectName.addEventListener("click", () => callbacks.onOpenProject(project.path));
 
   // Button container
   const buttonContainer = projectHeader.createDiv({ cls: "weekly-review-project-buttons" });
-  buttonContainer.style.display = "flex";
-  buttonContainer.style.gap = "6px";
-  buttonContainer.style.alignItems = "center";
+  buttonContainer.addClass("geckotask-inline-flex-center-gap-6");
 
   // Activate button
   const activateBtn = buttonContainer.createEl("button", { 
@@ -125,10 +122,7 @@ export async function renderStep2F(
 
   // Controls for showing reviewed projects and resetting
   const controls = host.createDiv({ cls: "weekly-review-step-controls" });
-  controls.style.marginBottom = "12px";
-  controls.style.display = "flex";
-  controls.style.gap = "8px";
-  controls.style.flexWrap = "wrap";
+  controls.addClass("geckotask-step-controls-layout");
 
   if (reviewedProjects.length > 0) {
     const showReviewedBtn = controls.createEl("button", {
@@ -177,9 +171,7 @@ export async function renderStep2F(
   // Render reviewed projects if toggled on
   if (wizardState.showReviewedSomedayMaybeProjects && reviewedProjects.length > 0) {
     const reviewedSection = host.createDiv({ cls: "weekly-review-reviewed-section" });
-    reviewedSection.style.marginTop = "20px";
-    reviewedSection.style.paddingTop = "20px";
-    reviewedSection.style.borderTop = "1px solid var(--background-modifier-border)";
+    reviewedSection.addClass("geckotask-reviewed-section-separator");
     
     reviewedSection.createEl("h4", { 
       text: `Reviewed Someday/Maybe Projects (${reviewedProjects.length})`,

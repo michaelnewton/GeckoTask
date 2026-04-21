@@ -51,10 +51,7 @@ export async function renderStep2A(
 
   // Controls for showing reviewed tasks and resetting
   const controls = host.createDiv({ cls: "weekly-review-step-controls" });
-  controls.style.marginBottom = "12px";
-  controls.style.display = "flex";
-  controls.style.gap = "8px";
-  controls.style.flexWrap = "wrap";
+  controls.addClass("geckotask-step-controls-layout");
 
   if (reviewedTasks.length > 0) {
     const showReviewedBtn = controls.createEl("button", {

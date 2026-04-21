@@ -53,9 +53,9 @@ export function renderTaskItem(
   // Recurring task icon (icon only, no text)
   if (task.recur) {
     const recurIcon = topRow.createDiv({ cls: "task-recur-icon" });
-    recurIcon.innerHTML = "🔁";
+    recurIcon.setText("🔁");
     recurIcon.title = `Recurring: ${task.recur}`;
-    recurIcon.style.cursor = "pointer";
+    recurIcon.addClass("geckotask-clickable");
     recurIcon.addEventListener("click", async (e) => {
       e.stopPropagation();
       const modal = new PromptModal(
@@ -73,7 +73,7 @@ export function renderTaskItem(
   
   const titleContainer = topRow.createDiv({ cls: "task-title-container" });
   const title = titleContainer.createEl("div", { cls: "task-title" });
-  title.style.cursor = "pointer";
+  title.addClass("geckotask-clickable");
   renderDescriptionLine(title, task.title);
   title.addEventListener("click", () => {
     startEditingTitle(title, task, callbacks);
@@ -84,9 +84,9 @@ export function renderTaskItem(
   
   // Edit icon
   const editIcon = actionIconsContainer.createEl("span", { cls: "task-action-icon task-action-icon-edit" });
-  editIcon.innerHTML = "✏️";
+  editIcon.setText("✏️");
   editIcon.title = "Edit";
-  editIcon.style.cursor = "pointer";
+  editIcon.addClass("geckotask-clickable");
   editIcon.addEventListener("click", async (e) => {
     e.stopPropagation();
     await callbacks.onEdit(task);
@@ -94,9 +94,9 @@ export function renderTaskItem(
 
   // Open icon
   const openIcon = actionIconsContainer.createEl("span", { cls: "task-action-icon task-action-icon-open" });
-  openIcon.innerHTML = "🔗";
+  openIcon.setText("🔗");
   openIcon.title = "Open note";
-  openIcon.style.cursor = "pointer";
+  openIcon.addClass("geckotask-clickable");
   openIcon.addEventListener("click", async (e) => {
     e.stopPropagation();
     await callbacks.onOpen(task);
@@ -112,10 +112,10 @@ export function renderTaskItem(
   if (task.scheduled) {
     const scheduledContainer = leftSide.createDiv({ cls: "task-scheduled-container" });
     const scheduledIcon = scheduledContainer.createEl("span", { cls: "task-scheduled-icon" });
-    scheduledIcon.innerHTML = "▶️";
+    scheduledIcon.setText("▶️");
     const scheduledText = scheduledContainer.createEl("span", { cls: "task-scheduled-text" });
     scheduledText.textContent = formatScheduledDate(task.scheduled);
-    scheduledContainer.style.cursor = "pointer";
+    scheduledContainer.addClass("geckotask-clickable");
     scheduledContainer.addEventListener("click", async () => {
       const defaultValue = task.scheduled ?? "today";
       const modal = new PromptModal(app, "Set scheduled date (today / 2025-11-10)", defaultValue, undefined, "scheduled", task.title);
@@ -132,9 +132,9 @@ export function renderTaskItem(
   } else {
     const scheduledContainer = leftSide.createDiv({ cls: "task-scheduled-container task-scheduled-empty" });
     const scheduledIcon = scheduledContainer.createEl("span", { cls: "task-scheduled-icon" });
-    scheduledIcon.innerHTML = "▶️";
-    scheduledContainer.style.cursor = "pointer";
-    scheduledContainer.style.opacity = "0.6";
+    scheduledIcon.setText("▶️");
+    scheduledContainer.addClass("geckotask-clickable");
+    scheduledContainer.addClass("geckotask-dimmed");
     scheduledContainer.addEventListener("click", async () => {
       const defaultValue = "today";
       const modal = new PromptModal(app, "Set scheduled date (today / 2025-11-10)", defaultValue, undefined, "scheduled", task.title);
@@ -154,14 +154,14 @@ export function renderTaskItem(
   if (task.due) {
     const dueContainer = leftSide.createDiv({ cls: "task-due-container" });
     const dueIcon = dueContainer.createEl("span", { cls: "task-due-icon" });
-    dueIcon.innerHTML = "🏁";
+    dueIcon.setText("🏁");
     const dueText = dueContainer.createEl("span", { cls: "task-due-text" });
     dueText.textContent = formatDueDate(task.due);
     // Apply red styling if overdue
     if (isOverdue(task.due)) {
       dueText.addClass("task-due-text-overdue");
     }
-    dueContainer.style.cursor = "pointer";
+    dueContainer.addClass("geckotask-clickable");
     dueContainer.addEventListener("click", async () => {
       const defaultValue = task.due ?? "today";
       const modal = new PromptModal(app, "Set due date (today / 2025-11-10)", defaultValue, undefined, "due", task.title);
@@ -178,9 +178,9 @@ export function renderTaskItem(
   } else {
     const dueContainer = leftSide.createDiv({ cls: "task-due-container task-due-empty" });
     const dueIcon = dueContainer.createEl("span", { cls: "task-due-icon" });
-    dueIcon.innerHTML = "📅";
-    dueContainer.style.cursor = "pointer";
-    dueContainer.style.opacity = "0.6";
+    dueIcon.setText("📅");
+    dueContainer.addClass("geckotask-clickable");
+    dueContainer.addClass("geckotask-dimmed");
     dueContainer.addEventListener("click", async () => {
       const defaultValue = "today";
       const modal = new PromptModal(app, "Set due date (today / 2025-11-10)", defaultValue, undefined, "due", task.title);
@@ -205,9 +205,9 @@ export function renderTaskItem(
   // Show exclamation marks based on index (index 0 = !, index 1 = !!, etc.)
   if (task.priority) {
     const priorityIdx = settings.allowedPriorities.indexOf(task.priority);
-    priorityIcon.innerHTML = "!".repeat(priorityIdx >= 0 ? priorityIdx + 1 : 1);
+    priorityIcon.setText("!".repeat(priorityIdx >= 0 ? priorityIdx + 1 : 1));
   } else {
-    priorityIcon.innerHTML = "!";
+    priorityIcon.setText("!");
   }
   
   // Tags/labels - extract from both tags and description
@@ -227,7 +227,7 @@ export function renderTaskItem(
       cls: "task-description-icon" 
     });
     descIcon.title = "Show description";
-    descIcon.style.cursor = "pointer";
+    descIcon.addClass("geckotask-clickable");
   }
   
   // Right side: Project (or Area if area tasks file)
@@ -301,15 +301,7 @@ function renderInlineValidationFeedback(container: HTMLElement, results: Validat
   }
   
   const feedbackContainer = container.createDiv({ cls: "geckotask-validation-container" });
-  feedbackContainer.style.position = "absolute";
-  feedbackContainer.style.zIndex = "1000";
-  feedbackContainer.style.background = "var(--background-primary)";
-  feedbackContainer.style.border = "1px solid var(--background-modifier-border)";
-  feedbackContainer.style.borderRadius = "4px";
-  feedbackContainer.style.padding = "6px 8px";
-  feedbackContainer.style.marginTop = "4px";
-  feedbackContainer.style.boxShadow = "0 2px 8px rgba(0,0,0,0.1)";
-  feedbackContainer.style.maxWidth = "400px";
+  feedbackContainer.addClass("geckotask-inline-validation-popover");
   
   for (const result of results) {
     const feedbackEl = feedbackContainer.createDiv({
@@ -324,9 +316,7 @@ function renderInlineValidationFeedback(container: HTMLElement, results: Validat
         cls: `geckotask-validation-${result.severity} geckotask-validation-suggestion`
       });
       suggestionEl.textContent = `💡 ${result.suggestion}`;
-      suggestionEl.style.fontSize = "0.85em";
-      suggestionEl.style.marginTop = "2px";
-      suggestionEl.style.opacity = "0.8";
+      suggestionEl.addClass("geckotask-validation-suggestion-subtle");
     }
   }
 }
@@ -360,8 +350,7 @@ function startEditingTitle(titleEl: HTMLElement, task: IndexedTask, callbacks: T
   input.type = "text";
   input.value = currentText;
   input.className = "task-title-edit";
-  input.style.width = "100%";
-  input.style.padding = "2px 4px";
+  input.addClass("geckotask-inline-title-input");
   
   // Get parent container for validation feedback
   const parentContainer = titleEl.parentElement;
@@ -423,7 +412,7 @@ function startEditingTitle(titleEl: HTMLElement, task: IndexedTask, callbacks: T
       }
       const newTitleEl = document.createElement("div");
       newTitleEl.className = "task-title";
-      newTitleEl.style.cursor = "pointer";
+      newTitleEl.addClass("geckotask-clickable");
       renderDescriptionLine(newTitleEl, currentText);
       newTitleEl.addEventListener("click", () => {
         startEditingTitle(newTitleEl, task, callbacks);
@@ -448,7 +437,7 @@ function startEditingTitle(titleEl: HTMLElement, task: IndexedTask, callbacks: T
     
     const newTitleEl = document.createElement("div");
     newTitleEl.className = "task-title";
-    newTitleEl.style.cursor = "pointer";
+    newTitleEl.addClass("geckotask-clickable");
     renderDescriptionLine(newTitleEl, currentText);
     newTitleEl.addEventListener("click", () => {
       startEditingTitle(newTitleEl, task, callbacks);

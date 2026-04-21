@@ -227,7 +227,7 @@ export class HealthPanel extends ItemView {
     const toggle = header.createEl("button", {
       cls: "weekly-review-btn-icon health-section-toggle"
     });
-    toggle.innerHTML = this.collapsedSections.has(sectionId) ? "▶" : "▼";
+    toggle.setText(this.collapsedSections.has(sectionId) ? "▶" : "▼");
     toggle.addEventListener("click", () => {
       const isCollapsed = this.collapsedSections.has(sectionId);
       if (isCollapsed) {
@@ -246,7 +246,7 @@ export class HealthPanel extends ItemView {
         text: `Show ${hiddenCount} Hidden`,
         cls: "weekly-review-btn-action weekly-review-btn-small"
       });
-      showHiddenBtn.style.marginLeft = "auto";
+      showHiddenBtn.addClass("geckotask-ml-auto");
       showHiddenBtn.addEventListener("click", () => {
         // Show all hidden tasks in this section
         items.forEach(item => {
@@ -328,7 +328,7 @@ export class HealthPanel extends ItemView {
     const toggle = header.createEl("button", {
       cls: "weekly-review-btn-icon health-section-toggle"
     });
-    toggle.innerHTML = this.collapsedSections.has("cleanup") ? "▶" : "▼";
+    toggle.setText(this.collapsedSections.has("cleanup") ? "▶" : "▼");
     toggle.addEventListener("click", () => {
       const isCollapsed = this.collapsedSections.has("cleanup");
       if (isCollapsed) {
@@ -348,8 +348,7 @@ export class HealthPanel extends ItemView {
     if (!this.collapsedSections.has("cleanup")) {
       for (const suggestion of suggestions) {
         const item = content.createEl("p", { text: suggestion.message });
-        item.style.marginTop = "8px";
-        item.style.marginBottom = "8px";
+        item.addClass("geckotask-my-8");
       }
     }
   }
@@ -369,8 +368,7 @@ export class HealthPanel extends ItemView {
       text: task.title, 
       cls: "weekly-review-task-title" 
     });
-    taskTitle.style.cursor = "pointer";
-    taskTitle.style.textDecoration = "underline";
+    taskTitle.addClass("geckotask-linklike");
     taskTitle.addEventListener("click", () => this.openTaskInNote(task));
     
     if (options.subtitle) {
@@ -481,8 +479,7 @@ export class HealthPanel extends ItemView {
       const breakdown = card.createDiv({ cls: "weekly-review-task-description" });
       breakdown.createEl("strong", { text: "Suggested breakdown: " });
       const list = breakdown.createEl("ul", { cls: "health-breakdown-list" });
-      list.style.marginTop = "4px";
-      list.style.paddingLeft = "20px";
+      list.addClass("geckotask-breakdown-list");
       for (const subTask of task.suggestedSubTasks) {
         list.createEl("li", { text: subTask });
       }

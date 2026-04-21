@@ -38,8 +38,7 @@ export class ConfirmationModal extends Modal {
 
     if (this.details) {
       const detailsEl = contentEl.createDiv({ cls: "confirmation-modal-details" });
-      detailsEl.style.fontSize = "0.9em";
-      detailsEl.style.color = "var(--text-muted)";
+      detailsEl.addClass("geckotask-muted-small-text");
       detailsEl.createEl("p", { text: this.details });
     }
 
