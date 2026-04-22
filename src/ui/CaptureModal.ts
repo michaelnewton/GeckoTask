@@ -6,6 +6,7 @@ import { isInInboxFolder, getSortedProjectFiles, getProjectDisplayName } from ".
 import { IndexedTask } from "../view/tasks/TasksPanelTypes";
 import { createProjectFile } from "../services/VaultIO";
 import { validateTaskTitle, validateTaskDescription, validateTaskDueDate, validateTaskScheduled, ValidationResult } from "../services/ValidationService";
+import { ConfirmationModal } from "./ConfirmationModal";
 
 
 /**
@@ -180,6 +181,21 @@ export async function captureQuickTask(app: App, settings: GeckoTaskSettings, ex
         } else {
           await appendTask(app, this.draft, settings);
         }
+        this.close();
+        resolve();
+      }
+
+      private async handleDelete() {
+        if (!isEditMode || !existingTask) return;
+        const confirmed = await new ConfirmationModal(
+          app,
+          "Delete Task",
+          "Are you sure you want to delete this task?",
+          `Task: ${existingTask.title}`
+        ).prompt();
+        if (!confirmed) return;
+
+        await deleteTask(app, existingTask);
         this.close();
         resolve();
       }
@@ -582,11 +598,31 @@ export async function captureQuickTask(app: App, settings: GeckoTaskSettings, ex
           d.onChange(v => this.draft.priority = v || undefined);
         });
 
-        new Setting(contentEl)
-          .addButton(b => b.setButtonText(isEditMode ? "Save" : "Add").setCta().onClick(async () => {
-            await this.handleSave();
-          }))
-          .addButton(b => b.setButtonText("Cancel").onClick(() => { this.close(); resolve(); }));
+        const actionSetting = new Setting(contentEl);
+
+        if (isEditMode) {
+          actionSetting.settingEl.addClass("geckotask-quick-edit-actions");
+          actionSetting
+            .addButton(b => {
+              b
+                .setButtonText("Delete")
+                .setWarning()
+                .onClick(async () => {
+                  await this.handleDelete();
+                });
+              b.buttonEl.addClass("geckotask-quick-edit-delete-btn");
+            })
+            .addButton(b => b.setButtonText("Save").setCta().onClick(async () => {
+              await this.handleSave();
+            }))
+            .addButton(b => b.setButtonText("Cancel").onClick(() => { this.close(); resolve(); }));
+        } else {
+          actionSetting
+            .addButton(b => b.setButtonText("Add").setCta().onClick(async () => {
+              await this.handleSave();
+            }))
+            .addButton(b => b.setButtonText("Cancel").onClick(() => { this.close(); resolve(); }));
+        }
       }
 
       onClose() {
@@ -794,4 +830,31 @@ async function updateTask(app: App, existingTask: IndexedTask, d: Draft, setting
     await app.vault.modify(sourceFile, lines.join("\n"));
     new Notice(`GeckoTask: Task updated`);
   }
+}
+
+/**
+ * Deletes an existing task from its source file.
+ */
+async function deleteTask(app: App, existingTask: IndexedTask) {
+  const sourceFile = app.vault.getAbstractFileByPath(existingTask.path);
+  if (!(sourceFile instanceof TFile)) {
+    new Notice(`GeckoTask: File not found ${existingTask.path}`);
+    return;
+  }
+
+  await app.vault.process(sourceFile, (data) => {
+    const lines = data.split("\n");
+    const taskLineIdx = existingTask.line - 1;
+    const descEndIdx = (existingTask.descriptionEndLine ?? existingTask.line) - 1;
+
+    if (taskLineIdx < 0 || taskLineIdx >= lines.length) {
+      return data;
+    }
+
+    const numLinesToRemove = descEndIdx - taskLineIdx + 1;
+    lines.splice(taskLineIdx, numLinesToRemove);
+    return lines.join("\n");
+  });
+
+  new Notice("GeckoTask: Task deleted");
 }

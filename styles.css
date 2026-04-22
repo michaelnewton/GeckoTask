@@ -912,6 +912,24 @@ If your plugin does not need CSS, delete this file.
   box-sizing: border-box !important;
 }
 
+/* Quick edit footer: Delete far-left, Save/Cancel far-right on one row. */
+.geckotask-modal .geckotask-quick-edit-actions .button-container {
+  width: 100%;
+}
+
+.geckotask-modal .geckotask-quick-edit-actions .geckotask-quick-edit-delete-btn {
+  margin-right: auto;
+}
+
+.geckotask-modal .geckotask-quick-edit-actions .setting-item-info {
+  display: none;
+}
+
+.geckotask-modal .geckotask-quick-edit-actions .setting-item-control {
+  min-width: 0 !important;
+  flex: 1 1 100% !important;
+}
+
 /* Make the modal itself wider for better visibility (desktop) */
 .geckotask-modal {
   min-width: 600px !important;
