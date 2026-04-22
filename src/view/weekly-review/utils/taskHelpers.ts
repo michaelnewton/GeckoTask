@@ -75,7 +75,7 @@ export async function moveTaskToProject(
 }
 
 /**
- * Moves a task to Someday/Maybe (PARA area-level or project-level).
+ * Moves a task to Someday/Maybe.
  */
 export async function moveTaskToSomedayMaybe(
   app: App,
@@ -83,19 +83,29 @@ export async function moveTaskToSomedayMaybe(
   task: IndexedTask
 ): Promise<void> {
   const spaces = getSpaces(app, settings);
-  const space = task.space || (spaces.length > 0 ? spaces[0] : undefined);
-  if (!space) {
-    new Notice("No space found for task");
-    return;
-  }
+  let smPath: string | undefined;
 
-  // Determine target: if the task has a project, use project-level; otherwise PARA area-level
-  let smPath: string;
-  const projectInfo = inferProjectFromPath(task.path, settings);
-  if (projectInfo?.project) {
-    smPath = `${space}/${settings.projectsSubfolder}/${projectInfo.project}/${settings.somedayMaybeFileName}.md`;
+  if (spaces.length === 0) {
+    const inferredArea = inferAreaFromPathNoSpaces(task.path, settings);
+    if (!inferredArea) {
+      new Notice("No root path found for task. Move the task from a valid task file.");
+      return;
+    }
+    smPath = getAreaSomedayMaybePath(inferredArea, settings);
   } else {
-    smPath = getAreaSomedayMaybePath(space, settings);
+    const space = task.space || spaces[0];
+    if (!space) {
+      new Notice("No space found for task. Configure space paths in settings.");
+      return;
+    }
+
+    // Determine target: if the task has a project, use project-level; otherwise PARA area-level
+    const projectInfo = inferProjectFromPath(task.path, settings);
+    if (projectInfo?.project) {
+      smPath = `${space}/${settings.projectsSubfolder}/${projectInfo.project}/${settings.somedayMaybeFileName}.md`;
+    } else {
+      smPath = getAreaSomedayMaybePath(space, settings);
+    }
   }
 
   // Ensure file exists
@@ -118,7 +128,7 @@ export async function moveTaskToSomedayMaybe(
   }
 
   await moveTask(app, settings, task, smPath);
-  new Notice(`Task moved to Someday/Maybe (${space})`);
+  new Notice(`Task moved to Someday/Maybe (${smPath})`);
 }
 
 /**
@@ -273,35 +283,43 @@ export async function removeTag(
 }
 
 /**
- * Activates a Someday/Maybe task (moves to active project in same space).
+ * Activates a Someday/Maybe task (moves to an active project in the same scope).
  */
 export async function activateSomedayMaybeTask(
   app: App,
   settings: GeckoTaskSettings,
   task: IndexedTask
 ): Promise<void> {
+  const spaces = getSpaces(app, settings);
+  const noSpacesMode = spaces.length === 0;
   const space = task.space;
-  if (!space) {
-    new Notice("No space found for task");
+  const rootScope = noSpacesMode ? inferAreaFromPathNoSpaces(task.path, settings) : undefined;
+  if (!space && !rootScope) {
+    new Notice("No scope found for task. Configure space paths or use valid task file paths.");
     return;
   }
 
-  // Get all project task files in the same space
+  // Get all project task files in the same scope.
   const sortedFiles = getSortedProjectFiles(app, settings);
-  const areaProjectFiles = sortedFiles.filter(f => {
+  const scopedProjectFiles = sortedFiles.filter(f => {
     if (isInInboxFolder(f.path, settings)) return false;
     if (isSomedayMaybeFile(f.path, settings)) return false;
-    if (isAreaTasksFile(f.path, settings)) return false;
+    if (isAreaTasksFileInMode(f.path, settings, noSpacesMode)) return false;
+    if (noSpacesMode) {
+      const fileRootScope = inferAreaFromPathNoSpaces(f.path, settings);
+      return !!rootScope && fileRootScope === rootScope;
+    }
     const fileSpace = inferSpaceFromPath(f.path, app, settings);
     return fileSpace === space;
   });
 
-  if (areaProjectFiles.length === 0) {
-    new Notice(`No active projects found in ${space} space`);
+  if (scopedProjectFiles.length === 0) {
+    const scope = noSpacesMode ? (rootScope || "scope") : `${space} space`;
+    new Notice(`No active projects found in ${scope}`);
     return;
   }
 
-  const target = await new FilePickerModal(app, areaProjectFiles, settings).openAndGet();
+  const target = await new FilePickerModal(app, scopedProjectFiles, settings).openAndGet();
   if (!target) return;
 
   await moveTask(app, settings, task, target.path);
@@ -309,35 +327,43 @@ export async function activateSomedayMaybeTask(
 }
 
 /**
- * Activates a Someday/Maybe project (moves all tasks to an active project in same space).
+ * Activates a Someday/Maybe project (moves all tasks to an active project in the same scope).
  */
 export async function activateSomedayMaybeProject(
   app: App,
   settings: GeckoTaskSettings,
   project: ProjectReviewInfo
 ): Promise<void> {
+  const spaces = getSpaces(app, settings);
+  const noSpacesMode = spaces.length === 0;
   const space = project.space;
-  if (!space) {
-    new Notice("No space found for project");
+  const rootScope = noSpacesMode ? inferAreaFromPathNoSpaces(project.path, settings) : undefined;
+  if (!space && !rootScope) {
+    new Notice("No scope found for project. Configure space paths or use valid task file paths.");
     return;
   }
 
-  // Get all project task files in the same space
+  // Get all project task files in the same scope.
   const sortedFiles = getSortedProjectFiles(app, settings);
-  const areaProjectFiles = sortedFiles.filter(f => {
+  const scopedProjectFiles = sortedFiles.filter(f => {
     if (isInInboxFolder(f.path, settings)) return false;
     if (isSomedayMaybeFile(f.path, settings)) return false;
-    if (isAreaTasksFile(f.path, settings)) return false;
+    if (isAreaTasksFileInMode(f.path, settings, noSpacesMode)) return false;
+    if (noSpacesMode) {
+      const fileRootScope = inferAreaFromPathNoSpaces(f.path, settings);
+      return !!rootScope && fileRootScope === rootScope;
+    }
     const fileSpace = inferSpaceFromPath(f.path, app, settings);
     return fileSpace === space;
   });
 
-  if (areaProjectFiles.length === 0) {
-    new Notice(`No active projects found in ${space} space`);
+  if (scopedProjectFiles.length === 0) {
+    const scope = noSpacesMode ? (rootScope || "scope") : `${space} space`;
+    new Notice(`No active projects found in ${scope}`);
     return;
   }
 
-  const target = await new FilePickerModal(app, areaProjectFiles, settings).openAndGet();
+  const target = await new FilePickerModal(app, scopedProjectFiles, settings).openAndGet();
   if (!target) return;
 
   const sourceFile = app.vault.getAbstractFileByPath(project.path);
@@ -448,4 +474,29 @@ function slugify(title: string): string {
     .replace(/-+/g, "-")
     .replace(/^-|-$/g, "")
     .slice(0, 80);
+}
+
+function inferAreaFromPathNoSpaces(path: string, settings: GeckoTaskSettings): string | undefined {
+  const projectsMarker = `/${settings.projectsSubfolder}/`;
+  const areaMarker = `/${settings.areaTasksSubfolder}/`;
+
+  const projectIdx = path.indexOf(projectsMarker);
+  if (projectIdx > 0) {
+    return path.slice(0, projectIdx);
+  }
+
+  const areaIdx = path.indexOf(areaMarker);
+  if (areaIdx > 0) {
+    return path.slice(0, areaIdx);
+  }
+
+  return undefined;
+}
+
+function isAreaTasksFileInMode(filePath: string, settings: GeckoTaskSettings, noSpacesMode: boolean): boolean {
+  if (!noSpacesMode) {
+    return isAreaTasksFile(filePath, settings);
+  }
+  const suffix = `/${settings.areaTasksSubfolder}/${settings.tasksFileName}.md`;
+  return filePath.endsWith(suffix) && filePath.length > suffix.length;
 }

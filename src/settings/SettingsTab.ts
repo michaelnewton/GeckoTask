@@ -44,7 +44,7 @@ export class GeckoTaskSettingTab extends PluginSettingTab {
             .split(",")
             .map(p => normalizePath(p.trim()).replace(/^\/+|\/+$/g, ""))
             .filter(Boolean);
-          this.plugin.settings.spacePaths = paths.length > 0 ? paths : ["Personal"];
+          this.plugin.settings.spacePaths = paths;
           await this.plugin.saveSettings();
         })
       );

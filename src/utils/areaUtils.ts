@@ -186,6 +186,11 @@ export function getProjectDisplayName(filePath: string, app: App, settings: Geck
     }
   }
 
+  // No-spaces mode fallback label for area single-action lists.
+  if (settings.spacePaths.length === 0 && isAreaTasksPathNoSpaces(filePath, settings)) {
+    return "Single Action List";
+  }
+
   // PARA area someday/maybe (under each space root)
   for (const space of settings.spacePaths) {
     if (filePath === getAreaSomedayMaybePath(space, settings)) {
@@ -193,10 +198,23 @@ export function getProjectDisplayName(filePath: string, app: App, settings: Geck
     }
   }
 
+  // No-spaces mode fallback label for area someday/maybe file shape.
+  if (settings.spacePaths.length === 0 && isAreaSomedayMaybePathNoSpaces(filePath, settings)) {
+    return "Someday Maybe";
+  }
+
   // Project files
   const projectInfo = inferProjectFromPath(filePath, settings);
   if (projectInfo?.project) {
     return `${projectInfo.space} / ${projectInfo.project}`;
+  }
+
+  // No-spaces mode fallback project labels (derive project from path shape).
+  if (settings.spacePaths.length === 0) {
+    const projectName = inferProjectNameNoSpaces(filePath, settings);
+    if (projectName) {
+      return projectName;
+    }
   }
 
   // Fallback
@@ -216,6 +234,27 @@ export function getSortedProjectFiles(app: App, settings: GeckoTaskSettings): TF
   // 1. Inbox files
   const inboxFiles = allFiles.filter(f => isInInboxFolder(f.path, settings));
   result.push(...inboxFiles);
+
+  // No-spaces mode: discover only convention-matching task files.
+  if (settings.spacePaths.length === 0) {
+    const nonInboxFiles = allFiles.filter(f => !isInInboxFolder(f.path, settings));
+    const areaFiles = nonInboxFiles
+      .filter(f =>
+        isAreaTasksPathNoSpaces(f.path, settings) ||
+        isAreaSomedayMaybePathNoSpaces(f.path, settings)
+      )
+      .sort((a, b) => a.path.localeCompare(b.path));
+    const projectFiles = nonInboxFiles
+      .filter(f =>
+        isProjectTasksPathNoSpaces(f.path, settings) ||
+        isProjectSomedayMaybePathNoSpaces(f.path, settings)
+      )
+      .sort((a, b) => a.path.localeCompare(b.path));
+
+    result.push(...areaFiles);
+    result.push(...projectFiles);
+    return result;
+  }
 
   // 2. For each space, collect area tasks file + project task files
   const spaces = getSpaces(app, settings);
@@ -262,6 +301,44 @@ export function getSortedProjectFiles(app: App, settings: GeckoTaskSettings): TF
   }
 
   return result;
+}
+
+function isAreaTasksPathNoSpaces(filePath: string, settings: GeckoTaskSettings): boolean {
+  const suffix = `/${settings.areaTasksSubfolder}/${settings.tasksFileName}.md`;
+  return filePath.endsWith(suffix) && filePath.length > suffix.length;
+}
+
+function isAreaSomedayMaybePathNoSpaces(filePath: string, settings: GeckoTaskSettings): boolean {
+  const suffix = `/${settings.areaTasksSubfolder}/${settings.somedayMaybeFileName}.md`;
+  return filePath.endsWith(suffix) && filePath.length > suffix.length;
+}
+
+function isProjectTasksPathNoSpaces(filePath: string, settings: GeckoTaskSettings): boolean {
+  const marker = `/${settings.projectsSubfolder}/`;
+  const idx = filePath.indexOf(marker);
+  if (idx <= 0) return false;
+  const after = filePath.slice(idx + marker.length);
+  const parts = after.split("/");
+  return parts.length >= 2 && parts[parts.length - 1] === `${settings.tasksFileName}.md`;
+}
+
+function isProjectSomedayMaybePathNoSpaces(filePath: string, settings: GeckoTaskSettings): boolean {
+  const marker = `/${settings.projectsSubfolder}/`;
+  const idx = filePath.indexOf(marker);
+  if (idx <= 0) return false;
+  const after = filePath.slice(idx + marker.length);
+  const parts = after.split("/");
+  return parts.length >= 2 && parts[parts.length - 1] === `${settings.somedayMaybeFileName}.md`;
+}
+
+function inferProjectNameNoSpaces(filePath: string, settings: GeckoTaskSettings): string | undefined {
+  const marker = `/${settings.projectsSubfolder}/`;
+  const idx = filePath.indexOf(marker);
+  if (idx <= 0) return undefined;
+  const after = filePath.slice(idx + marker.length);
+  const parts = after.split("/");
+  if (parts.length < 2) return undefined;
+  return parts[0] || undefined;
 }
 
 /** @deprecated Use isAreaTasksFile or isInInboxFolder instead */

@@ -97,11 +97,12 @@ export async function fetchSomedayMaybeProjects(
 
   for (const file of smFiles) {
     const path = file.path;
-    const space = inferSpaceFromPath(path, app, settings);
+    const inferredArea = inferAreaFromPathNoSpaces(path, settings);
+    const space = inferSpaceFromPath(path, app, settings) || inferredArea;
     if (!space) continue;
 
     const projectInfo = inferProjectFromPath(path, settings);
-    const projectName = projectInfo?.project || file.basename;
+    const projectName = projectInfo?.project || inferredProjectNameNoSpaces(path, settings) || file.basename;
 
     const tasks = await loadTasksFromFile(app, file, settings);
     const uncompletedTasks = tasks.filter(t => !t.checked);
@@ -126,6 +127,33 @@ export async function fetchSomedayMaybeProjects(
   return projects;
 }
 
+function inferAreaFromPathNoSpaces(path: string, settings: GeckoTaskSettings): string | undefined {
+  const projectsMarker = `/${settings.projectsSubfolder}/`;
+  const areaMarker = `/${settings.areaTasksSubfolder}/`;
+
+  const projectIdx = path.indexOf(projectsMarker);
+  if (projectIdx > 0) {
+    return path.slice(0, projectIdx);
+  }
+
+  const areaIdx = path.indexOf(areaMarker);
+  if (areaIdx > 0) {
+    return path.slice(0, areaIdx);
+  }
+
+  return undefined;
+}
+
+function inferredProjectNameNoSpaces(path: string, settings: GeckoTaskSettings): string | undefined {
+  const marker = `/${settings.projectsSubfolder}/`;
+  const idx = path.indexOf(marker);
+  if (idx <= 0) return undefined;
+  const after = path.slice(idx + marker.length);
+  const parts = after.split("/");
+  if (parts.length < 2) return undefined;
+  return parts[0] || undefined;
+}
+
 /**
  * Fetches all actionable tasks matching the same logic as the Tasks Panel's "next-actions" tab.
  */
@@ -133,6 +161,7 @@ export async function fetchNextActions(
   app: App,
   settings: GeckoTaskSettings
 ): Promise<IndexedTask[]> {
+  const noSpacesMode = settings.spacePaths.length === 0;
   const sortedFiles = getSortedProjectFiles(app, settings);
   const allTasks: IndexedTask[] = [];
 
@@ -160,7 +189,9 @@ export async function fetchNextActions(
 
   // Get all tasks from area task files (single action equivalent)
   for (const [filePath, fileTasks] of tasksByFile.entries()) {
-    if (isAreaTasksFile(filePath, settings) && isInAnySpace(filePath, settings)) {
+    const isAreaTaskFile = isAreaTasksFileInMode(filePath, settings, noSpacesMode);
+    const isInScope = noSpacesMode || isInAnySpace(filePath, settings);
+    if (isAreaTaskFile && isInScope) {
       const filteredTasks = fileTasks.filter(t => {
         if (t.tags.includes(waitingForTag)) return false;
         if (t.scheduled && t.scheduled > today) return false;
@@ -173,7 +204,7 @@ export async function fetchNextActions(
   // Get first uncompleted task from each project file
   const projectFiles = getSortedProjectFiles(app, settings)
     .filter(f => {
-      if (isAreaTasksFile(f.path, settings)) return false;
+      if (isAreaTasksFileInMode(f.path, settings, noSpacesMode)) return false;
       if (isInInboxFolder(f.path, settings)) return false;
       if (isSomedayMaybeFile(f.path, settings)) return false;
       return true;
@@ -195,6 +226,14 @@ export async function fetchNextActions(
   }
 
   return [...singleActionTasks, ...projectFirstTasks];
+}
+
+function isAreaTasksFileInMode(filePath: string, settings: GeckoTaskSettings, noSpacesMode: boolean): boolean {
+  if (!noSpacesMode) {
+    return isAreaTasksFile(filePath, settings);
+  }
+  const suffix = `/${settings.areaTasksSubfolder}/${settings.tasksFileName}.md`;
+  return filePath.endsWith(suffix) && filePath.length > suffix.length;
 }
 
 /**

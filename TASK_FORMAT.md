@@ -202,6 +202,8 @@ Paths use the defaults from **Settings -> GeckoTask** (`Space paths`, `inboxFold
 
 Project tasks live at `{Space}/{projectsSubfolder}/{ProjectName}/{tasksFileName}.md` (default `{Space}/1Projects/{Project}/_tasks.md`).
 
+If **Space paths** is blank, GeckoTask does not auto-insert a default space. In this mode, space-based grouping and actions are reduced, and area-style files shown in the Project filter are labeled **Single Action List**.
+
 ## Optional `origin_*` metadata
 
 You can keep `origin_file::`, `origin_project::`, and `origin_area::` on a line if you use them for your own workflows (imports, Dataview, etc.). GeckoTask reads them like any other supported field. Checking a task still adds `completion::` automatically; there is no separate archive command that rewrites tasks with `origin_*` fields.
