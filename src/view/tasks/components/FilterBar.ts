@@ -1,7 +1,7 @@
 import { App } from "obsidian";
 import { GeckoTaskSettings } from "../../../settings";
 import { TabType, FilterState, DueWindow } from "../TasksPanelTypes";
-import { getAreas, getProjectDisplayName, getSortedProjectFiles } from "../../../utils/areaUtils";
+import { getSpaces, getProjectDisplayName, getSortedProjectFiles } from "../../../utils/areaUtils";
 
 /**
  * Renders the filter UI controls.
@@ -51,24 +51,24 @@ export function renderFilterBar(
   // Second row: Compact filter buttons
   const filterRow = host.createDiv({ cls: "filter-row filter-buttons" });
 
-  // Area dropdown
-  const areas = getAreas(app, settings);
-  if (areas.length > 0) {
+  // Space dropdown
+  const spaces = getSpaces(app, settings);
+  if (spaces.length > 0) {
     const areaContainer = filterRow.createDiv({ cls: "filter-item" });
-    areaContainer.createEl("label", { text: "Area:", cls: "filter-label" });
+    areaContainer.createEl("label", { text: "Space:", cls: "filter-label" });
     const areaSelect = areaContainer.createEl("select", { cls: "filter-select" });
     const allOpt = areaSelect.createEl("option", { text: "All" });
     allOpt.value = "All";
-    if (filters.area === "All") allOpt.selected = true;
-    areas.forEach(a => {
-      const opt = areaSelect.createEl("option", { text: a });
-      opt.value = a;
-      if (a === filters.area) opt.selected = true;
+    if (filters.space === "All") allOpt.selected = true;
+    spaces.forEach(s => {
+      const opt = areaSelect.createEl("option", { text: s });
+      opt.value = s;
+      if (s === filters.space) opt.selected = true;
     });
     areaSelect.addEventListener("change", (e) => {
       onFilterChange({
         ...filters,
-        area: (e.target as HTMLSelectElement).value
+        space: (e.target as HTMLSelectElement).value
       });
     });
   }

@@ -20,7 +20,7 @@ export type TabType = "all" | "today-overdue" | "inbox" | "waiting-for" | "next-
  * Filter state for task filtering in the panel.
  */
 export interface FilterState {
-  area: "All" | string; // "All" or one of the detected areas
+  space: "All" | string; // "All" or one of the detected spaces
   project: "Any" | string;
   priority: "Any" | string; // Dynamic from settings.allowedPriorities
   due: DueWindow;
@@ -37,7 +37,7 @@ export interface IndexedTask {
   title: string;
   description?: string; // Multi-line description
   tags: string[];
-  area?: string;
+  space?: string;
   project?: string;
   priority?: string;
   due?: string;        // YYYY-MM-DD

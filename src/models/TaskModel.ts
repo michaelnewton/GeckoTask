@@ -14,7 +14,7 @@ export interface Task {
   priority?: string; // Dynamic from settings.allowedPriorities
   recur?: string; // Recurrence pattern (e.g., "every Tuesday", "every 10 days")
   project?: string;
-  area?: string;
+  space?: string;
   completion?: string;
   origin_file?: string;
   origin_project?: string;
@@ -150,8 +150,8 @@ export function parseTask(line: string, opts?: ParseTaskOptions): Task | null {
     recur: recurPattern || fields["recur"], // Prefer emoji format if found, otherwise field format
     // Note: project is not stored in metadata, it's derived from file basename
     // project: fields["project"],
-    // Note: area is not stored in metadata, it's derived from folder structure
-    // area: fields["area"],
+    // Note: space is not stored in metadata, it's derived from folder structure
+    // space: fields["space"],
     completion: fields["completion"],
     origin_file: fields["origin_file"],
     origin_project: fields["origin_project"],
@@ -184,8 +184,8 @@ export function formatTask(t: Task): string {
   f("scheduled", t.scheduled);
   // Note: project is not stored in metadata, it's derived from file basename
   // f("project", t.project); // Removed - projects are file-based
-  // Note: area is not stored in metadata, it's derived from folder structure
-  // f("area", t.area); // Removed - areas are folder-based
+  // Note: space is not stored in metadata, it's derived from folder structure
+  // f("space", t.space); // Removed - spaces are folder-based
   f("completion", t.completion);
   f("origin_file", t.origin_file);
   f("origin_project", t.origin_project);

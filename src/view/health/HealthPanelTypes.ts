@@ -19,7 +19,7 @@ export interface TaskTrackingData {
  */
 export interface HealthMetrics {
   totalActiveTasks: number;
-  tasksByArea: Record<string, number>;
+  tasksBySpace: Record<string, number>;
   overdueTasks: number;
   urgentTasks: number;
   highPriorityTasks: number;
@@ -80,7 +80,7 @@ export interface RecurringIssue {
  * Cleanup suggestion.
  */
 export interface CleanupSuggestion {
-  type: "high-task-count" | "stale-file" | "inbox-overflow" | "area-imbalance" | "completed-archive";
+  type: "high-task-count" | "stale-file" | "inbox-overflow" | "space-imbalance" | "completed-archive";
   message: string;
   details?: Record<string, unknown>;
 }
@@ -105,7 +105,7 @@ export interface HealthReport {
 export interface ProjectInfo {
   path: string;
   name: string;
-  area?: string;
+  space?: string;
   taskCount: number;
   file: TFile;
 }

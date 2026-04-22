@@ -2,7 +2,7 @@ import { App, MarkdownView, TFile } from "obsidian";
 import { ViewPlugin, Decoration, DecorationSet, ViewUpdate, EditorView } from "@codemirror/view";
 import { RangeSetBuilder } from "@codemirror/state";
 import { GeckoTaskSettings } from "../settings";
-import { isInAnyArea, isInInboxFolder } from "../utils/areaUtils";
+import { isInAnySpace, isInInboxFolder } from "../utils/areaUtils";
 
 type EditorWithCm = { cm?: EditorView };
 
@@ -56,7 +56,7 @@ export function createTaskFieldDecorator(app: App, settings: GeckoTaskSettings) 
         const builder = new RangeSetBuilder<Decoration>();
 
         const file = findFileForView(app, view);
-        if (!file || !(isInAnyArea(file.path, settings) || isInInboxFolder(file.path, settings))) {
+        if (!file || !(isInAnySpace(file.path, settings) || isInInboxFolder(file.path, settings))) {
           return builder.finish();
         }
 

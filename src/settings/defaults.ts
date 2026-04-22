@@ -4,7 +4,7 @@ import { GeckoTaskSettings } from "./index";
  * Default settings values used when no saved settings exist.
  */
 export const DEFAULT_SETTINGS: GeckoTaskSettings = {
-  areaPaths: ["Personal"],
+  spacePaths: ["Personal"],
   projectsSubfolder: "1Projects",
   areaTasksSubfolder: "2Areas",
   tasksFileName: "_tasks",

@@ -1,7 +1,7 @@
 import { App, Editor, TFile } from "obsidian";
 import { GeckoTaskSettings } from "../settings";
 import { parseTaskWithDescription } from "../models/TaskModel";
-import { inferAreaFromPath, inferProjectFromPath, isInInboxFolder } from "../utils/areaUtils";
+import { inferSpaceFromPath, inferProjectFromPath, isInInboxFolder } from "../utils/areaUtils";
 import { getAllEditorLines } from "../utils/editorUtils";
 import { IndexedTask } from "../view/tasks/TasksPanelTypes";
 
@@ -27,7 +27,7 @@ export function getIndexedTaskAtCursor(
 
   const path = file.path;
   const raw = lines[lineNo].trim();
-  const area = inferAreaFromPath(path, app, settings);
+  const space = inferSpaceFromPath(path, app, settings);
   let project: string | undefined;
   if (isInInboxFolder(path, settings)) {
     project = undefined;
@@ -43,7 +43,7 @@ export function getIndexedTaskAtCursor(
     title: parsed.title,
     description: parsed.description,
     tags: parsed.tags || [],
-    area,
+    space,
     project,
     priority: parsed.priority,
     due: parsed.due,

@@ -246,10 +246,10 @@ export function renderTaskItem(
     descIcon.addClass("geckotask-clickable");
   }
   
-  // Right side: Project (or Area if area tasks file)
+  // Right side: Project (or Space if area tasks file)
   const rightSide = bottomRow.createDiv({ cls: "task-card-bottom-right" });
-  // Check if this task is in an area tasks file or inbox
-  const isAreaLevel = isAreaTasksFile(task.path, settings);
+  // Check if this task is in a PARA area-level tasks file or inbox
+  const isParaAreaLevel = isAreaTasksFile(task.path, settings);
   const isInInbox = isInInboxFolder(task.path, settings);
 
   if (isInInbox) {
@@ -257,11 +257,11 @@ export function renderTaskItem(
     const inboxContainer = rightSide.createDiv({ cls: "task-project-container" });
     const inboxText = inboxContainer.createEl("span", { cls: "task-project-text" });
     inboxText.textContent = "# Inbox";
-  } else if (isAreaLevel && task.area) {
-    // Show Area instead of project for area tasks file
-    const areaContainer = rightSide.createDiv({ cls: "task-project-container" });
-    const areaText = areaContainer.createEl("span", { cls: "task-project-text" });
-    areaText.textContent = `# ${task.area}`;
+  } else if (isParaAreaLevel && task.space) {
+    // Show Space (root folder context) instead of project for PARA area files
+    const spaceContainer = rightSide.createDiv({ cls: "task-project-container" });
+    const spaceText = spaceContainer.createEl("span", { cls: "task-project-text" });
+    spaceText.textContent = `# ${task.space}`;
   } else if (task.project) {
     // Show project for other files
     const projectContainer = rightSide.createDiv({ cls: "task-project-container" });

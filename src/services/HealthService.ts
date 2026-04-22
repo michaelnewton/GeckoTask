@@ -24,7 +24,7 @@ import {
 } from "./TaskTrackingService";
 import { isValidRecurrencePattern } from "./Recurrence";
 import {
-  isInAnyArea,
+  isInAnySpace,
   isInInboxFolder,
   isSomedayMaybeFile,
   getSortedProjectFiles,
@@ -56,7 +56,7 @@ export async function analyzeAllTasks(
   // Get file objects for modification dates
   const files = new Map<string, TFile>();
   for (const file of app.vault.getMarkdownFiles()) {
-    if (isInAnyArea(file.path, settings) || isInInboxFolder(file.path, settings)) {
+    if (isInAnySpace(file.path, settings) || isInInboxFolder(file.path, settings)) {
       files.set(file.path, file);
     }
   }
@@ -129,7 +129,7 @@ async function getProjectInfo(
   settings: GeckoTaskSettings,
   tasks: IndexedTask[]
 ): Promise<ProjectInfo[]> {
-  const projectMap = new Map<string, { path: string; name: string; area?: string; count: number; file?: TFile }>();
+  const projectMap = new Map<string, { path: string; name: string; space?: string; count: number; file?: TFile }>();
 
   for (const task of tasks) {
     if (!task.project) continue;
@@ -143,7 +143,7 @@ async function getProjectInfo(
       projectMap.set(key, {
         path: task.path,
         name: task.project,
-        area: task.area,
+        space: task.space,
         count: 1,
         file: file instanceof TFile ? file : undefined
       });
@@ -153,7 +153,7 @@ async function getProjectInfo(
   return Array.from(projectMap.values()).map(p => ({
     path: p.path,
     name: p.name,
-    area: p.area,
+    space: p.space,
     taskCount: p.count,
     file: p.file!
   }));
@@ -172,11 +172,11 @@ export function calculateHealthMetrics(
   const activeTasks = tasks.filter(t => !t.checked);
   const today = formatISODate(new Date());
   
-  // Tasks by area
-  const tasksByArea: Record<string, number> = {};
+  // Tasks by space
+  const tasksBySpace: Record<string, number> = {};
   for (const task of activeTasks) {
-    const area = task.area || "Unknown";
-    tasksByArea[area] = (tasksByArea[area] || 0) + 1;
+    const space = task.space || "Unknown";
+    tasksBySpace[space] = (tasksBySpace[space] || 0) + 1;
   }
 
   // Overdue tasks
@@ -199,7 +199,7 @@ export function calculateHealthMetrics(
 
   return {
     totalActiveTasks: activeTasks.length,
-    tasksByArea,
+    tasksBySpace,
     overdueTasks,
     urgentTasks,
     highPriorityTasks,
@@ -675,24 +675,24 @@ export function generateCleanupSuggestions(
     });
   }
 
-  // Area imbalance
-  const tasksByArea: Record<string, number> = {};
+  // Space imbalance
+  const tasksBySpace: Record<string, number> = {};
   for (const task of activeTasks) {
-    const area = task.area || "Unknown";
-    tasksByArea[area] = (tasksByArea[area] || 0) + 1;
+    const space = task.space || "Unknown";
+    tasksBySpace[space] = (tasksBySpace[space] || 0) + 1;
   }
   
-  const areaCounts = Object.values(tasksByArea);
-  if (areaCounts.length > 1) {
-    const max = Math.max(...areaCounts);
-    const min = Math.min(...areaCounts);
+  const spaceCounts = Object.values(tasksBySpace);
+  if (spaceCounts.length > 1) {
+    const max = Math.max(...spaceCounts);
+    const min = Math.min(...spaceCounts);
     const imbalance = max / min;
     
-    if (imbalance > 5) { // One area has 5x more tasks than another
+    if (imbalance > 5) { // One space has 5x more tasks than another
       suggestions.push({
-        type: "area-imbalance",
-        message: `Significant area imbalance detected (largest area has ${Math.round(imbalance)}x more tasks than smallest)`,
-        details: { tasksByArea, imbalance: Math.round(imbalance) }
+        type: "space-imbalance",
+        message: `Significant space imbalance detected (largest space has ${Math.round(imbalance)}x more tasks than smallest)`,
+        details: { tasksBySpace, imbalance: Math.round(imbalance) }
       });
     }
   }

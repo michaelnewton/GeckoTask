@@ -2,8 +2,8 @@
  * Plugin settings interface defining all configuration options.
  */
 export interface GeckoTaskSettings {
-  areaPaths: string[];                   // Root-level area folder names, e.g., ["Personal", "Work"]
-  projectsSubfolder: string;             // Subfolder for projects within an area, default "1Projects"
+  spacePaths: string[];                  // Root-level space folder names, e.g., ["Personal", "Work"]
+  projectsSubfolder: string;             // Subfolder for projects within a space, default "1Projects"
   areaTasksSubfolder: string;            // Subfolder for area-level tasks, default "2Areas"
   tasksFileName: string;                 // Task file name (without .md), default "_tasks"
   somedayMaybeFileName: string;          // Someday/maybe file name (without .md), default "_SomedayMaybe"

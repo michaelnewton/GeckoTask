@@ -2,7 +2,7 @@ import { App } from "obsidian";
 import { GeckoTaskSettings } from "../../../settings";
 import { TabType, FilterState, IndexedTask } from "../TasksPanelTypes";
 import { formatISODate, startOf, endOf, add } from "../../../utils/dateUtils";
-import { isInAnyArea, isInInboxFolder, isAreaTasksFile, isSomedayMaybeFile, getSortedProjectFiles } from "../../../utils/areaUtils";
+import { isInAnySpace, isInInboxFolder, isAreaTasksFile, isSomedayMaybeFile, getSortedProjectFiles } from "../../../utils/areaUtils";
 
 /**
  * Filters tasks based on tab type and filter state.
@@ -53,7 +53,7 @@ export function filterTasks(
 
     // Get all tasks from area task files (single action equivalent)
     for (const [filePath, fileTasks] of tasksByFile.entries()) {
-      if (isAreaTasksFile(filePath, settings) && isInAnyArea(filePath, settings)) {
+      if (isAreaTasksFile(filePath, settings) && isInAnySpace(filePath, settings)) {
         const filteredTasks = fileTasks.filter(t => {
           if (t.tags.includes(waitingForTag)) return false;
           if (t.scheduled && t.scheduled > today) return false;
@@ -120,8 +120,8 @@ export function filterTasks(
   }
 
   // Apply other filters (common to all tabs)
-  // Area filter doesn't apply to inbox tab — inbox tasks have no area
-  if (filters.area !== "All" && currentTab !== "inbox") rows = rows.filter(t => (t.area || "") === filters.area);
+  // Space filter doesn't apply to inbox tab — inbox tasks have no space
+  if (filters.space !== "All" && currentTab !== "inbox") rows = rows.filter(t => (t.space || "") === filters.space);
   if (filters.project !== "Any") {
     rows = rows.filter(t => t.path === filters.project);
   }
@@ -224,7 +224,7 @@ export function sortTasks(tasks: IndexedTask[], currentTab: TabType, settings: G
       if (ap !== bp) return ap - bp;
     }
 
-    if ((a.area||"") !== (b.area||"")) return (a.area||"").localeCompare(b.area||"");
+    if ((a.space||"") !== (b.space||"")) return (a.space||"").localeCompare(b.space||"");
     if ((a.project||"") !== (b.project||"")) return (a.project||"").localeCompare(b.project||"");
     return a.title.localeCompare(b.title);
   });

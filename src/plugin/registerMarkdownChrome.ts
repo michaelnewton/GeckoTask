@@ -1,6 +1,6 @@
 import { MarkdownView } from "obsidian";
 import type GeckoTaskPlugin from "../main";
-import { isInAnyArea, isInInboxFolder } from "../utils/areaUtils";
+import { isInAnySpace, isInInboxFolder } from "../utils/areaUtils";
 import { styleTaskFieldsInMarkdown, updateMarkdownViewStyling } from "../styling/MarkdownStyler";
 import { createTaskFieldDecorator } from "../extensions/TaskFieldDecorator";
 import { createCheckboxClickHandler } from "../extensions/CheckboxClickHandler";
@@ -13,7 +13,7 @@ export function registerMarkdownChrome(plugin: GeckoTaskPlugin): void {
   plugin.registerMarkdownPostProcessor((element, context) => {
     if (
       context.sourcePath &&
-      (isInAnyArea(context.sourcePath, plugin.settings) || isInInboxFolder(context.sourcePath, plugin.settings))
+      (isInAnySpace(context.sourcePath, plugin.settings) || isInInboxFolder(context.sourcePath, plugin.settings))
     ) {
       plugin.registerInterval(
         window.setTimeout(() => {

@@ -26,7 +26,7 @@ export async function renderProjectCard(
   const projectDiv = host.createDiv({ cls: "weekly-review-project" });
   const projectHeader = projectDiv.createDiv({ cls: "weekly-review-project-header" });
   const projectName = projectHeader.createEl("h4", { 
-    text: `${project.name}${project.area ? ` (${project.area})` : ""}` 
+    text: `${project.name}${project.space ? ` (${project.space})` : ""}` 
   });
   projectName.addClass("geckotask-linklike");
   projectName.addEventListener("click", () => callbacks.onOpenProject(project.path));

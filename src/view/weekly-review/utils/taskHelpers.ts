@@ -7,10 +7,10 @@ import { normalizeDateInputForWrite } from "../../../services/NLDate";
 import {
   getInboxFolderPath,
   isInInboxFolder,
-  inferAreaFromPath,
+  inferSpaceFromPath,
   isAreaTasksFile,
   isSomedayMaybeFile,
-  getAreas,
+  getSpaces,
   getSortedProjectFiles,
   getAreaSomedayMaybePath,
   inferProjectFromPath
@@ -75,27 +75,27 @@ export async function moveTaskToProject(
 }
 
 /**
- * Moves a task to Someday/Maybe (area or project level).
+ * Moves a task to Someday/Maybe (PARA area-level or project-level).
  */
 export async function moveTaskToSomedayMaybe(
   app: App,
   settings: GeckoTaskSettings,
   task: IndexedTask
 ): Promise<void> {
-  const areas = getAreas(app, settings);
-  const area = task.area || (areas.length > 0 ? areas[0] : undefined);
-  if (!area) {
-    new Notice("No area found for task");
+  const spaces = getSpaces(app, settings);
+  const space = task.space || (spaces.length > 0 ? spaces[0] : undefined);
+  if (!space) {
+    new Notice("No space found for task");
     return;
   }
 
-  // Determine target: if the task has a project, use project-level; otherwise area-level
+  // Determine target: if the task has a project, use project-level; otherwise PARA area-level
   let smPath: string;
   const projectInfo = inferProjectFromPath(task.path, settings);
   if (projectInfo?.project) {
-    smPath = `${area}/${settings.projectsSubfolder}/${projectInfo.project}/${settings.somedayMaybeFileName}.md`;
+    smPath = `${space}/${settings.projectsSubfolder}/${projectInfo.project}/${settings.somedayMaybeFileName}.md`;
   } else {
-    smPath = getAreaSomedayMaybePath(area, settings);
+    smPath = getAreaSomedayMaybePath(space, settings);
   }
 
   // Ensure file exists
@@ -118,7 +118,7 @@ export async function moveTaskToSomedayMaybe(
   }
 
   await moveTask(app, settings, task, smPath);
-  new Notice(`Task moved to Someday/Maybe (${area})`);
+  new Notice(`Task moved to Someday/Maybe (${space})`);
 }
 
 /**
@@ -149,7 +149,7 @@ async function moveTask(
 
     taskWithDescription = {
       ...parsed,
-      area: undefined,
+      space: undefined,
       project: undefined
     };
 
@@ -273,31 +273,31 @@ export async function removeTag(
 }
 
 /**
- * Activates a Someday/Maybe task (moves to active project in same area).
+ * Activates a Someday/Maybe task (moves to active project in same space).
  */
 export async function activateSomedayMaybeTask(
   app: App,
   settings: GeckoTaskSettings,
   task: IndexedTask
 ): Promise<void> {
-  const area = task.area;
-  if (!area) {
-    new Notice("No area found for task");
+  const space = task.space;
+  if (!space) {
+    new Notice("No space found for task");
     return;
   }
 
-  // Get all project task files in the same area
+  // Get all project task files in the same space
   const sortedFiles = getSortedProjectFiles(app, settings);
   const areaProjectFiles = sortedFiles.filter(f => {
     if (isInInboxFolder(f.path, settings)) return false;
     if (isSomedayMaybeFile(f.path, settings)) return false;
     if (isAreaTasksFile(f.path, settings)) return false;
-    const fileArea = inferAreaFromPath(f.path, app, settings);
-    return fileArea === area;
+    const fileSpace = inferSpaceFromPath(f.path, app, settings);
+    return fileSpace === space;
   });
 
   if (areaProjectFiles.length === 0) {
-    new Notice(`No active projects found in ${area} area`);
+    new Notice(`No active projects found in ${space} space`);
     return;
   }
 
@@ -309,31 +309,31 @@ export async function activateSomedayMaybeTask(
 }
 
 /**
- * Activates a Someday/Maybe project (moves all tasks to an active project in same area).
+ * Activates a Someday/Maybe project (moves all tasks to an active project in same space).
  */
 export async function activateSomedayMaybeProject(
   app: App,
   settings: GeckoTaskSettings,
   project: ProjectReviewInfo
 ): Promise<void> {
-  const area = project.area;
-  if (!area) {
-    new Notice("No area found for project");
+  const space = project.space;
+  if (!space) {
+    new Notice("No space found for project");
     return;
   }
 
-  // Get all project task files in the same area
+  // Get all project task files in the same space
   const sortedFiles = getSortedProjectFiles(app, settings);
   const areaProjectFiles = sortedFiles.filter(f => {
     if (isInInboxFolder(f.path, settings)) return false;
     if (isSomedayMaybeFile(f.path, settings)) return false;
     if (isAreaTasksFile(f.path, settings)) return false;
-    const fileArea = inferAreaFromPath(f.path, app, settings);
-    return fileArea === area;
+    const fileSpace = inferSpaceFromPath(f.path, app, settings);
+    return fileSpace === space;
   });
 
   if (areaProjectFiles.length === 0) {
-    new Notice(`No active projects found in ${area} area`);
+    new Notice(`No active projects found in ${space} space`);
     return;
   }
 

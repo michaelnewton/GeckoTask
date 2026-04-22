@@ -64,7 +64,7 @@ Use a **test vault** (or a copy you can reset). Build artifacts first (**Before 
 
 ### Step 5 — Quick add / edit task
 
-1. Open a **Markdown** note under a configured **area** or **inbox** (per GeckoTask settings).
+1. Open a **Markdown** note under a configured **space** or **inbox** (per GeckoTask settings).
 2. Run **Quick Add/Edit Task** (`geckotask-quick-add`) **with the cursor not** on a task line — complete the flow; confirm a line appears in the note if you added a task.
 3. Put the cursor on a task line and run **Quick Add/Edit Task** again — confirm **edit** path works.
 
@@ -76,13 +76,13 @@ Use a **test vault** (or a copy you can reset). Build artifacts first (**Before 
 
 ### Step 7 — Recurring task (checkbox in editor)
 
-1. In an area/inbox note, use or add a task with **`recur::`** (supported recurrence format).
+1. In a space/inbox note, use or add a task with **`recur::`** (supported recurrence format).
 2. In **editing/source** mode, **click the task checkbox** to complete it.
 3. Confirm **completion** is recorded and a **next occurrence** line appears when expected; toggle again and confirm you do **not** get duplicate next lines.
 
 ### Step 8 — Markdown styling (metadata fields)
 
-1. Stay in (or open) an area/inbox task note.
+1. Stay in (or open) a space/inbox task note.
 2. Switch **Reading** ↔ **Source** if you use both.
 3. Confirm **`due::`**, **`priority::`**, etc. still **look styled** (preview and/or editor decorations). Watch the developer console for repeated errors.
 
@@ -112,7 +112,7 @@ Tag-driven releases use [`.github/workflows/release.yml`](.github/workflows/rele
 | When | What |
 |------|------|
 | Large refactors | Skim **`main.js`** size or obvious duplicated chunks (esbuild output). |
-| Path-sensitive changes | Repeat manual steps in a **second vault** with different `areaPaths` / empty inbox. |
+| Path-sensitive changes | Repeat manual steps in a **second vault** with different `spacePaths` / empty inbox. |
 | Hotkey changes | Check **Mod+Shift+E** (quick add) does not clash with another plugin in your test vault. |
 | Deeper automation later | Unit tests (e.g. Vitest) for `TaskModel` / recurrence strings; settings merge fixtures — see historical notes in git for `TESTING.md` roadmap if you add them. |
 

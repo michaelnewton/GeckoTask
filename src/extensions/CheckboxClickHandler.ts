@@ -1,7 +1,7 @@
 import { App, Editor, MarkdownView, TFile } from "obsidian";
 import { ViewPlugin, ViewUpdate, EditorView } from "@codemirror/view";
 import { GeckoTaskSettings } from "../settings";
-import { isInAnyArea, isInInboxFolder } from "../utils/areaUtils";
+import { isInAnySpace, isInInboxFolder } from "../utils/areaUtils";
 
 type EditorWithCm = { cm?: EditorView };
 
@@ -71,7 +71,7 @@ export function createCheckboxClickHandler(
         if (!markdownView) return;
 
         const file = (markdownView as MarkdownView).file as TFile | null;
-        if (!file || !(isInAnyArea(file.path, settings) || isInInboxFolder(file.path, settings))) {
+        if (!file || !(isInAnySpace(file.path, settings) || isInInboxFolder(file.path, settings))) {
           return;
         }
 

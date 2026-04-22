@@ -252,10 +252,10 @@ export async function moveTask(
       });
       if (!parsed) return data;
 
-      // Update task metadata (remove area:: and project:: since we're using folder/file-based structure)
+      // Update task metadata (remove space:: and project:: since we're using folder/file-based structure)
       taskWithDescription = {
         ...parsed,
-        area: undefined, // Don't store area in metadata, it's derived from folder
+        space: undefined, // Don't store space in metadata, it's derived from folder
         project: undefined, // Don't store project in metadata, it's derived from file basename
       };
 

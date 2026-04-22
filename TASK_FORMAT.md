@@ -35,8 +35,8 @@ The following fields are supported:
 | `origin_area` | `origin_area:: <name>` | Optional provenance: original area | `origin_area:: Work` |
 
 **Note:** 
-- The `area` field is **not** stored in task metadata. Areas are derived from configured **Area paths** and the file path (e.g., `Work/1Projects/MyProj/_tasks.md` with area `Work` configured -> area: `Work`).
-- The `project` field is **not** stored in task metadata for project task files. Projects are derived from the project folder name (e.g., `Personal/1Projects/RouterRevamp/_tasks.md` -> project: `RouterRevamp`). For the inbox folder and area-level task files (see [Special files](#special-files)), project is undefined.
+- The `space` value is **not** stored in task metadata. Root spaces are derived from configured **Space paths** and the file path (e.g., `Work/1Projects/MyProj/_tasks.md` with space `Work` configured -> space: `Work`).
+- The `project` field is **not** stored in task metadata for project task files. Projects are derived from the project folder name (e.g., `Personal/1Projects/RouterRevamp/_tasks.md` -> project: `RouterRevamp`). For the inbox folder and PARA area-level task files (see [Special files](#special-files)), project is undefined.
 - The `scheduled` field is fully supported: you can set it from the Tasks panel, Quick Add/Edit, or the command **GeckoTask: Set scheduled date (at cursor)**. It affects ordering and views (for example Next actions and weekly review logic).
 - The `recur` field supports both the 🔁 emoji format (for Tasks plugin compatibility) and the `recur::` field format. When a recurring task is completed, the plugin inserts the next occurrence below it with updated `due` and/or `scheduled` per the recurrence rules.
 - The `origin_*` fields are parsed if present (for example when importing tasks from another system). GeckoTask does not add them automatically; there is no built-in "archive to another vault" step that writes them today.
@@ -194,13 +194,13 @@ Fields can appear in any order on the task line. The plugin will normalize the o
 
 ## Special files
 
-Paths use the defaults from **Settings -> GeckoTask** (`Area paths`, `inboxFolderName`, `projectsSubfolder`, `areaTasksSubfolder`, `tasksFileName`, `somedayMaybeFileName`). Out of the box:
+Paths use the defaults from **Settings -> GeckoTask** (`Space paths`, `inboxFolderName`, `projectsSubfolder`, `areaTasksSubfolder`, `tasksFileName`, `somedayMaybeFileName`). Out of the box:
 
 - **Inbox:** Any note under the inbox folder (default folder name: `Inbox` at the vault root, not a single fixed `Inbox.md`). Tasks here have no project; the UI treats them as inbox items.
-- **Area-level tasks:** The per-area task file: `{Area}/{areaTasksSubfolder}/{tasksFileName}.md` (defaults: `{Area}/2Areas/_tasks.md`). Same as inbox for **project**: none; the **area** name is shown where a project name would appear for project files.
-- **Area someday/maybe:** `{Area}/{areaTasksSubfolder}/{somedayMaybeFileName}.md` (default `_SomedayMaybe.md`) follows the same project rules as the area `_tasks` file.
+- **Area-level tasks:** The per-area task file: `{Space}/{areaTasksSubfolder}/{tasksFileName}.md` (defaults: `{Space}/2Areas/_tasks.md`). Same as inbox for **project**: none; the **area** name is shown where a project name would appear for project files.
+- **Area someday/maybe:** `{Space}/{areaTasksSubfolder}/{somedayMaybeFileName}.md` (default `_SomedayMaybe.md`) follows the same project rules as the area `_tasks` file.
 
-Project tasks live at `{Area}/{projectsSubfolder}/{ProjectName}/{tasksFileName}.md` (default `{Area}/1Projects/{Project}/_tasks.md`).
+Project tasks live at `{Space}/{projectsSubfolder}/{ProjectName}/{tasksFileName}.md` (default `{Space}/1Projects/{Project}/_tasks.md`).
 
 ## Optional `origin_*` metadata
 
@@ -227,13 +227,13 @@ sort priority desc, due asc
 ```
 ````
 
-Use a folder path that exists in your vault (for example an **Area path** such as `Work` or `Personal`, or `Inbox`). Dataview's `task` query reads checklist items under that path.
+Use a folder path that exists in your vault (for example a **Space path** such as `Work` or `Personal`, or `Inbox`). Dataview's `task` query reads checklist items under that path.
 
 ## Examples in Context
 
 ### Project file (`Work/1Projects/RouterRevamp/_tasks.md`)
 
-GeckoTask infers area and project from the **path**, not from YAML frontmatter. Frontmatter is fine for your own notes but does not drive task metadata.
+GeckoTask infers space and project from the **path**, not from YAML frontmatter. Frontmatter is fine for your own notes but does not drive task metadata.
 
 ```markdown
 # RouterRevamp

@@ -2,7 +2,7 @@
 
 # GeckoTask
 
-GeckoTask is an Obsidian plugin that turns notes into a practical task system. It helps you capture tasks fast, organize work by area and project, plan with due and scheduled dates, and review everything in dedicated Tasks, Weekly Review, and Health Check panels.
+GeckoTask is an Obsidian plugin that turns notes into a practical task system. It helps you capture tasks fast, organize work by space and project, plan with due and scheduled dates, and review everything in dedicated Tasks, Weekly Review, and Health Check panels.
 
 Everything stays in plain Markdown with inline fields (`due::`, `priority::`, `scheduled::`, `recur::`), so tasks remain portable, editable, and Dataview-friendly.
 
@@ -59,7 +59,7 @@ No pressure — everything will remain free and open.
 
 ### Setup Flow
 1. Open `Settings -> GeckoTask`.
-2. Set `Area paths` (for example: `Personal, Work`).
+2. Set `Space paths` (for example: `Personal, Work`).
 3. Run `GeckoTask: Create Project File` and create your first project.
 4. Run `GeckoTask: Quick Add/Edit Task` (hotkey: `Mod+Shift+E`) and capture a task.
 5. Open `GeckoTask: Open Tasks Panel` and triage or edit that task.
@@ -73,8 +73,8 @@ No pressure — everything will remain free and open.
 ### Troubleshooting Quick Checks
 - Plugin not visible: confirm GeckoTask is enabled in `Settings -> Community plugins`.
 - Panels not opening: run commands from the command palette and verify exact command names.
-- Tasks not showing: make sure tasks are unchecked Markdown tasks (`- [ ]`) in configured areas or inbox.
-- Wrong area/project assignment: verify file paths match your configured `Area paths` and subfolder names.
+- Tasks not showing: make sure tasks are unchecked Markdown tasks (`- [ ]`) in configured spaces or inbox.
+- Wrong space/project assignment: verify file paths match your configured `Space paths` and subfolder names.
 
 ## Core Concepts
 
@@ -97,10 +97,14 @@ For the full syntax (all fields, tags, recurrence patterns, and special files), 
 When you complete a recurring task, GeckoTask inserts the next occurrence directly below it.
 
 ### Storage Model
-GeckoTask infers area and project from file path (not `project::` metadata).
+GeckoTask infers space and project from file path (not `project::` metadata).
 
-- **Projects**: `{Area}/1Projects/{ProjectName}/`
-- **Areas**: top-level folders listed in `Area paths`
+GeckoTask uses a modified PARA model called **SPARA**:
+- **Space**: top-level partition (for example `Home`, `Work`, `Personal`)
+- **PARA inside each space**: `Projects`, `Areas`, and your supporting resources/archive structure
+
+- **Projects**: `{Space}/1Projects/{ProjectName}/`
+- **PARA Areas**: `{Space}/2Areas/`
 - **Inbox**: dedicated folder for unprocessed items
 
 Example structure:
@@ -125,7 +129,7 @@ Default names are configurable:
 - `somedayMaybeFileName`: `_SomedayMaybe`
 - `inboxFolderName`: `Inbox`
 
-GeckoTask reads area/project context from these paths, so keep folder names stable after setup.
+GeckoTask reads space/project context from these paths, so keep folder names stable after setup.
 
 ## Features Overview
 
@@ -163,7 +167,7 @@ The Tasks panel is your daily command center.
 - **All Tasks**: full list with all filters
 
 **Filtering and editing**
-- Filter by area, project path, priority, due bucket, and text query
+- Filter by space, project path, priority, due bucket, and text query
 - Click title to edit inline
 - Click field badges to edit `due`, `scheduled`, `priority`, or recurrence
 - Open task in note, move it to another file, or toggle completion
@@ -194,7 +198,7 @@ Health Check scans your task system and surfaces actionable issues.
 
 **Metrics**
 - Total active tasks
-- Tasks by area
+- Tasks by space
 - Overdue tasks
 - Urgent/high-priority tasks
 - Tasks without due dates
@@ -218,8 +222,8 @@ Recommended use:
 ### Settings
 Open `Settings -> GeckoTask`.
 
-**Areas and structure**
-- Area paths
+**Spaces and structure**
+- Space paths
 - Projects subfolder
 - Area tasks subfolder
 - Task file name
@@ -294,7 +298,7 @@ Tip: use ISO dates (`YYYY-MM-DD`) when you need exact, reproducible values acros
 
 ### Recommended Settings
 Suggested baseline:
-- Area paths: `Personal, Work`
+- Space paths: `Personal, Work`
 - Projects subfolder: `1Projects`
 - Area tasks subfolder: `2Areas`
 - Task file name: `_tasks`
@@ -327,11 +331,11 @@ These are starting points; tune them over 2-3 review cycles based on how noisy o
 ```
 Index only `- [ ]` / `- [x]` in:
 - `Inbox/**/*.md`
-- `{Area}/2Areas/_tasks.md|_SomedayMaybe.md`
-- `{Area}/1Projects/{Project}/_tasks.md|_SomedayMaybe.md`
+- `{Space}/2Areas/_tasks.md|_SomedayMaybe.md`
+- `{Space}/1Projects/{Project}/_tasks.md|_SomedayMaybe.md`
 (use user settings if different)
 
-Area/project = path only.
+Space/project = path only.
 
 Task:
 `- [ ] Title #tags priority:: {low|med|high|urgent} due:: YYYY-MM-DD scheduled:: YYYY-MM-DD`

@@ -20,7 +20,7 @@ import { captureQuickTask } from "../../ui/CaptureModal";
 import { FilePickerModal } from "../../ui/FilePickerModal";
 import { PromptModal } from "../../ui/PromptModal";
 import { ConfirmationModal } from "../../ui/ConfirmationModal";
-import { isInTasksFolder, isTasksFolderFile } from "../../utils/areaUtils";
+import { isInAnySpace, isInInboxFolder } from "../../utils/areaUtils";
 import { loadTasksFromFiles } from "../../utils/taskUtils";
 import { formatISODate, formatISODateTime } from "../../utils/dateUtils";
 
@@ -120,7 +120,7 @@ export class HealthPanel extends ItemView {
    */
   private async loadTasks() {
     const files = this.app.vault.getMarkdownFiles()
-      .filter(f => isInTasksFolder(f.path, this.settings) && !isTasksFolderFile(f.path, this.settings));
+      .filter(f => isInAnySpace(f.path, this.settings) || isInInboxFolder(f.path, this.settings));
     
     this.tasks = await loadTasksFromFiles(this.app, files, this.settings);
   }
@@ -179,12 +179,12 @@ export class HealthPanel extends ItemView {
     this.createMetric(grid, "Tasks with No Due Date", String(metrics.tasksWithNoDueDate));
     this.createMetric(grid, "Projects with High Task Count", String(metrics.projectsWithHighTaskCount.length));
 
-    // Tasks by area
-    if (Object.keys(metrics.tasksByArea).length > 0) {
+    // Tasks by space
+    if (Object.keys(metrics.tasksBySpace).length > 0) {
       const areaEl = metricsEl.createDiv({ cls: "health-metrics-areas" });
-      areaEl.createEl("strong", { text: "Tasks by Area: " });
+      areaEl.createEl("strong", { text: "Tasks by Space: " });
       const areaList = areaEl.createEl("span");
-      const areaStrings = Object.entries(metrics.tasksByArea).map(([area, count]) => `${area} (${count})`);
+      const areaStrings = Object.entries(metrics.tasksBySpace).map(([space, count]) => `${space} (${count})`);
       areaList.textContent = areaStrings.join(", ");
     }
   }
@@ -383,8 +383,8 @@ export class HealthPanel extends ItemView {
     if (task.project) {
       metadata.createEl("span", { text: task.project });
     }
-    if (task.area) {
-      metadata.createEl("span", { text: task.area });
+    if (task.space) {
+      metadata.createEl("span", { text: task.space });
     }
     if (task.due) {
       const dueText = task.due < formatISODate(new Date()) 
@@ -604,7 +604,7 @@ export class HealthPanel extends ItemView {
 
       taskWithDescription = {
         ...parsed,
-        area: undefined,
+        space: undefined,
         project: undefined
       };
 

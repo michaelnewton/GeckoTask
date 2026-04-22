@@ -1,7 +1,7 @@
 import { App, TFile, TFolder, Notice, Editor, Modal, Setting, normalizePath } from "obsidian";
 import { GeckoTaskSettings } from "../settings";
 import { parseTaskWithDescription, formatTaskWithDescription, Task } from "../models/TaskModel";
-import { getAreas, getProjectTasksFilePath } from "../utils/areaUtils";
+import { getSpaces, getProjectTasksFilePath } from "../utils/areaUtils";
 import { getAllEditorLines } from "../utils/editorUtils";
 import { formatISODate } from "../utils/dateUtils";
 import { FilePickerModal } from "../ui/FilePickerModal";
@@ -30,7 +30,7 @@ export async function moveTaskAtCursorInteractive(app: App, editor: Editor, sett
 
   const updatedTask: Task = {
     ...task,
-    area: undefined,
+    space: undefined,
     project: undefined,
   };
 
@@ -60,7 +60,7 @@ export async function moveTaskAtCursorInteractive(app: App, editor: Editor, sett
 export async function createProjectFile(app: App, settings: GeckoTaskSettings): Promise<TFile | null> {
   return new Promise((resolve) => {
     const modal = new (class extends Modal {
-      area: string = "";
+      space: string = "";
       projectName: string = "";
 
       onOpen() {
@@ -69,15 +69,15 @@ export async function createProjectFile(app: App, settings: GeckoTaskSettings): 
         contentEl.empty();
         this.titleEl.setText("GeckoTask — Create Project");
 
-        const areas = getAreas(app, settings);
-        if (areas.length > 0) {
-          this.area = areas[0];
+        const spaces = getSpaces(app, settings);
+        if (spaces.length > 0) {
+          this.space = spaces[0];
           new Setting(contentEl)
-            .setName("Area")
+            .setName("Space")
             .addDropdown(d => {
-              areas.forEach(a => d.addOption(a, a));
-              d.setValue(this.area);
-              d.onChange(v => this.area = v);
+              spaces.forEach(s => d.addOption(s, s));
+              d.setValue(this.space);
+              d.onChange(v => this.space = v);
             });
         }
 
@@ -97,14 +97,14 @@ export async function createProjectFile(app: App, settings: GeckoTaskSettings): 
                 new Notice("GeckoTask: Project name required.");
                 return;
               }
-              if (!this.area) {
-                new Notice("GeckoTask: Area required. Configure area paths in settings.");
+              if (!this.space) {
+                new Notice("GeckoTask: Space required. Configure space paths in settings.");
                 return;
               }
 
               const projectName = this.projectName.trim();
-              const projectDir = normalizePath(`${this.area}/${settings.projectsSubfolder}/${projectName}`);
-              const taskFilePath = getProjectTasksFilePath(this.area, projectName, settings);
+              const projectDir = normalizePath(`${this.space}/${settings.projectsSubfolder}/${projectName}`);
+              const taskFilePath = getProjectTasksFilePath(this.space, projectName, settings);
 
               // Check if file already exists
               const existing = app.vault.getAbstractFileByPath(taskFilePath);
@@ -117,7 +117,7 @@ export async function createProjectFile(app: App, settings: GeckoTaskSettings): 
 
               try {
                 // Create intermediate directories
-                await ensureFolder(app, normalizePath(`${this.area}/${settings.projectsSubfolder}`));
+                await ensureFolder(app, normalizePath(`${this.space}/${settings.projectsSubfolder}`));
                 await ensureFolder(app, projectDir);
 
                 const today = new Date();

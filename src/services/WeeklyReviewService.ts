@@ -3,12 +3,12 @@ import { GeckoTaskSettings } from "../settings";
 import { IndexedTask } from "../view/tasks/TasksPanelTypes";
 import { ProjectReviewInfo } from "../view/weekly-review/WeeklyReviewPanelTypes";
 import {
-  isInAnyArea,
+  isInAnySpace,
   isInInboxFolder,
-  inferAreaFromPath,
+  inferSpaceFromPath,
   isAreaTasksFile,
   isSomedayMaybeFile,
-  getAreas,
+  getSpaces,
   getSortedProjectFiles,
   getProjectsPath,
   getProjectTasksFilePath,
@@ -62,7 +62,7 @@ export async function fetchTasksByTag(
 }
 
 /**
- * Fetches all tasks from Someday/Maybe files (area and project level).
+ * Fetches all tasks from Someday/Maybe files (PARA area and project level).
  */
 export async function fetchSomedayMaybeTasks(
   app: App,
@@ -97,8 +97,8 @@ export async function fetchSomedayMaybeProjects(
 
   for (const file of smFiles) {
     const path = file.path;
-    const area = inferAreaFromPath(path, app, settings);
-    if (!area) continue;
+    const space = inferSpaceFromPath(path, app, settings);
+    if (!space) continue;
 
     const projectInfo = inferProjectFromPath(path, settings);
     const projectName = projectInfo?.project || file.basename;
@@ -110,16 +110,16 @@ export async function fetchSomedayMaybeProjects(
     projects.push({
       path,
       name: projectName,
-      area,
+      space,
       tasks: uncompletedTasks,
       hasNextAction
     });
   }
 
   projects.sort((a, b) => {
-    const areaA = a.area || "";
-    const areaB = b.area || "";
-    if (areaA !== areaB) return areaA.localeCompare(areaB);
+    const spaceA = a.space || "";
+    const spaceB = b.space || "";
+    if (spaceA !== spaceB) return spaceA.localeCompare(spaceB);
     return a.name.localeCompare(b.name);
   });
 
@@ -160,7 +160,7 @@ export async function fetchNextActions(
 
   // Get all tasks from area task files (single action equivalent)
   for (const [filePath, fileTasks] of tasksByFile.entries()) {
-    if (isAreaTasksFile(filePath, settings) && isInAnyArea(filePath, settings)) {
+    if (isAreaTasksFile(filePath, settings) && isInAnySpace(filePath, settings)) {
       const filteredTasks = fileTasks.filter(t => {
         if (t.tags.includes(waitingForTag)) return false;
         if (t.scheduled && t.scheduled > today) return false;
@@ -205,10 +205,10 @@ export async function fetchProjectsWithTasks(
   settings: GeckoTaskSettings
 ): Promise<ProjectReviewInfo[]> {
   const projects: ProjectReviewInfo[] = [];
-  const areas = getAreas(app, settings);
+  const spaces = getSpaces(app, settings);
 
-  for (const area of areas) {
-    const projectsPath = getProjectsPath(area, settings);
+  for (const space of spaces) {
+    const projectsPath = getProjectsPath(space, settings);
     const projectsFolder = app.vault.getAbstractFileByPath(projectsPath);
     if (!(projectsFolder instanceof TFolder)) continue;
 
@@ -217,7 +217,7 @@ export async function fetchProjectsWithTasks(
       .sort((a, b) => a.name.localeCompare(b.name));
 
     for (const projectDir of projectDirs) {
-      const taskFilePath = getProjectTasksFilePath(area, projectDir.name, settings);
+      const taskFilePath = getProjectTasksFilePath(space, projectDir.name, settings);
       const taskFile = app.vault.getAbstractFileByPath(taskFilePath);
       if (!(taskFile instanceof TFile)) continue;
 
@@ -228,7 +228,7 @@ export async function fetchProjectsWithTasks(
       projects.push({
         path: taskFilePath,
         name: projectDir.name,
-        area,
+        space,
         tasks: uncompletedTasks,
         hasNextAction
       });
@@ -236,9 +236,9 @@ export async function fetchProjectsWithTasks(
   }
 
   projects.sort((a, b) => {
-    const areaA = a.area || "";
-    const areaB = b.area || "";
-    if (areaA !== areaB) return areaA.localeCompare(areaB);
+    const spaceA = a.space || "";
+    const spaceB = b.space || "";
+    if (spaceA !== spaceB) return spaceA.localeCompare(spaceB);
     return a.name.localeCompare(b.name);
   });
 

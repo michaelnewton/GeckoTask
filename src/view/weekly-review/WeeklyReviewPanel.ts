@@ -323,7 +323,7 @@ export class WeeklyReviewPanel extends ItemView {
               path: projectPath,
               tasks: [],
               hasNextAction: false,
-              area: undefined
+              space: undefined
             };
             await activateSomedayMaybeProject(this.app, this.settings, dummyProject);
             this.shouldScrollToCount = true;

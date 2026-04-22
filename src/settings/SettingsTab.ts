@@ -31,20 +31,20 @@ export class GeckoTaskSettingTab extends PluginSettingTab {
     containerEl.empty();
     containerEl.addClass("geckotask-settings");
 
-    containerEl.createEl("h2", { text: "Areas & Structure" });
+    containerEl.createEl("h2", { text: "Spaces & Structure" });
 
-    // Area paths
+    // Space paths
     new Setting(containerEl)
-      .setName("Area paths")
-      .setDesc("Root-level area folder names, comma-separated (e.g., Personal, Work)")
+      .setName("Space paths")
+      .setDesc("Root-level space folder names, comma-separated (e.g., Personal, Work)")
       .addText(t => t
-        .setValue(this.plugin.settings.areaPaths.join(", "))
+        .setValue(this.plugin.settings.spacePaths.join(", "))
         .onChange(async (v) => {
           const paths = v
             .split(",")
             .map(p => normalizePath(p.trim()).replace(/^\/+|\/+$/g, ""))
             .filter(Boolean);
-          this.plugin.settings.areaPaths = paths.length > 0 ? paths : ["Personal"];
+          this.plugin.settings.spacePaths = paths.length > 0 ? paths : ["Personal"];
           await this.plugin.saveSettings();
         })
       );
@@ -52,7 +52,7 @@ export class GeckoTaskSettingTab extends PluginSettingTab {
     // Projects subfolder
     new Setting(containerEl)
       .setName("Projects subfolder")
-      .setDesc("Subfolder name within each area for project directories")
+      .setDesc("Subfolder name within each space for project directories")
       .addText(t => t
         .setValue(this.plugin.settings.projectsSubfolder)
         .onChange(async (v) => {
@@ -64,7 +64,7 @@ export class GeckoTaskSettingTab extends PluginSettingTab {
     // Area tasks subfolder
     new Setting(containerEl)
       .setName("Area tasks subfolder")
-      .setDesc("Subfolder name within each area for area-level single action tasks")
+      .setDesc("Subfolder name within each space for PARA Area-level single action tasks")
       .addText(t => t
         .setValue(this.plugin.settings.areaTasksSubfolder)
         .onChange(async (v) => {
@@ -76,7 +76,7 @@ export class GeckoTaskSettingTab extends PluginSettingTab {
     // Task file name
     new Setting(containerEl)
       .setName("Task file name")
-      .setDesc("File name for task lists within project and area directories (without .md)")
+      .setDesc("File name for task lists within project and PARA Area directories (without .md)")
       .addText(t => t
         .setValue(this.plugin.settings.tasksFileName)
         .onChange(async (v) => {

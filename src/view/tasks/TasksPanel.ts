@@ -23,7 +23,7 @@ export class TasksPanel extends ItemView {
   settings: GeckoTaskSettings;
   container!: HTMLElement;
   currentTab: TabType = "today-overdue";
-  filters: FilterState = { area: "All", project: "Any", priority: "Any", due: "any", query: "" };
+  filters: FilterState = { space: "All", project: "Any", priority: "Any", due: "any", query: "" };
   tasks: IndexedTask[] = [];
   projectPaths: string[] = []; // for filter dropdown (file paths)
   titleElement!: HTMLElement; // Reference to the title h2 element

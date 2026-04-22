@@ -92,7 +92,7 @@ export interface TaskReviewItem extends IndexedTask {
 export interface ProjectReviewInfo {
   path: string;
   name: string;
-  area?: string;
+  space?: string;
   tasks: TaskReviewItem[];
   hasNextAction: boolean;
 }

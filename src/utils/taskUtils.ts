@@ -2,7 +2,7 @@ import { App, TFile } from "obsidian";
 import { GeckoTaskSettings } from "../settings";
 import { IndexedTask } from "../view/tasks/TasksPanelTypes";
 import { parseTaskWithDescriptionFromVault } from "../models/TaskModel";
-import { inferAreaFromPath, inferProjectFromPath, isInInboxFolder } from "./areaUtils";
+import { inferSpaceFromPath, inferProjectFromPath, isInInboxFolder } from "./areaUtils";
 
 /**
  * Loads all tasks from a specific file.
@@ -37,7 +37,7 @@ export async function loadTasksFromFile(
     if (!parsed) continue;
 
     const raw = lines[i].trim();
-    const area = inferAreaFromPath(path, app, settings);
+    const space = inferSpaceFromPath(path, app, settings);
 
     // Derive project from path structure
     let project: string | undefined;
@@ -55,7 +55,7 @@ export async function loadTasksFromFile(
       title: parsed.title,
       description: parsed.description,
       tags: parsed.tags || [],
-      area,
+      space,
       project,
       priority: parsed.priority,
       due: parsed.due,

@@ -615,7 +615,7 @@ async function appendTask(app: App, d: Draft, settings: GeckoTaskSettings) {
     priority: d.priority,
     recur: d.recur,
     project: undefined,
-    area: undefined,
+    space: undefined,
     raw: ""
   };
 
@@ -720,7 +720,7 @@ async function updateTask(app: App, existingTask: IndexedTask, d: Draft, setting
   if (isMoving) {
     if (targetPath === INBOX_VALUE) {
       // Move to inbox: create new file in Inbox folder
-      taskWithDescription.area = undefined;
+      taskWithDescription.space = undefined;
 
       // Remove from source
       const numLinesToRemove = descEndIdx - taskLineIdx + 1;
@@ -753,7 +753,7 @@ async function updateTask(app: App, existingTask: IndexedTask, d: Draft, setting
         return;
       }
 
-      taskWithDescription.area = undefined;
+      taskWithDescription.space = undefined;
 
       const numLinesToRemove = descEndIdx - taskLineIdx + 1;
       lines.splice(taskLineIdx, numLinesToRemove);

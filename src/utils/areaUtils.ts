@@ -2,42 +2,42 @@ import { App, TFolder, TFile, normalizePath } from "obsidian";
 import { GeckoTaskSettings } from "../settings";
 
 /**
- * Returns the configured area paths from settings.
+ * Returns the configured space paths from settings.
  * @param _app - Obsidian app instance (unused, kept for API compat)
  * @param settings - Plugin settings
- * @returns Array of area names (sorted alphabetically)
+ * @returns Array of space names (sorted alphabetically)
  */
-export function getAreas(_app: App, settings: GeckoTaskSettings): string[] {
-  return [...settings.areaPaths].sort();
+export function getSpaces(_app: App, settings: GeckoTaskSettings): string[] {
+  return [...settings.spacePaths].sort();
 }
 
 /**
- * Returns the area path (just the area name since areas are root-level).
+ * Returns the space path (just the space name since spaces are root-level).
  */
-export function getAreaPath(area: string, _settings: GeckoTaskSettings): string {
-  return normalizePath(area);
+export function getSpacePath(space: string, _settings: GeckoTaskSettings): string {
+  return normalizePath(space);
 }
 
 /**
- * Checks if a file path starts with any configured area path.
+ * Checks if a file path starts with any configured space path.
  */
-export function isInAnyArea(filePath: string, settings: GeckoTaskSettings): boolean {
-  // Sort by length descending so longer area names match first (prevents prefix collision)
-  const sorted = [...settings.areaPaths].sort((a, b) => b.length - a.length);
-  return sorted.some(area =>
-    filePath === area || filePath.startsWith(area + "/")
+export function isInAnySpace(filePath: string, settings: GeckoTaskSettings): boolean {
+  // Sort by length descending so longer space names match first (prevents prefix collision)
+  const sorted = [...settings.spacePaths].sort((a, b) => b.length - a.length);
+  return sorted.some(space =>
+    filePath === space || filePath.startsWith(space + "/")
   );
 }
 
 /**
- * Infers the area from a file path by matching against configured area paths.
+ * Infers the space from a file path by matching against configured space paths.
  */
-export function inferAreaFromPath(filePath: string, _app: App, settings: GeckoTaskSettings): string | undefined {
-  // Sort by length descending so longer area names match first
-  const sorted = [...settings.areaPaths].sort((a, b) => b.length - a.length);
-  for (const area of sorted) {
-    if (filePath === area || filePath.startsWith(area + "/")) {
-      return area;
+export function inferSpaceFromPath(filePath: string, _app: App, settings: GeckoTaskSettings): string | undefined {
+  // Sort by length descending so longer space names match first
+  const sorted = [...settings.spacePaths].sort((a, b) => b.length - a.length);
+  for (const space of sorted) {
+    if (filePath === space || filePath.startsWith(space + "/")) {
+      return space;
     }
   }
   return undefined;
@@ -109,11 +109,11 @@ export function isInInboxFolder(filePath: string, settings: GeckoTaskSettings): 
 
 /**
  * Checks if a file path is the area-level tasks file.
- * Matches: {area}/{areaTasksSubfolder}/{tasksFileName}.md
+ * Matches: {space}/{areaTasksSubfolder}/{tasksFileName}.md
  */
 export function isAreaTasksFile(filePath: string, settings: GeckoTaskSettings): boolean {
-  for (const area of settings.areaPaths) {
-    if (filePath === getAreaTasksFilePath(area, settings)) {
+  for (const space of settings.spacePaths) {
+    if (filePath === getAreaTasksFilePath(space, settings)) {
       return true;
     }
   }
@@ -130,30 +130,30 @@ export function isSomedayMaybeFile(filePath: string, settings: GeckoTaskSettings
 
 /**
  * Infers project info from a file path.
- * Returns { area, project } for project task files, { area, project: undefined } for area task files,
+ * Returns { space, project } for project task files, { space, project: undefined } for area task files,
  * or null if not a recognized task file.
  */
-export function inferProjectFromPath(filePath: string, settings: GeckoTaskSettings): { area: string; project: string | undefined } | null {
+export function inferProjectFromPath(filePath: string, settings: GeckoTaskSettings): { space: string; project: string | undefined } | null {
   // Check inbox
   if (isInInboxFolder(filePath, settings)) {
     return null;
   }
 
-  // Sort by length descending so longer area names match first (prevents prefix collision)
-  const sortedAreas = [...settings.areaPaths].sort((a, b) => b.length - a.length);
-  for (const area of sortedAreas) {
+  // Sort by length descending so longer space names match first (prevents prefix collision)
+  const sortedSpaces = [...settings.spacePaths].sort((a, b) => b.length - a.length);
+  for (const space of sortedSpaces) {
     // Check area tasks file
-    if (filePath === getAreaTasksFilePath(area, settings)) {
-      return { area, project: undefined };
+    if (filePath === getAreaTasksFilePath(space, settings)) {
+      return { space, project: undefined };
     }
 
     // Check area someday/maybe
-    if (filePath === getAreaSomedayMaybePath(area, settings)) {
-      return { area, project: undefined };
+    if (filePath === getAreaSomedayMaybePath(space, settings)) {
+      return { space, project: undefined };
     }
 
     // Check project files: {area}/{projectsSubfolder}/{projectName}/{tasksFileName}.md
-    const projectsPrefix = `${area}/${settings.projectsSubfolder}/`;
+    const projectsPrefix = `${space}/${settings.projectsSubfolder}/`;
     if (filePath.startsWith(projectsPrefix)) {
       const relativePath = filePath.substring(projectsPrefix.length);
       const parts = relativePath.split("/");
@@ -161,7 +161,7 @@ export function inferProjectFromPath(filePath: string, settings: GeckoTaskSettin
         const projectName = parts[0];
         const fileName = parts[parts.length - 1];
         if (fileName === `${settings.tasksFileName}.md` || fileName === `${settings.somedayMaybeFileName}.md`) {
-          return { area, project: projectName };
+          return { space, project: projectName };
         }
       }
     }
@@ -180,23 +180,23 @@ export function getProjectDisplayName(filePath: string, app: App, settings: Geck
   }
 
   // Area tasks file -> show area name
-  for (const area of settings.areaPaths) {
+  for (const area of settings.spacePaths) {
     if (filePath === getAreaTasksFilePath(area, settings)) {
       return area;
     }
   }
 
-  // Area someday/maybe
-  for (const area of settings.areaPaths) {
-    if (filePath === getAreaSomedayMaybePath(area, settings)) {
-      return `${area} / Someday Maybe`;
+  // PARA area someday/maybe (under each space root)
+  for (const space of settings.spacePaths) {
+    if (filePath === getAreaSomedayMaybePath(space, settings)) {
+      return `${space} / Someday Maybe`;
     }
   }
 
   // Project files
   const projectInfo = inferProjectFromPath(filePath, settings);
   if (projectInfo?.project) {
-    return `${projectInfo.area} / ${projectInfo.project}`;
+    return `${projectInfo.space} / ${projectInfo.project}`;
   }
 
   // Fallback
@@ -217,25 +217,25 @@ export function getSortedProjectFiles(app: App, settings: GeckoTaskSettings): TF
   const inboxFiles = allFiles.filter(f => isInInboxFolder(f.path, settings));
   result.push(...inboxFiles);
 
-  // 2. For each area, collect area tasks file + project task files
-  const areas = getAreas(app, settings);
-  for (const area of areas) {
+  // 2. For each space, collect area tasks file + project task files
+  const spaces = getSpaces(app, settings);
+  for (const space of spaces) {
     // Area tasks file
-    const areaTasksPath = getAreaTasksFilePath(area, settings);
+    const areaTasksPath = getAreaTasksFilePath(space, settings);
     const areaTasksFile = allFiles.find(f => f.path === areaTasksPath);
     if (areaTasksFile) {
       result.push(areaTasksFile);
     }
 
     // Area someday/maybe file
-    const areaSmPath = getAreaSomedayMaybePath(area, settings);
+    const areaSmPath = getAreaSomedayMaybePath(space, settings);
     const areaSmFile = allFiles.find(f => f.path === areaSmPath);
     if (areaSmFile) {
       result.push(areaSmFile);
     }
 
-    // Project directories under {area}/{projectsSubfolder}/
-    const projectsPath = getProjectsPath(area, settings);
+    // Project directories under {space}/{projectsSubfolder}/
+    const projectsPath = getProjectsPath(space, settings);
     const projectsFolder = app.vault.getAbstractFileByPath(projectsPath);
     if (projectsFolder instanceof TFolder) {
       // Get project dirs sorted by name
@@ -262,13 +262,6 @@ export function getSortedProjectFiles(app: App, settings: GeckoTaskSettings): TF
   }
 
   return result;
-}
-
-// --- Legacy aliases for gradual migration ---
-
-/** @deprecated Use isInAnyArea instead */
-export function isInTasksFolder(filePath: string, settings: GeckoTaskSettings): boolean {
-  return isInAnyArea(filePath, settings) || isInInboxFolder(filePath, settings);
 }
 
 /** @deprecated Use isAreaTasksFile or isInInboxFolder instead */

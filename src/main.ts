@@ -52,8 +52,20 @@ export default class GeckoTaskPlugin extends Plugin {
    * Loads settings from storage, merging with defaults.
    */
   async loadSettings() {
-    const loadedData = await this.loadData();
-    this.settings = Object.assign({}, DEFAULT_SETTINGS, loadedData);
+    const loadedData = (await this.loadData()) || {};
+    const hasLegacyAreaPaths = Array.isArray(loadedData.areaPaths);
+    const hasSpacePaths = Array.isArray(loadedData.spacePaths);
+
+    const migratedData = (!hasSpacePaths && hasLegacyAreaPaths)
+      ? { ...loadedData, spacePaths: loadedData.areaPaths }
+      : loadedData;
+
+    this.settings = Object.assign({}, DEFAULT_SETTINGS, migratedData);
+
+    // One-time persistence so we write the new key and stop depending on legacy areaPaths.
+    if (!hasSpacePaths && hasLegacyAreaPaths) {
+      await this.saveSettings();
+    }
   }
 
   /**
