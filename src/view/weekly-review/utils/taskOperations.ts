@@ -1,4 +1,5 @@
 import { App, Notice, TFile } from "obsidian";
+import { GeckoTaskSettings } from "../../../settings";
 import { IndexedTask } from "../../tasks/TasksPanelTypes";
 import { formatISODateTime } from "../../../utils/dateUtils";
 import { parseTaskWithDescription, formatTaskWithDescription, Task } from "../../../models/TaskModel";
@@ -7,7 +8,11 @@ import { calculateNextOccurrenceDates } from "../../../services/Recurrence";
 /**
  * Completes a task and handles recurrence if applicable.
  */
-export async function completeTask(app: App, task: IndexedTask): Promise<void> {
+export async function completeTask(
+  app: App,
+  settings: GeckoTaskSettings,
+  task: IndexedTask
+): Promise<void> {
   const file = app.vault.getAbstractFileByPath(task.path);
   if (!(file instanceof TFile)) return;
 
@@ -18,7 +23,9 @@ export async function completeTask(app: App, task: IndexedTask): Promise<void> {
     
     if (taskLineIdx < 0 || taskLineIdx >= lines.length) return data;
 
-    const { task: parsed } = parseTaskWithDescription(lines, taskLineIdx);
+    const { task: parsed } = parseTaskWithDescription(lines, taskLineIdx, {
+      nlDateParsing: settings.nlDateParsing
+    });
     if (!parsed) return data;
 
     parsed.checked = true;

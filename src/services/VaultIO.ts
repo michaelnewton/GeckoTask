@@ -9,10 +9,12 @@ import { FilePickerModal } from "../ui/FilePickerModal";
 /**
  * Gets the task at the current cursor line in the editor, including description.
  */
-async function getActiveLineTask(editor: Editor) {
+async function getActiveLineTask(editor: Editor, settings: GeckoTaskSettings) {
   const lineNo = editor.getCursor().line;
   const lines = getAllEditorLines(editor);
-  const { task, endLine } = parseTaskWithDescription(lines, lineNo);
+  const { task, endLine } = parseTaskWithDescription(lines, lineNo, {
+    nlDateParsing: settings.nlDateParsing
+  });
   return { task, lineNo, endLine, lines };
 }
 
@@ -20,7 +22,7 @@ async function getActiveLineTask(editor: Editor) {
  * Moves the task at the cursor to a different file via interactive file picker.
  */
 export async function moveTaskAtCursorInteractive(app: App, editor: Editor, settings: GeckoTaskSettings) {
-  const { task, lineNo, endLine } = await getActiveLineTask(editor);
+  const { task, lineNo, endLine } = await getActiveLineTask(editor, settings);
   if (!task) { new Notice("GeckoTask: No task on this line."); return; }
 
   const target = await new FilePickerModal(app, [], settings).openAndGet();

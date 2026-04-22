@@ -27,7 +27,7 @@ export function registerMarkdownChrome(plugin: GeckoTaskPlugin): void {
 
   plugin.registerEditorExtension(
     createCheckboxClickHandler(plugin.app, plugin.settings, (editor, view, lineNo) =>
-      handleTaskCheckboxToggle(editor, view, lineNo)
+      handleTaskCheckboxToggle(editor, view, lineNo, plugin.settings)
     )
   );
 

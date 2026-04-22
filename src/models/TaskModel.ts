@@ -1,4 +1,5 @@
-import { parseNLDate } from "../services/NLDate";
+import { resolveTaskDateField } from "../services/NLDate";
+import type { GeckoTaskSettings } from "../settings";
 
 /**
  * Represents a task with all its metadata fields.
@@ -26,12 +27,16 @@ const FIELD_KEYS = new Set([
   "due","scheduled","priority","recur","completion","origin_file","origin_project","origin_area"
 ]);
 
+/** Options for parsing task lines from the vault or editor (defaults preserve legacy NL-on behavior). */
+export type ParseTaskOptions = Pick<GeckoTaskSettings, "nlDateParsing">;
+
 /**
  * Parses a task line into a Task object.
  * @param line - The task line to parse (e.g., "- [ ] Task title #tag priority:: high")
+ * @param opts - When omitted, natural language date parsing is treated as enabled.
  * @returns Parsed Task object or null if line doesn't match task format
  */
-export function parseTask(line: string): Task | null {
+export function parseTask(line: string, opts?: ParseTaskOptions): Task | null {
   const m = line.match(/^\s*-\s*\[( |x)\]\s+(.*)$/i);
   if (!m) return null;
 
@@ -128,17 +133,19 @@ export function parseTask(line: string): Task | null {
   }
 
   const title = titleParts.join(" ").trim();
-  
-  // Convert natural language dates to ISO format
+
+  const nlDateParsing = opts?.nlDateParsing ?? true;
   const dueValue = fields["due"];
-  const parsedDue = dueValue ? (parseNLDate(dueValue) ?? dueValue) : undefined;
-  
+  const parsedDue = resolveTaskDateField(dueValue, nlDateParsing);
+  const schedValue = fields["scheduled"];
+  const parsedSched = resolveTaskDateField(schedValue, nlDateParsing);
+
   const t: Task = {
     checked,
     title,
     tags,
     due: parsedDue,
-    scheduled: fields["scheduled"],
+    scheduled: parsedSched,
     priority: fields["priority"],
     recur: recurPattern || fields["recur"], // Prefer emoji format if found, otherwise field format
     // Note: project is not stored in metadata, it's derived from file basename
@@ -199,48 +206,19 @@ export function withField(t: Task, key: keyof Task, value?: string): Task {
 }
 
 /**
- * Creates a canonical string representation of a task for hashing/comparison.
- * Normalizes fields and excludes volatile spacing/order.
- * @param t - The task to canonicalize
- * @returns Canonical string representation
- */
-export function canonicalizeTaskForHash(t: Task): string {
-  // Normalize booleans and fields; exclude volatile spacing/order.
-  const tagStr = t.tags?.slice().sort().join("|") ?? "";
-  const priority = t.priority ?? "";
-  const due = t.due ?? "";
-  const sched = t.scheduled ?? "";
-  const recur = t.recur ?? "";
-  const proj = t.project ?? "";
-  const area = t.area ?? "";
-  const completion = t.completion ?? ""; // include for archive uniqueness.
-  return `${t.checked?'1':'0'}|${t.title.trim()}|${tagStr}|${priority}|${due}|${sched}|${recur}|${proj}|${area}|${completion}`;
-}
-
-/**
- * Computes a hash for a task line for matching purposes.
- * @param line - The task line to hash
- * @returns Hexadecimal hash string or null if line is not a valid task
- */
-export function hashLine(line: string): string | null {
-  const t = parseTask(line);
-  if (!t) return null;
-  const canon = canonicalizeTaskForHash(t);
-  // Simple hash function (non-crypto, good enough for matching)
-  let h = 0;
-  for (let i = 0; i < canon.length; i++) h = (h*31 + canon.charCodeAt(i)) >>> 0;
-  return h.toString(16);
-}
-
-/**
  * Parses a task line and reads subsequent indented lines as description.
  * @param lines - Array of all lines in the file
  * @param startLine - 0-based line number where the task starts
+ * @param opts - When omitted, natural language date parsing is treated as enabled.
  * @returns Object with parsed task and end line number (0-based)
  */
-export function parseTaskWithDescription(lines: string[], startLine: number): { task: Task | null, endLine: number } {
+export function parseTaskWithDescription(
+  lines: string[],
+  startLine: number,
+  opts?: ParseTaskOptions
+): { task: Task | null, endLine: number } {
   const taskLine = lines[startLine];
-  const task = parseTask(taskLine);
+  const task = parseTask(taskLine, opts);
   if (!task) return { task: null, endLine: startLine };
 
   // Read subsequent indented lines as description
@@ -286,6 +264,17 @@ export function parseTaskWithDescription(lines: string[], startLine: number): { 
   }
 
   return { task, endLine: i - 1 };
+}
+
+/**
+ * Parses a task block using plugin settings (natural language date flag).
+ */
+export function parseTaskWithDescriptionFromVault(
+  lines: string[],
+  startLine: number,
+  settings: Pick<GeckoTaskSettings, "nlDateParsing">
+): { task: Task | null; endLine: number } {
+  return parseTaskWithDescription(lines, startLine, { nlDateParsing: settings.nlDateParsing });
 }
 
 /**

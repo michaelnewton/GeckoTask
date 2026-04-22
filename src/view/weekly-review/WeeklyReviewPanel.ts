@@ -168,7 +168,7 @@ export class WeeklyReviewPanel extends ItemView {
     // Create callbacks for step renderers
     const taskCardCallbacks: TaskCardCallbacks = {
       onComplete: async (task) => {
-        await completeTask(this.app, task);
+        await completeTask(this.app, this.settings, task);
         this.shouldScrollToCount = true;
       },
       onDelete: async (task) => {
@@ -187,7 +187,7 @@ export class WeeklyReviewPanel extends ItemView {
         await updateTaskDueDate(this.app, this.settings, task);
       },
       onRemoveTag: async (task, tag) => {
-        await removeTag(this.app, task, tag);
+        await removeTag(this.app, this.settings, task, tag);
         this.shouldScrollToCount = true;
       },
       onActivate: async (task) => {

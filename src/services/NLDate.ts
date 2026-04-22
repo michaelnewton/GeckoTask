@@ -23,7 +23,7 @@ function getMoment(): MomentFactory | undefined {
  * @param dateStr - Date string to validate
  * @returns True if valid ISO date format, false otherwise
  */
-function isValidISODate(dateStr: string): boolean {
+export function isValidISODate(dateStr: string): boolean {
   // Check format matches YYYY-MM-DD
   if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
     return false;
@@ -153,4 +153,25 @@ export function parseNLDate(input: string): string | undefined {
     };
     return map[s] ?? 0;
   }
-  
+
+/**
+ * Resolves due/scheduled field text when loading tasks from markdown.
+ * When nlDateParsing is false, returns the trimmed literal (no natural-language expansion).
+ */
+export function resolveTaskDateField(value: string | undefined, nlDateParsing: boolean): string | undefined {
+  if (value == null || !String(value).trim()) return undefined;
+  const t = String(value).trim();
+  if (nlDateParsing) return parseNLDate(t) ?? t;
+  return t;
+}
+
+/**
+ * Normalizes user input before writing due/scheduled to a task line.
+ * @returns undefined for empty input (clear field); null when strict mode rejects non-ISO; otherwise the stored value.
+ */
+export function normalizeDateInputForWrite(input: string, nlDateParsing: boolean): string | null | undefined {
+  const t = input.trim();
+  if (!t) return undefined;
+  if (nlDateParsing) return parseNLDate(t) ?? t;
+  return isValidISODate(t) ? t : null;
+}

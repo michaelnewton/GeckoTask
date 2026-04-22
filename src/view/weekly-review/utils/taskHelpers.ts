@@ -3,7 +3,7 @@ import { GeckoTaskSettings } from "../../../settings";
 import { IndexedTask } from "../../tasks/TasksPanelTypes";
 import { ProjectReviewInfo } from "../WeeklyReviewPanelTypes";
 import { Task, parseTaskWithDescription, formatTaskWithDescription } from "../../../models/TaskModel";
-import { parseNLDate } from "../../../services/NLDate";
+import { normalizeDateInputForWrite } from "../../../services/NLDate";
 import {
   getInboxFolderPath,
   isInInboxFolder,
@@ -70,7 +70,7 @@ export async function moveTaskToProject(
   const target = await new FilePickerModal(app, [], settings).openAndGet();
   if (!target) return;
 
-  await moveTask(app, task, target.path);
+  await moveTask(app, settings, task, target.path);
   new Notice(`Task moved to ${target.path}`);
 }
 
@@ -117,14 +117,19 @@ export async function moveTaskToSomedayMaybe(
     return;
   }
 
-  await moveTask(app, task, smPath);
+  await moveTask(app, settings, task, smPath);
   new Notice(`Task moved to Someday/Maybe (${area})`);
 }
 
 /**
  * Moves a task to a different file.
  */
-async function moveTask(app: App, task: IndexedTask, targetPath: string): Promise<void> {
+async function moveTask(
+  app: App,
+  settings: GeckoTaskSettings,
+  task: IndexedTask,
+  targetPath: string
+): Promise<void> {
   const sourceFile = app.vault.getAbstractFileByPath(task.path);
   if (!(sourceFile instanceof TFile)) return;
 
@@ -137,7 +142,9 @@ async function moveTask(app: App, task: IndexedTask, targetPath: string): Promis
 
     if (taskLineIdx < 0 || taskLineIdx >= lines.length) return data;
 
-    const { task: parsed } = parseTaskWithDescription(lines, taskLineIdx);
+    const { task: parsed } = parseTaskWithDescription(lines, taskLineIdx, {
+      nlDateParsing: settings.nlDateParsing
+    });
     if (!parsed) return data;
 
     taskWithDescription = {
@@ -179,8 +186,12 @@ export async function updateTaskDueDate(
   const next = await modal.prompt();
   if (next == null || next.trim() === "") return;
 
-  const parsed = parseNLDate(next) ?? next;
-  await updateTaskField(app, task, "due", parsed);
+  const normalized = normalizeDateInputForWrite(next.trim(), settings.nlDateParsing);
+  if (normalized === null) {
+    new Notice("GeckoTask: When natural language date parsing is off, use YYYY-MM-DD for due dates.");
+    return;
+  }
+  await updateTaskField(app, settings, task, "due", normalized ?? undefined);
 }
 
 /**
@@ -188,6 +199,7 @@ export async function updateTaskDueDate(
  */
 async function updateTaskField(
   app: App,
+  settings: GeckoTaskSettings,
   task: IndexedTask,
   key: "due" | "priority" | "recur",
   value?: string
@@ -202,7 +214,9 @@ async function updateTaskField(
 
     if (taskLineIdx < 0 || taskLineIdx >= lines.length) return data;
 
-    const { task: parsed } = parseTaskWithDescription(lines, taskLineIdx);
+    const { task: parsed } = parseTaskWithDescription(lines, taskLineIdx, {
+      nlDateParsing: settings.nlDateParsing
+    });
     if (!parsed) return data;
 
     if (key === "due") {
@@ -226,6 +240,7 @@ async function updateTaskField(
  */
 export async function removeTag(
   app: App,
+  settings: GeckoTaskSettings,
   task: IndexedTask,
   tag: string
 ): Promise<void> {
@@ -239,7 +254,9 @@ export async function removeTag(
 
     if (taskLineIdx < 0 || taskLineIdx >= lines.length) return data;
 
-    const { task: parsed } = parseTaskWithDescription(lines, taskLineIdx);
+    const { task: parsed } = parseTaskWithDescription(lines, taskLineIdx, {
+      nlDateParsing: settings.nlDateParsing
+    });
     if (!parsed) return data;
 
     const normalizedTag = tag.startsWith("#") ? tag : `#${tag}`;
@@ -287,7 +304,7 @@ export async function activateSomedayMaybeTask(
   const target = await new FilePickerModal(app, areaProjectFiles, settings).openAndGet();
   if (!target) return;
 
-  await moveTask(app, task, target.path);
+  await moveTask(app, settings, task, target.path);
   new Notice(`Task activated and moved to ${target.basename}`);
 }
 
@@ -346,7 +363,9 @@ export async function activateSomedayMaybeProject(
     const lineNo = li.position?.start?.line ?? 0;
     if (lineNo < 0 || lineNo >= sourceLines.length) continue;
 
-    const { task: parsed, endLine } = parseTaskWithDescription(sourceLines, lineNo);
+    const { task: parsed, endLine } = parseTaskWithDescription(sourceLines, lineNo, {
+      nlDateParsing: settings.nlDateParsing
+    });
     if (!parsed) continue;
 
     const taskLines = sourceLines.slice(lineNo, endLine + 1);

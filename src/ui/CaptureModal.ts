@@ -1,6 +1,6 @@
 import { App, AbstractInputSuggest, Modal, Setting, Notice, TFile, normalizePath } from "obsidian";
 import { GeckoTaskSettings } from "../settings";
-import { parseNLDate } from "../services/NLDate";
+import { isValidISODate, normalizeDateInputForWrite, resolveTaskDateField } from "../services/NLDate";
 import { formatTaskWithDescription, Task, parseTaskWithDescription } from "../models/TaskModel";
 import { isInInboxFolder, getSortedProjectFiles, getProjectDisplayName } from "../utils/areaUtils";
 import { IndexedTask } from "../view/tasks/TasksPanelTypes";
@@ -141,17 +141,6 @@ export async function captureQuickTask(app: App, settings: GeckoTaskSettings, ex
       tagsInputElement: HTMLInputElement | null = null;
       tagSuggest: CaptureTagSuggest | null = null;
 
-      private isValidISODate(dateStr: string): boolean {
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-          return false;
-        }
-        const date = new Date(dateStr);
-        const [year, month, day] = dateStr.split("-").map(Number);
-        return date.getFullYear() === year &&
-               date.getMonth() + 1 === month &&
-               date.getDate() === day;
-      }
-
       private async handleSave() {
         if (!this.draft.title.trim()) {
           new Notice("Title required.");
@@ -160,30 +149,30 @@ export async function captureQuickTask(app: App, settings: GeckoTaskSettings, ex
 
         // Validate due date if provided
         if (this.draft.due && this.draft.due.trim()) {
-          const parsedDue = parseNLDate(this.draft.due.trim());
-          if (!parsedDue) {
-            new Notice(`GeckoTask: Could not parse due date "${this.draft.due}".`);
+          const normalizedDue = normalizeDateInputForWrite(this.draft.due.trim(), settings.nlDateParsing);
+          if (normalizedDue === null) {
+            new Notice("GeckoTask: When natural language date parsing is off, use YYYY-MM-DD for due dates.");
             return;
           }
-          if (!this.isValidISODate(parsedDue)) {
-            new Notice(`GeckoTask: Invalid due date format "${parsedDue}".`);
+          if (normalizedDue !== undefined && !isValidISODate(normalizedDue)) {
+            new Notice(`GeckoTask: Invalid due date format "${normalizedDue}".`);
             return;
           }
-          this.draft.due = parsedDue;
+          if (normalizedDue !== undefined) this.draft.due = normalizedDue;
         }
 
         // Validate scheduled date if provided
         if (this.draft.scheduled && this.draft.scheduled.trim()) {
-          const parsedScheduled = parseNLDate(this.draft.scheduled.trim());
-          if (!parsedScheduled) {
-            new Notice(`GeckoTask: Could not parse scheduled date "${this.draft.scheduled}".`);
+          const normalizedSched = normalizeDateInputForWrite(this.draft.scheduled.trim(), settings.nlDateParsing);
+          if (normalizedSched === null) {
+            new Notice("GeckoTask: When natural language date parsing is off, use YYYY-MM-DD for scheduled dates.");
             return;
           }
-          if (!this.isValidISODate(parsedScheduled)) {
-            new Notice(`GeckoTask: Invalid scheduled date format "${parsedScheduled}".`);
+          if (normalizedSched !== undefined && !isValidISODate(normalizedSched)) {
+            new Notice(`GeckoTask: Invalid scheduled date format "${normalizedSched}".`);
             return;
           }
-          this.draft.scheduled = parsedScheduled;
+          if (normalizedSched !== undefined) this.draft.scheduled = normalizedSched;
         }
 
         if (isEditMode && existingTask) {
@@ -507,11 +496,10 @@ export async function captureQuickTask(app: App, settings: GeckoTaskSettings, ex
           t.setValue(this.draft.due || "");
           t.inputEl.addClass("geckotask-w-full");
           t.onChange(v => {
-            if (v) {
-              const parsed = parseNLDate(v);
-              this.draft.due = parsed || v;
+            if (v && v.trim()) {
+              this.draft.due = resolveTaskDateField(v.trim(), settings.nlDateParsing) ?? v.trim();
             } else {
-              this.draft.due = v;
+              this.draft.due = undefined;
             }
           });
           t.inputEl.addEventListener("keydown", (evt) => {
@@ -544,11 +532,10 @@ export async function captureQuickTask(app: App, settings: GeckoTaskSettings, ex
           t.setValue(this.draft.scheduled || "");
           t.inputEl.addClass("geckotask-w-full");
           t.onChange(v => {
-            if (v) {
-              const parsed = parseNLDate(v);
-              this.draft.scheduled = parsed || v;
+            if (v && v.trim()) {
+              this.draft.scheduled = resolveTaskDateField(v.trim(), settings.nlDateParsing) ?? v.trim();
             } else {
-              this.draft.scheduled = v;
+              this.draft.scheduled = undefined;
             }
           });
           t.inputEl.addEventListener("keydown", (evt) => {
@@ -710,7 +697,9 @@ async function updateTask(app: App, existingTask: IndexedTask, d: Draft, setting
     return;
   }
 
-  const { task: parsed } = parseTaskWithDescription(lines, taskLineIdx);
+  const { task: parsed } = parseTaskWithDescription(lines, taskLineIdx, {
+    nlDateParsing: settings.nlDateParsing
+  });
   if (!parsed) {
     new Notice(`GeckoTask: Failed to parse task`);
     return;

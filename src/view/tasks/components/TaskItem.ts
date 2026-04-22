@@ -1,8 +1,8 @@
-import { App } from "obsidian";
+import { App, Notice } from "obsidian";
 import { GeckoTaskSettings } from "../../../settings";
 import { IndexedTask } from "../TasksPanelTypes";
 import { PromptModal } from "../../../ui/PromptModal";
-import { parseNLDate } from "../../../services/NLDate";
+import { normalizeDateInputForWrite } from "../../../services/NLDate";
 import { formatDueDate, formatScheduledDate, isOverdue, getPriorityColorClass, extractLabels, renderDescriptionLine } from "../utils/taskFormatting";
 import { validateTaskTitle, ValidationResult } from "../../../services/ValidationService";
 import { isAreaTasksFile, isInInboxFolder } from "../../../utils/areaUtils";
@@ -126,8 +126,12 @@ export function renderTaskItem(
         await callbacks.onUpdateField(task, "scheduled", undefined);
         return;
       }
-      const parsed = parseNLDate(next) ?? next;
-      await callbacks.onUpdateField(task, "scheduled", parsed);
+      const normalized = normalizeDateInputForWrite(next.trim(), settings.nlDateParsing);
+      if (normalized === null) {
+        new Notice("GeckoTask: When natural language date parsing is off, use YYYY-MM-DD for scheduled dates.");
+        return;
+      }
+      await callbacks.onUpdateField(task, "scheduled", normalized ?? undefined);
     });
   } else {
     const scheduledContainer = leftSide.createDiv({ cls: "task-scheduled-container task-scheduled-empty" });
@@ -145,8 +149,12 @@ export function renderTaskItem(
         await callbacks.onUpdateField(task, "scheduled", undefined);
         return;
       }
-      const parsed = parseNLDate(next) ?? next;
-      await callbacks.onUpdateField(task, "scheduled", parsed);
+      const normalized = normalizeDateInputForWrite(next.trim(), settings.nlDateParsing);
+      if (normalized === null) {
+        new Notice("GeckoTask: When natural language date parsing is off, use YYYY-MM-DD for scheduled dates.");
+        return;
+      }
+      await callbacks.onUpdateField(task, "scheduled", normalized ?? undefined);
     });
   }
   
@@ -172,8 +180,12 @@ export function renderTaskItem(
         await callbacks.onUpdateField(task, "due", undefined);
         return;
       }
-      const parsed = parseNLDate(next) ?? next;
-      await callbacks.onUpdateField(task, "due", parsed);
+      const normalized = normalizeDateInputForWrite(next.trim(), settings.nlDateParsing);
+      if (normalized === null) {
+        new Notice("GeckoTask: When natural language date parsing is off, use YYYY-MM-DD for due dates.");
+        return;
+      }
+      await callbacks.onUpdateField(task, "due", normalized ?? undefined);
     });
   } else {
     const dueContainer = leftSide.createDiv({ cls: "task-due-container task-due-empty" });
@@ -191,8 +203,12 @@ export function renderTaskItem(
         await callbacks.onUpdateField(task, "due", undefined);
         return;
       }
-      const parsed = parseNLDate(next) ?? next;
-      await callbacks.onUpdateField(task, "due", parsed);
+      const normalized = normalizeDateInputForWrite(next.trim(), settings.nlDateParsing);
+      if (normalized === null) {
+        new Notice("GeckoTask: When natural language date parsing is off, use YYYY-MM-DD for due dates.");
+        return;
+      }
+      await callbacks.onUpdateField(task, "due", normalized ?? undefined);
     });
   }
   

@@ -1,7 +1,7 @@
 import { App, TFile } from "obsidian";
 import { GeckoTaskSettings } from "../settings";
 import { IndexedTask } from "../view/tasks/TasksPanelTypes";
-import { parseTaskWithDescription } from "../models/TaskModel";
+import { parseTaskWithDescriptionFromVault } from "../models/TaskModel";
 import { inferAreaFromPath, inferProjectFromPath, isInInboxFolder } from "./areaUtils";
 
 /**
@@ -33,7 +33,7 @@ export async function loadTasksFromFile(
     if (!lines[i].match(/^\s*-\s*\[[ x]\]\s+/i)) continue;
 
     // Parse task with description
-    const { task: parsed, endLine } = parseTaskWithDescription(lines, i);
+    const { task: parsed, endLine } = parseTaskWithDescriptionFromVault(lines, i, settings);
     if (!parsed) continue;
 
     const raw = lines[i].trim();

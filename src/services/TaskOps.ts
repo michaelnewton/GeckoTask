@@ -1,7 +1,7 @@
 import { App, Editor, MarkdownView, Notice } from "obsidian";
 import { Task, parseTask, parseTaskWithDescription, formatTaskWithDescription } from "../models/TaskModel";
 import { GeckoTaskSettings } from "../settings";
-import { parseNLDate } from "./NLDate";
+import { normalizeDateInputForWrite } from "./NLDate";
 import { PromptModal } from "../ui/PromptModal";
 import { calculateNextOccurrenceDates } from "./Recurrence";
 import { formatISODateTime } from "../utils/dateUtils";
@@ -13,10 +13,10 @@ import { getAllEditorLines, replaceTaskBlock } from "../utils/editorUtils";
  * @param editor - The editor instance
  * @returns Task and line number, or null if no task found
  */
-function getLineTask(editor: Editor): { task: Task, lineNo: number } | null {
+function getLineTask(editor: Editor, settings: GeckoTaskSettings): { task: Task, lineNo: number } | null {
   const lineNo = editor.getCursor().line;
   const line = editor.getLine(lineNo);
-  const task = parseTask(line);
+  const task = parseTask(line, { nlDateParsing: settings.nlDateParsing });
   if (!task) return null;
   task.lineNo = lineNo;
   return { task, lineNo };
@@ -29,8 +29,8 @@ function getLineTask(editor: Editor): { task: Task, lineNo: number } | null {
  * @param view - The markdown view
  * @param settings - Plugin settings
  */
-export async function toggleCompleteAtCursor(editor: Editor, _view: MarkdownView, _settings: GeckoTaskSettings) {
-  const ctx = getLineTask(editor);
+export async function toggleCompleteAtCursor(editor: Editor, _view: MarkdownView, settings: GeckoTaskSettings) {
+  const ctx = getLineTask(editor, settings);
   if (!ctx) { new Notice("GeckoTask: No task on this line."); return; }
   const currentLineNo = ctx.lineNo!;
   
@@ -38,7 +38,9 @@ export async function toggleCompleteAtCursor(editor: Editor, _view: MarkdownView
   const lines = getAllEditorLines(editor);
   
   // Parse the task with its description
-  const { task: parsed, endLine } = parseTaskWithDescription(lines, currentLineNo);
+  const { task: parsed, endLine } = parseTaskWithDescription(lines, currentLineNo, {
+    nlDateParsing: settings.nlDateParsing
+  });
   if (!parsed) { new Notice("GeckoTask: Could not parse task."); return; }
   
   const checked = !parsed.checked;
@@ -109,7 +111,9 @@ export async function setFieldAtCursor(app: App, editor: Editor, key: "due"|"sch
   const lines = getAllEditorLines(editor);
   
   // Parse the task with its description
-  const { task: parsed, endLine } = parseTaskWithDescription(lines, currentLineNo);
+  const { task: parsed, endLine } = parseTaskWithDescription(lines, currentLineNo, {
+    nlDateParsing: settings.nlDateParsing
+  });
   if (!parsed) { new Notice("GeckoTask: No task on this line."); return; }
 
   let promptText = `Set ${key}:`;
@@ -132,7 +136,12 @@ export async function setFieldAtCursor(app: App, editor: Editor, key: "due"|"sch
 
   let v = value.trim();
   if (key === "due" || key === "scheduled") {
-    v = parseNLDate(v) ?? v;
+    const normalized = normalizeDateInputForWrite(v, settings.nlDateParsing);
+    if (normalized === null) {
+      new Notice("GeckoTask: When natural language date parsing is off, use YYYY-MM-DD for due and scheduled dates.");
+      return;
+    }
+    v = normalized ?? "";
   }
 
   // Update the task with type-safe field assignment
@@ -168,7 +177,9 @@ export async function addRemoveTagsAtCursor(app: App, editor: Editor, _settings:
   const lines = getAllEditorLines(editor);
   
   // Parse the task with its description
-  const { task: parsed, endLine } = parseTaskWithDescription(lines, currentLineNo);
+  const { task: parsed, endLine } = parseTaskWithDescription(lines, currentLineNo, {
+    nlDateParsing: _settings.nlDateParsing
+  });
   if (!parsed) { new Notice("GeckoTask: No task on this line."); return; }
 
   const currentTags = parsed.tags.join(" ");
@@ -220,14 +231,16 @@ export async function addRemoveTagsAtCursor(app: App, editor: Editor, _settings:
  * Normalizes the task line at the cursor to standard format.
  * @param editor - The editor instance
  */
-export function normalizeTaskLine(editor: Editor) {
+export function normalizeTaskLine(editor: Editor, settings: GeckoTaskSettings) {
   const currentLineNo = editor.getCursor().line;
 
   // Get all lines from the editor to parse task with description
   const lines = getAllEditorLines(editor);
 
   // Parse the task with its description
-  const { task: parsed, endLine } = parseTaskWithDescription(lines, currentLineNo);
+  const { task: parsed, endLine } = parseTaskWithDescription(lines, currentLineNo, {
+    nlDateParsing: settings.nlDateParsing
+  });
   if (!parsed) { new Notice("GeckoTask: No task on this line."); return; }
 
   // Format the normalized task with description
@@ -242,7 +255,7 @@ export function normalizeTaskLine(editor: Editor) {
  * Deletes all completed tasks from the current file.
  * @param editor - The editor instance
  */
-export async function deleteCompletedTasks(editor: Editor) {
+export async function deleteCompletedTasks(editor: Editor, settings: GeckoTaskSettings) {
   const lines = getAllEditorLines(editor);
   const completedTasks: { startLine: number; endLine: number; title: string }[] = [];
 
@@ -251,7 +264,9 @@ export async function deleteCompletedTasks(editor: Editor) {
     const line = lines[i];
     // Check if this line is a completed task
     if (/^\s*-\s*\[[xX]\]/.test(line)) {
-      const { task: parsed, endLine } = parseTaskWithDescription(lines, i);
+      const { task: parsed, endLine } = parseTaskWithDescription(lines, i, {
+        nlDateParsing: settings.nlDateParsing
+      });
       if (parsed && parsed.checked) {
         completedTasks.push({ startLine: i, endLine, title: parsed.title });
       }

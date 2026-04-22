@@ -1,5 +1,6 @@
 import { App, PluginSettingTab, Setting, normalizePath } from "obsidian";
 import GeckoTaskPlugin from "../main";
+import { TasksPanel, VIEW_TYPE_TASKS } from "../view/tasks/TasksPanel";
 
 function normalizeFolderSegment(value: string, fallback: string): string {
   const trimmed = value.trim();
@@ -138,11 +139,25 @@ export class GeckoTaskSettingTab extends PluginSettingTab {
     containerEl.createEl("h2", { text: "Task Options" });
 
     new Setting(containerEl)
-      .setName("Natural language due parsing")
-      .setDesc("Enable parsing of dates like 'today', 'tomorrow', 'next monday'")
+      .setName("Natural language date parsing")
+      .setDesc(
+        "When on, values like today, tomorrow, or next monday on due:: and scheduled:: are resolved to YYYY-MM-DD. When off, existing task lines are read as written (no expansion); Quick Add and date prompts require strict YYYY-MM-DD. Open tasks with non-ISO dates may sort or filter oddly until you fix the note."
+      )
       .addToggle(t => t
         .setValue(this.plugin.settings.nlDateParsing)
-        .onChange(async (v) => { this.plugin.settings.nlDateParsing = v; await this.plugin.saveSettings(); })
+        .onChange(async (v) => {
+          const prev = this.plugin.settings.nlDateParsing;
+          this.plugin.settings.nlDateParsing = v;
+          await this.plugin.saveSettings();
+          if (prev !== v) {
+            this.app.workspace.getLeavesOfType(VIEW_TYPE_TASKS).forEach((leaf) => {
+              const view = leaf.view;
+              if (view instanceof TasksPanel) {
+                void view.refreshTaskIndex();
+              }
+            });
+          }
+        })
       );
 
     new Setting(containerEl)

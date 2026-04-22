@@ -1,4 +1,5 @@
 import { App, TFile, Notice, MarkdownView } from "obsidian";
+import { GeckoTaskSettings } from "../../../settings";
 import { IndexedTask } from "../TasksPanelTypes";
 import { parseTaskWithDescription, formatTaskWithDescription, Task } from "../../../models/TaskModel";
 import { formatISODateTime } from "../../../utils/dateUtils";
@@ -11,7 +12,12 @@ import { calculateNextOccurrenceDates } from "../../../services/Recurrence";
  * @param checked - New checked state
  * @returns Promise that resolves when task is updated
  */
-export async function toggleTask(app: App, task: IndexedTask, checked: boolean): Promise<void> {
+export async function toggleTask(
+  app: App,
+  settings: GeckoTaskSettings,
+  task: IndexedTask,
+  checked: boolean
+): Promise<void> {
   const file = app.vault.getAbstractFileByPath(task.path);
   if (!(file instanceof TFile)) return;
 
@@ -26,7 +32,9 @@ export async function toggleTask(app: App, task: IndexedTask, checked: boolean):
     if (taskLineIdx < 0 || taskLineIdx >= lines.length) return data;
 
     // Parse the current task to preserve all fields including description
-    const { task: parsed } = parseTaskWithDescription(lines, taskLineIdx);
+    const { task: parsed } = parseTaskWithDescription(lines, taskLineIdx, {
+      nlDateParsing: settings.nlDateParsing
+    });
     if (!parsed) return data;
 
     // Update checked status
@@ -100,6 +108,7 @@ export async function toggleTask(app: App, task: IndexedTask, checked: boolean):
  */
 export async function updateTaskField(
   app: App,
+  settings: GeckoTaskSettings,
   task: IndexedTask,
   key: "due" | "scheduled" | "priority" | "recur",
   value?: string
@@ -115,7 +124,9 @@ export async function updateTaskField(
     if (taskLineIdx < 0 || taskLineIdx >= lines.length) return data;
 
     // Parse the current task to preserve all fields including description
-    const { task: parsed } = parseTaskWithDescription(lines, taskLineIdx);
+    const { task: parsed } = parseTaskWithDescription(lines, taskLineIdx, {
+      nlDateParsing: settings.nlDateParsing
+    });
     if (!parsed) return data;
 
     // Update the field
@@ -147,7 +158,12 @@ export async function updateTaskField(
  * @param newTitle - New title text
  * @returns Promise that resolves when task is updated
  */
-export async function updateTaskTitle(app: App, task: IndexedTask, newTitle: string): Promise<void> {
+export async function updateTaskTitle(
+  app: App,
+  settings: GeckoTaskSettings,
+  task: IndexedTask,
+  newTitle: string
+): Promise<void> {
   const file = app.vault.getAbstractFileByPath(task.path);
   if (!(file instanceof TFile)) return;
   
@@ -159,7 +175,9 @@ export async function updateTaskTitle(app: App, task: IndexedTask, newTitle: str
     if (taskLineIdx < 0 || taskLineIdx >= lines.length) return data;
     
     // Parse the current task to preserve all fields including description
-    const { task: parsed } = parseTaskWithDescription(lines, taskLineIdx);
+    const { task: parsed } = parseTaskWithDescription(lines, taskLineIdx, {
+      nlDateParsing: settings.nlDateParsing
+    });
     if (!parsed) return data;
     
     // Update the title
@@ -206,7 +224,12 @@ export async function openTaskInNote(app: App, task: IndexedTask): Promise<void>
  * @param targetFile - Target file to move task to
  * @returns Promise that resolves when task is moved
  */
-export async function moveTask(app: App, task: IndexedTask, targetFile: TFile): Promise<void> {
+export async function moveTask(
+  app: App,
+  settings: GeckoTaskSettings,
+  task: IndexedTask,
+  targetFile: TFile
+): Promise<void> {
   try {
     // Remove from current file (preserving description)
     const sourceFile = app.vault.getAbstractFileByPath(task.path);
@@ -224,7 +247,9 @@ export async function moveTask(app: App, task: IndexedTask, targetFile: TFile): 
       if (taskLineIdx < 0 || taskLineIdx >= lines.length) return data;
 
       // Parse current task with description
-      const { task: parsed } = parseTaskWithDescription(lines, taskLineIdx);
+      const { task: parsed } = parseTaskWithDescription(lines, taskLineIdx, {
+        nlDateParsing: settings.nlDateParsing
+      });
       if (!parsed) return data;
 
       // Update task metadata (remove area:: and project:: since we're using folder/file-based structure)

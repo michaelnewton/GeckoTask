@@ -1,4 +1,5 @@
 import { Editor, MarkdownView, Notice } from "obsidian";
+import { GeckoTaskSettings } from "../settings";
 import { parseTaskWithDescription, formatTaskWithDescription, Task } from "../models/TaskModel";
 import { calculateNextOccurrenceDates } from "./Recurrence";
 import { formatISODateTime } from "../utils/dateUtils";
@@ -10,11 +11,14 @@ import { getAllEditorLines, replaceTaskBlock } from "../utils/editorUtils";
 export async function handleTaskCheckboxToggle(
   editor: Editor,
   _view: MarkdownView,
-  lineNo: number
+  lineNo: number,
+  settings: GeckoTaskSettings
 ): Promise<void> {
   const lines = getAllEditorLines(editor);
 
-  const { task: parsed, endLine } = parseTaskWithDescription(lines, lineNo);
+  const { task: parsed, endLine } = parseTaskWithDescription(lines, lineNo, {
+    nlDateParsing: settings.nlDateParsing
+  });
   if (!parsed) return;
 
   const today = new Date();

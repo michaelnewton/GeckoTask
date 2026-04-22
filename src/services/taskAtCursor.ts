@@ -18,7 +18,9 @@ export function getIndexedTaskAtCursor(
 
   const lines = getAllEditorLines(editor);
 
-  const { task: parsed, endLine } = parseTaskWithDescription(lines, lineNo);
+  const { task: parsed, endLine } = parseTaskWithDescription(lines, lineNo, {
+    nlDateParsing: settings.nlDateParsing
+  });
   if (!parsed) {
     return null;
   }

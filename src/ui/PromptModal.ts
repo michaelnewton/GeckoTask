@@ -11,6 +11,8 @@ export type PromptFieldType = "due" | "scheduled" | "recur" | "title" | "other";
  */
 export class PromptModal extends Modal {
   private inputValue: string = "";
+  /** Live text field; onChange can lag behind the DOM, so submit reads this. */
+  private textInputEl: HTMLInputElement | null = null;
   private resolve: ((value: string | null) => void) | null = null;
   private isResolved: boolean = false;
   private fieldType: PromptFieldType = "other";
@@ -100,6 +102,7 @@ export class PromptModal extends Modal {
     contentEl.empty();
     this.titleEl.setText(this.promptText);
     this.isResolved = false;
+    this.textInputEl = null;
 
     const setting = new Setting(contentEl)
       .setName(this.promptText);
@@ -111,7 +114,9 @@ export class PromptModal extends Modal {
     const settingEl = setting.settingEl;
     
     setting.addText((text) => {
+      this.textInputEl = text.inputEl;
       text.setValue(this.defaultValue);
+      this.inputValue = this.defaultValue;
       text.inputEl.focus();
       text.inputEl.select();
       text.onChange((value) => {
@@ -191,7 +196,8 @@ export class PromptModal extends Modal {
   private submit() {
     if (this.resolve && !this.isResolved) {
       this.isResolved = true;
-      this.resolve(this.inputValue);
+      const value = this.textInputEl?.value ?? this.inputValue;
+      this.resolve(value);
     }
     this.close();
   }

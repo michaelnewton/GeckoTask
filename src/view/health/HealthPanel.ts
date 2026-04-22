@@ -15,7 +15,7 @@ import { analyzeAllTasks } from "../../services/HealthService";
 import { updateTaskTracking, getTaskId, updateTaskPath } from "../../services/TaskTrackingService";
 import { parseTaskWithDescription, formatTaskWithDescription, Task } from "../../models/TaskModel";
 import { calculateNextOccurrenceDates } from "../../services/Recurrence";
-import { parseNLDate } from "../../services/NLDate";
+import { normalizeDateInputForWrite } from "../../services/NLDate";
 import { captureQuickTask } from "../../ui/CaptureModal";
 import { FilePickerModal } from "../../ui/FilePickerModal";
 import { PromptModal } from "../../ui/PromptModal";
@@ -510,7 +510,9 @@ export class HealthPanel extends ItemView {
       
       if (taskLineIdx < 0 || taskLineIdx >= lines.length) return data;
 
-      const { task: parsed } = parseTaskWithDescription(lines, taskLineIdx);
+      const { task: parsed } = parseTaskWithDescription(lines, taskLineIdx, {
+        nlDateParsing: this.settings.nlDateParsing
+      });
       if (!parsed) return data;
 
       parsed.checked = true;
@@ -595,7 +597,9 @@ export class HealthPanel extends ItemView {
       
       if (taskLineIdx < 0 || taskLineIdx >= lines.length) return data;
 
-      const { task: parsed } = parseTaskWithDescription(lines, taskLineIdx);
+      const { task: parsed } = parseTaskWithDescription(lines, taskLineIdx, {
+        nlDateParsing: this.settings.nlDateParsing
+      });
       if (!parsed) return data;
 
       taskWithDescription = {
@@ -638,8 +642,12 @@ export class HealthPanel extends ItemView {
     const next = await modal.prompt();
     if (next == null || next.trim() === "") return;
     
-    const parsed = parseNLDate(next) ?? next;
-    await this.updateField(task, "due", parsed);
+    const normalized = normalizeDateInputForWrite(next.trim(), this.settings.nlDateParsing);
+    if (normalized === null) {
+      new Notice("GeckoTask: When natural language date parsing is off, use YYYY-MM-DD for due dates.");
+      return;
+    }
+    await this.updateField(task, "due", normalized ?? undefined);
   }
 
   /**
@@ -655,7 +663,9 @@ export class HealthPanel extends ItemView {
       
       if (taskLineIdx < 0 || taskLineIdx >= lines.length) return data;
 
-      const { task: parsed } = parseTaskWithDescription(lines, taskLineIdx);
+      const { task: parsed } = parseTaskWithDescription(lines, taskLineIdx, {
+        nlDateParsing: this.settings.nlDateParsing
+      });
       if (!parsed) return data;
 
       if (key === "due") {

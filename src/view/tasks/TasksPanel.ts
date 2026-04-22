@@ -208,17 +208,17 @@ export class TasksPanel extends ItemView {
     // Create callbacks for task items
     const callbacks: TaskItemCallbacks = {
       onToggle: async (task, checked) => {
-        await toggleTask(this.app, task, checked);
+        await toggleTask(this.app, this.settings, task, checked);
         await this.reindex();
         this.rerender();
       },
       onUpdateField: async (task, key, value) => {
-        await updateTaskField(this.app, task, key, value);
+        await updateTaskField(this.app, this.settings, task, key, value);
         await this.reindex();
         this.rerender();
       },
       onUpdateTitle: async (task, newTitle) => {
-        await updateTaskTitle(this.app, task, newTitle);
+        await updateTaskTitle(this.app, this.settings, task, newTitle);
         await this.reindex();
         this.rerender();
       },
@@ -263,13 +263,21 @@ export class TasksPanel extends ItemView {
         return;
       }
 
-      await moveTask(this.app, task, target);
+      await moveTask(this.app, this.settings, task, target);
       await this.reindex();
       this.rerender();
     } catch (error) {
       new Notice(`GeckoTask: Error moving task: ${error}`);
       console.error("GeckoTask: Error moving task:", error);
     }
+  }
+
+  /**
+   * Reindexes tasks from disk (e.g. after nlDateParsing or other parse-related settings change).
+   */
+  async refreshTaskIndex(): Promise<void> {
+    await this.reindex();
+    this.rerender();
   }
 
   /**

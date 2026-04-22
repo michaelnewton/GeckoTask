@@ -135,7 +135,7 @@ export function registerCommands(plugin: GeckoTaskPlugin) {
     name: "Normalize Task Line (at cursor)",
     icon: "wand-2",
     editorCallback: (editor: Editor, _ctx: MarkdownView | MarkdownFileInfo) => {
-      normalizeTaskLine(editor);
+      normalizeTaskLine(editor, settings);
     }
   });
 
@@ -144,7 +144,7 @@ export function registerCommands(plugin: GeckoTaskPlugin) {
     name: "Delete Completed Tasks (current file)",
     icon: "trash-2",
     editorCallback: (editor: Editor, _ctx: MarkdownView | MarkdownFileInfo) => {
-      deleteCompletedTasks(editor);
+      deleteCompletedTasks(editor, settings);
     }
   });
 

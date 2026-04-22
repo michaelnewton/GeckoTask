@@ -464,7 +464,7 @@ export function validateTaskScheduled(scheduled: string | undefined): Validation
     return results;
   }
   
-  // Basic format validation is handled by parseNLDate in CaptureModal
+  // Basic format validation is handled by NLDate helpers in CaptureModal
   // This is a placeholder for future rule-based validation
   
   return results;
