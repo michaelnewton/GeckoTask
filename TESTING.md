@@ -103,7 +103,7 @@ If you care about **iOS/Android** (`isDesktopOnly` is false in `manifest.json`):
 
 ## Releases (tags only)
 
-Version tags still use [`.github/workflows/release.yml`](.github/workflows/release.yml) (`npm install` + `npm run build` + attach `main.js`, `manifest.json`, `styles.css`). Before tagging, complete **Before you commit** and **Step-by-step manual testing** in a vault that matches how users install the release.
+Tag-driven releases use [`.github/workflows/release.yml`](.github/workflows/release.yml) (`npm ci` + `npm run build` + attach `main.js`, `manifest.json`, `styles.css`; the tag must match `manifest.json` and `package.json` versions). Maintainer checklist: [`CONTRIBUTING.md`](CONTRIBUTING.md). Before tagging, complete **Before you commit** and **Step-by-step manual testing** in a vault that matches how users install the release.
 
 ---
 
