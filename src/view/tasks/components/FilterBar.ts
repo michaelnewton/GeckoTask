@@ -1,7 +1,7 @@
 import { App } from "obsidian";
 import { GeckoTaskSettings } from "../../../settings";
 import { TabType, FilterState, DueWindow } from "../TasksPanelTypes";
-import { getSpaces, getProjectDisplayName, getSortedProjectFiles } from "../../../utils/areaUtils";
+import { getSpaces, getProjectDisplayName, getSortedProjectFiles, isInInboxFolder } from "../../../utils/areaUtils";
 
 /**
  * Renders the filter UI controls.
@@ -137,26 +137,38 @@ export function renderFilterBar(
   projContainer.createEl("label", { text: "Project:", cls: "filter-label" });
   const projSelect = projContainer.createEl("select", { cls: "filter-select" });
 
+  const buildProjectOptions = (paths: string[]): string[] => {
+    const inboxPaths = paths.filter(path => isInInboxFolder(path, settings));
+    const nonInboxPaths = paths.filter(path => !isInInboxFolder(path, settings));
+    const inboxRepresentative = inboxPaths[0];
+    return inboxRepresentative ? [inboxRepresentative, ...nonInboxPaths] : nonInboxPaths;
+  };
+
+  const renderProjectSelectOptions = (paths: string[]) => {
+    const anyProjOpt = projSelect.createEl("option", { text: "Any" });
+    anyProjOpt.value = "Any";
+
+    paths.forEach(path => {
+      const opt = projSelect.createEl("option", {
+        text: isInInboxFolder(path, settings) ? "Inbox" : getProjectDisplayName(path, app, settings)
+      });
+      opt.value = path;
+    });
+  };
+
   const refreshProjectOptions = () => {
     const sortedFiles = getSortedProjectFiles(app, settings);
     const newProjectPaths = sortedFiles.map(f => f.path);
     onProjectPathsUpdate(newProjectPaths);
+    const normalizedProjectPaths = buildProjectOptions(newProjectPaths);
 
     const currentValue = projSelect.value;
     projSelect.empty();
-
-    const anyProjOpt = projSelect.createEl("option", { text: "Any" });
-    anyProjOpt.value = "Any";
-
-    newProjectPaths
-      .forEach(path => {
-        const opt = projSelect.createEl("option", { text: getProjectDisplayName(path, app, settings) });
-        opt.value = path;
-      });
+    renderProjectSelectOptions(normalizedProjectPaths);
 
     if (currentValue === "Any") {
       projSelect.value = "Any";
-    } else if (newProjectPaths.includes(currentValue)) {
+    } else if (normalizedProjectPaths.includes(currentValue)) {
       projSelect.value = currentValue;
     } else {
       projSelect.value = "Any";
@@ -167,18 +179,13 @@ export function renderFilterBar(
     }
   };
 
-  const anyProjOpt = projSelect.createEl("option", { text: "Any" });
-  anyProjOpt.value = "Any";
-  if (filters.project === "Any") anyProjOpt.selected = true;
-
-  projectPaths
-    .forEach(path => {
-      const opt = projSelect.createEl("option", { text: getProjectDisplayName(path, app, settings) });
-      opt.value = path;
-      if (path === filters.project) {
-        opt.selected = true;
-      }
-    });
+  const normalizedProjectPaths = buildProjectOptions(projectPaths);
+  renderProjectSelectOptions(normalizedProjectPaths);
+  if (filters.project === "Any" || !normalizedProjectPaths.includes(filters.project)) {
+    projSelect.value = "Any";
+  } else {
+    projSelect.value = filters.project;
+  }
 
   projSelect.addEventListener("change", (e) => {
     const selectedValue = (e.target as HTMLSelectElement).value;

@@ -123,7 +123,11 @@ export function filterTasks(
   // Space filter doesn't apply to inbox tab — inbox tasks have no space
   if (filters.space !== "All" && currentTab !== "inbox") rows = rows.filter(t => (t.space || "") === filters.space);
   if (filters.project !== "Any") {
-    rows = rows.filter(t => t.path === filters.project);
+    if (isInInboxFolder(filters.project, settings)) {
+      rows = rows.filter(t => isInInboxFolder(t.path, settings));
+    } else {
+      rows = rows.filter(t => t.path === filters.project);
+    }
   }
   if (filters.priority !== "Any") {
     rows = rows.filter(t => t.priority === filters.priority);
