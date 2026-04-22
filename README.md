@@ -385,7 +385,7 @@ sort priority desc, due asc
 ## Development
 
 ### Prerequisites
-- Node.js 18+
+- Node.js 20+ (CI uses Node 22)
 - npm
 
 ### Local Setup

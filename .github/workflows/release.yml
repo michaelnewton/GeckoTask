@@ -12,7 +12,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Verify tag matches manifest.json and package.json
         run: |
           TAG="${GITHUB_REF_NAME}"
@@ -26,14 +26,14 @@ jobs:
             echo "::error::Git tag '${TAG}' must equal package.json version '${PKG_VER}'"
             exit 1
           fi
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
       - run: npm ci
       - run: npm run build
       - name: Create release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           name: ${{ github.ref_name }}
           generate_release_notes: true

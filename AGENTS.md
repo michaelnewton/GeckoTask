@@ -16,7 +16,7 @@ When guidance conflicts, prefer in this order:
 
 ## Environment & tooling
 
-- **Node.js:** current LTS (Node 18+ recommended).
+- **Node.js:** Node **20+** locally; CI uses **22** (see [`.github/workflows/ci.yml`](.github/workflows/ci.yml)).
 - **Package manager:** npm (`package.json` scripts and lockfile).
 - **Shipped JS:** **esbuild** via [`esbuild.config.mjs`](esbuild.config.mjs) — entry [`src/main.ts`](src/main.ts), output root **`main.js`**. Obsidian does not run `tsc`.
 - **TypeScript:** used for **typechecking** only in this repo. [`tsconfig.json`](tsconfig.json) sets **`"noEmit": true`**. Do **not** run `tsc` expecting emitted `.js` beside or mirroring `src/`; the bundler owns output.
