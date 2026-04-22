@@ -6,7 +6,7 @@ When guidance conflicts, prefer in this order:
 
 1. **[Obsidian Developer policies](https://docs.obsidian.md/Developer+policies)** and **[Plugin guidelines](https://docs.obsidian.md/Plugins/Releasing/Plugin+guidelines)** (security, privacy, releases, UX).
 2. **Common Obsidian plugin patterns** (TypeScript in `src/`, esbuild or similar producing root `main.js`, no accidental `tsc` littering the repo). The [obsidian-sample-plugin](https://github.com/obsidianmd/obsidian-sample-plugin) is one useful reference, not the only valid layout.
-3. **This `AGENTS.md`** for GeckoTask-specific release flow, command IDs, and project conventions. Do not treat this file as stricter than (1)–(2); avoid rules that duplicate a linter or the official docs.
+3. **This `AGENTS.md`** for GeckoTask-specific conventions (command IDs, versioning rules for agents). **Maintainer release steps** live in [`CONTRIBUTING.md`](CONTRIBUTING.md). Do not treat this file as stricter than (1)–(2); avoid rules that duplicate a linter or the official docs.
 
 ## Project overview
 
@@ -65,7 +65,7 @@ When guidance conflicts, prefer in this order:
 ## Testing
 
 - Manual install: copy `main.js`, `manifest.json`, `styles.css` (if any) to `<Vault>/.obsidian/plugins/<plugin-id>/`, reload Obsidian, enable under **Settings → Community plugins**.
-- Run `npm run lint` (and `npm run typecheck`) before release tags.
+- Before tagging a release, follow [`CONTRIBUTING.md`](CONTRIBUTING.md) (lint/typecheck/build are also enforced in CI).
 - Full checklist (automated commands + Obsidian smoke test + future CI ideas): [`TESTING.md`](TESTING.md).
 
 ## Commands & settings
@@ -96,20 +96,17 @@ When guidance conflicts, prefer in this order:
 - **Ribbon:** “Tasks Panel” ribbon icon calls the same open action as `geckotask-open-panel` (no separate command id).
 - Settings: [`GeckoTaskSettingTab`](src/settings/SettingsTab.ts), persist with **`loadData()`** / **`saveData()`**, defaults in [`src/settings/defaults.ts`](src/settings/defaults.ts).
 
-## Versioning & releases
+## Versioning and releases
 
-- Bump `version` in `manifest.json` (SemVer) and [`package.json`](package.json); update [`versions.json`](versions.json) when `minAppVersion` changes.
-- GitHub release: tag **exactly** matches `manifest.json` version, **no** leading `v`. Attach `manifest.json`, `main.js`, `styles.css` if present.
-
-## Releasing (this repo)
-
-Releases run from **version tags** (see [`.github/workflows/release.yml`](.github/workflows/release.yml)).
-
-1. Update `version` in `manifest.json` and `package.json`.
-2. Update `versions.json` if `minAppVersion` changed.
-3. `npm run build` (and `npm run lint` / `npm run typecheck` as needed).
-4. Commit; tag `git tag 0.2.0` (example); `git push origin 0.2.0`.
-5. CI attaches `main.js`, `manifest.json`, `styles.css` to the release.
+- Use **semantic versioning**: `MAJOR.MINOR.PATCH`.
+- **Patch** — fixes, minor internal improvements, no user-facing breakage.
+- **Minor** — new features, new options, backward-compatible behavior.
+- **Major** — breaking changes, migrations, renamed settings, removed APIs, changed file formats, or behavior users must adapt to.
+- **Do not bump versions** unless the task explicitly includes a release or version bump.
+- When a change affects release scope, **suggest the next version and why** in the PR summary (do not bump unasked).
+- **Git tags** are the release trigger; the tag must **exactly** match `manifest.json` `version` (plain `1.2.3`, **no** `v` prefix) — [Obsidian: Release your plugin with GitHub Actions](https://docs.obsidian.md/Plugins/Releasing/Release+your+plugin+with+GitHub+Actions).
+- **Never create or edit GitHub Releases manually** unless the user explicitly asks; [`.github/workflows/release.yml`](.github/workflows/release.yml) creates the release and assets.
+- **Do not** put long release runbooks or workflow YAML in this file; use [`CONTRIBUTING.md`](CONTRIBUTING.md) for maintainer steps.
 
 ## Security, privacy, and compliance
 

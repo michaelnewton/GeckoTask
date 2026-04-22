@@ -5,19 +5,38 @@ on:
     tags:
       - '[0-9]+.[0-9]+.[0-9]+'
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Verify tag matches manifest.json and package.json
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          MANIFEST_VER=$(jq -r .version manifest.json)
+          PKG_VER=$(jq -r .version package.json)
+          if [ "$TAG" != "$MANIFEST_VER" ]; then
+            echo "::error::Git tag '${TAG}' must equal manifest.json version '${MANIFEST_VER}'"
+            exit 1
+          fi
+          if [ "$TAG" != "$PKG_VER" ]; then
+            echo "::error::Git tag '${TAG}' must equal package.json version '${PKG_VER}'"
+            exit 1
+          fi
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - run: npm install
+          cache: 'npm'
+      - run: npm ci
       - run: npm run build
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
+          name: ${{ github.ref_name }}
+          generate_release_notes: true
           files: |
             main.js
             manifest.json

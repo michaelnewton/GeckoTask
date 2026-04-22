@@ -17,6 +17,22 @@ jobs:
           node-version: "20"
           cache: "npm"
       - run: npm ci
+      - name: Validate manifest.json
+        run: |
+          jq -e '
+            (.id | type) == "string"
+            and (.name | type) == "string"
+            and (.version | type) == "string"
+            and (.minAppVersion | type) == "string"
+            and (.description | type) == "string"
+            and (.main | type) == "string"
+            and (.isDesktopOnly | type) == "boolean"
+          ' manifest.json >/dev/null
+          ver=$(jq -r .version manifest.json)
+          if ! echo "$ver" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::manifest.json version must be MAJOR.MINOR.PATCH (digits only, e.g. 0.2.0); got: $ver"
+            exit 1
+          fi
       - run: npm run typecheck
       - run: npm run lint
       - run: npm run build
