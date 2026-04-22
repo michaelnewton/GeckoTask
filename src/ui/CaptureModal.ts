@@ -686,6 +686,7 @@ async function updateTask(app: App, existingTask: IndexedTask, d: Draft, setting
 
   const targetPath = d.projectPath;
   const isMoving = targetPath !== existingTask.path;
+  const sourceIsInbox = isInInboxFolder(sourceFile.path, settings);
 
   const sourceContent = await app.vault.read(sourceFile);
   const lines = sourceContent.split("\n");
@@ -744,6 +745,14 @@ async function updateTask(app: App, existingTask: IndexedTask, d: Draft, setting
 
       const updatedLines = formatTaskWithDescription(taskWithDescription);
       await app.vault.create(finalPath, updatedLines.join("\n") + "\n");
+
+      if (sourceIsInbox) {
+        const sourceContentAfterMove = await app.vault.read(sourceFile);
+        if (sourceContentAfterMove.trim().length === 0) {
+          await app.vault.delete(sourceFile);
+        }
+      }
+
       new Notice(`GeckoTask: Task moved to Inbox`);
     } else {
       // Move to a different project/area file
@@ -767,6 +776,13 @@ async function updateTask(app: App, existingTask: IndexedTask, d: Draft, setting
         ? normalizedTarget + "\n" + finalLines + "\n"
         : finalLines + "\n";
       await app.vault.modify(targetFile, updated);
+
+      if (sourceIsInbox) {
+        const sourceContentAfterMove = await app.vault.read(sourceFile);
+        if (sourceContentAfterMove.trim().length === 0) {
+          await app.vault.delete(sourceFile);
+        }
+      }
 
       new Notice(`GeckoTask: Task moved and updated`);
     }

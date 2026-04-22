@@ -1,7 +1,7 @@
 import { App, TFile, TFolder, Notice, Editor, Modal, Setting, normalizePath } from "obsidian";
 import { GeckoTaskSettings } from "../settings";
 import { parseTaskWithDescription, formatTaskWithDescription, Task } from "../models/TaskModel";
-import { getSpaces, getProjectTasksFilePath } from "../utils/areaUtils";
+import { getSpaces, getProjectTasksFilePath, isInInboxFolder } from "../utils/areaUtils";
 import { getAllEditorLines } from "../utils/editorUtils";
 import { formatISODate } from "../utils/dateUtils";
 import { FilePickerModal } from "../ui/FilePickerModal";
@@ -38,6 +38,7 @@ export async function moveTaskAtCursorInteractive(app: App, editor: Editor, sett
 
   const curFile = app.workspace.getActiveFile();
   if (!curFile) return;
+  const sourceIsInbox = isInInboxFolder(curFile.path, settings);
 
   const curFileContent = await app.vault.read(curFile);
   const curFileLines = curFileContent.split("\n");
@@ -50,6 +51,13 @@ export async function moveTaskAtCursorInteractive(app: App, editor: Editor, sett
   const finalLines = taskLines.join("\n");
   const updated = content.trim().length ? content + "\n" + finalLines + "\n" : finalLines + "\n";
   await app.vault.modify(target, updated);
+
+  if (sourceIsInbox) {
+    const sourceContentAfterMove = await app.vault.read(curFile);
+    if (sourceContentAfterMove.trim().length === 0) {
+      await app.vault.delete(curFile);
+    }
+  }
 
   new Notice(`GeckoTask: Moved task to ${target.path}`);
 }
