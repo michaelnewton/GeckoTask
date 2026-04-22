@@ -79,6 +79,9 @@ No pressure — everything will remain free and open.
 ## Core Concepts
 
 ### Task Format
+
+For the full syntax (all fields, tags, recurrence patterns, and special files), see [Task format specification](task-format.md).
+
 ```markdown
 - [ ] Write router tests #work priority:: high due:: 2026-04-24 scheduled:: 2026-04-22
   Optional multi-line description line 1

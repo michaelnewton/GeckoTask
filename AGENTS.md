@@ -13,6 +13,7 @@ When guidance conflicts, prefer in this order:
 - Target: Obsidian community plugin (TypeScript in `src/`, bundled to root `main.js`).
 - Obsidian loads **`main.js`** per **`manifest.json`** (`"main": "main.js"`). Release artifacts: `main.js`, `manifest.json`, optional `styles.css`.
 - **Human onboarding:** clone, install, dev, and build commands are documented in [`README.md`](README.md). **`package.json`** lists all npm scripts.
+- **Task line syntax** (checkbox tasks, `key::` fields, recurrence, special paths): [`task-format.md`](task-format.md).
 
 ## Environment & tooling
 
