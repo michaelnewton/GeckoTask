@@ -4,6 +4,7 @@ import { IndexedTask } from "../TasksPanelTypes";
 import { parseTaskWithDescription, formatTaskWithDescription, Task } from "../../../models/TaskModel";
 import { formatISODateTime } from "../../../utils/dateUtils";
 import { calculateNextOccurrenceDates } from "../../../services/Recurrence";
+import { isInInboxFolder } from "../../../utils/areaUtils";
 
 /**
  * Toggles the completion status of a task.
@@ -237,6 +238,7 @@ export async function moveTask(
       new Notice("GeckoTask: Source file not found.");
       return;
     }
+    const sourceIsInbox = isInInboxFolder(sourceFile.path, settings);
 
     let taskWithDescription: Task | null = null;
     await app.vault.process(sourceFile, (data) => {
@@ -292,6 +294,13 @@ export async function moveTask(
       ? targetContent + "\n" + finalLines + "\n" 
       : finalLines + "\n";
     await app.vault.modify(finalTargetFile, updated);
+
+    if (sourceIsInbox) {
+      const sourceContentAfterMove = await app.vault.read(sourceFile);
+      if (sourceContentAfterMove.trim().length === 0) {
+        await app.vault.delete(sourceFile);
+      }
+    }
 
     new Notice(`GeckoTask: Moved task to ${finalTargetFile.path}`);
   } catch (error) {

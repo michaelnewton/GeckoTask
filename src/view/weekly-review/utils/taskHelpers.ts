@@ -142,6 +142,7 @@ async function moveTask(
 ): Promise<void> {
   const sourceFile = app.vault.getAbstractFileByPath(task.path);
   if (!(sourceFile instanceof TFile)) return;
+  const sourceIsInbox = isInInboxFolder(sourceFile.path, settings);
 
   let taskWithDescription: Task | null = null;
 
@@ -181,6 +182,13 @@ async function moveTask(
     ? normalizedTarget + "\n" + finalLines + "\n"
     : finalLines + "\n";
   await app.vault.modify(targetFile, updated);
+
+  if (sourceIsInbox) {
+    const sourceContentAfterMove = await app.vault.read(sourceFile);
+    if (sourceContentAfterMove.trim().length === 0) {
+      await app.vault.delete(sourceFile);
+    }
+  }
 }
 
 /**
