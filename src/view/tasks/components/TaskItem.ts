@@ -2,6 +2,7 @@ import { App, Notice } from "obsidian";
 import { GeckoTaskSettings } from "../../../settings";
 import { IndexedTask } from "../TasksPanelTypes";
 import { PromptModal } from "../../../ui/PromptModal";
+import { PriorityPickerModal } from "../../../ui/PriorityPickerModal";
 import { normalizeDateInputForWrite } from "../../../services/NLDate";
 import { formatDueDate, formatScheduledDate, isOverdue, getPriorityColorClass, extractLabels, renderDescriptionLine } from "../utils/taskFormatting";
 import { validateTaskTitle, ValidationResult } from "../../../services/ValidationService";
@@ -217,14 +218,27 @@ export function renderTaskItem(
   const priorityContainer = leftSide.createDiv({ 
     cls: `task-priority-container ${priorityColorClass}${!task.priority ? " task-priority-empty" : ""}` 
   });
+  priorityContainer.addClass("geckotask-clickable");
+  priorityContainer.title = "Click to change priority";
   const priorityIcon = priorityContainer.createEl("span", { cls: "task-priority-icon" });
   // Show exclamation marks based on index (index 0 = !, index 1 = !!, etc.)
   if (task.priority) {
     const priorityIdx = settings.allowedPriorities.indexOf(task.priority);
     priorityIcon.setText("!".repeat(priorityIdx >= 0 ? priorityIdx + 1 : 1));
   } else {
-    priorityIcon.setText("!");
+    // Use a distinct symbol for "no priority" so it differs from lowest priority.
+    priorityIcon.setText("○");
   }
+  priorityContainer.addEventListener("click", async (e) => {
+    e.stopPropagation();
+    const priorities = settings.allowedPriorities.filter((p) => p.trim().length > 0);
+    const modal = new PriorityPickerModal(app, priorities, task.priority);
+    const selectedPriority = await modal.openAndGet();
+    if (selectedPriority === null) {
+      return; // User cancelled
+    }
+    await callbacks.onUpdateField(task, "priority", selectedPriority);
+  });
   
   // Tags/labels - extract from both tags and description
   const allLabels = extractLabels(task);
