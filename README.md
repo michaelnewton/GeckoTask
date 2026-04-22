@@ -8,6 +8,8 @@ Everything stays in plain Markdown with inline fields (`due::`, `priority::`, `s
 
 GeckoTask is for Obsidian users who want a GTD-friendly workflow without leaving the vault.
 
+For development and cutting releases, see [CONTRIBUTING.md](CONTRIBUTING.md).
+
 ## Quick Install
 
 GeckoTask is not in the Obsidian Community Plugins catalog yet. You can install a **prebuilt release** with [BRAT](https://github.com/TfTHacker/obsidian42-brat) (Beta Reviewers Auto-update Tool), or **build from source** and copy files manually.
