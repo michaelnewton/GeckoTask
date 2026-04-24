@@ -15,6 +15,14 @@ function normalizeFileStem(value: string, fallback: string): string {
   return normalized || fallback;
 }
 
+function normalizeMarkdownPath(value: string): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const normalized = normalizePath(trimmed).replace(/^\/+/, "");
+  if (!normalized) return null;
+  return normalized.toLowerCase().endsWith(".md") ? normalized : `${normalized}.md`;
+}
+
 /**
  * Settings tab UI for configuring GeckoTask plugin options.
  */
@@ -122,6 +130,29 @@ export class GeckoTaskSettingTab extends PluginSettingTab {
         .onChange(async (v) => {
           this.plugin.settings.showCompletedTasks = v;
           await this.plugin.saveSettings();
+          this.app.workspace.getLeavesOfType(VIEW_TYPE_TASKS).forEach((leaf) => {
+            const view = leaf.view;
+            if (view instanceof TasksPanel) {
+              void view.refreshTaskIndex();
+            }
+          });
+        })
+      );
+
+    new Setting(containerEl)
+      .setName("Hide empty tasks")
+      .setDesc("Hide checkbox lines with no task title (for example: '- [ ]')")
+      .addToggle(t => t
+        .setValue(this.plugin.settings.hideEmptyTasks)
+        .onChange(async (v) => {
+          this.plugin.settings.hideEmptyTasks = v;
+          await this.plugin.saveSettings();
+          this.app.workspace.getLeavesOfType(VIEW_TYPE_TASKS).forEach((leaf) => {
+            const view = leaf.view;
+            if (view instanceof TasksPanel) {
+              void view.refreshTaskIndex();
+            }
+          });
         })
       );
 
@@ -180,6 +211,22 @@ export class GeckoTaskSettingTab extends PluginSettingTab {
         .onChange(async (v) => {
           const ranges = v.split(",").map(r => r.trim()).filter(Boolean);
           this.plugin.settings.dueDateRanges = ranges.length > 0 ? ranges : ["7d", "14d", "30d", "60d", "90d"];
+          await this.plugin.saveSettings();
+        })
+      );
+
+    new Setting(containerEl)
+      .setName("Reference list paths")
+      .setDesc("Comma-separated markdown file paths used as reference lists (for Move action). Tasks moved there become bullet items.")
+      .addTextArea(t => t
+        .setPlaceholder("Area/Reference List.md, Area/Backlog.md")
+        .setValue(this.plugin.settings.referenceListPaths.join(", "))
+        .onChange(async (v) => {
+          const paths = v
+            .split(",")
+            .map(p => normalizeMarkdownPath(p))
+            .filter((p): p is string => !!p);
+          this.plugin.settings.referenceListPaths = Array.from(new Set(paths));
           await this.plugin.saveSettings();
         })
       );

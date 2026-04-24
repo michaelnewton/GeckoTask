@@ -1,15 +1,15 @@
-import { ItemView, WorkspaceLeaf, Notice } from "obsidian";
+import { ItemView, WorkspaceLeaf, Notice, TAbstractFile, TFile, TFolder, normalizePath } from "obsidian";
 import { GeckoTaskSettings } from "../../settings";
 import { FilePickerModal } from "../../ui/FilePickerModal";
 import { captureQuickTask } from "../../ui/CaptureModal";
 import { TabType, FilterState, IndexedTask } from "./TasksPanelTypes";
 import { loadTasksFromFile } from "../../utils/taskUtils";
-import { getSortedProjectFiles } from "../../utils/areaUtils";
+import { getSortedProjectFiles, getInboxFolderPath } from "../../utils/areaUtils";
 import { renderTabBar } from "./components/TabBar";
 import { renderFilterBar } from "./components/FilterBar";
 import { renderTaskItem, TaskItemCallbacks } from "./components/TaskItem";
 import { filterTasks, sortTasks } from "./utils/taskFiltering";
-import { toggleTask, updateTaskField, updateTaskTitle, moveTask, openTaskInNote } from "./utils/taskOperations";
+import { toggleTask, updateTaskField, updateTaskTitle, deleteTask, moveTaskToSomedayMaybe, moveTask, openTaskInNote } from "./utils/taskOperations";
 
 /**
  * View type identifier for the Tasks panel.
@@ -68,6 +68,7 @@ export class TasksPanel extends ItemView {
     const titleEl = this.container.createDiv({ cls: "geckotask-title" });
     const titleHeader = titleEl.createDiv({ cls: "geckotask-title-header" });
     this.titleElement = titleHeader.createEl("h2", { text: "Tasks" });
+
     const quickAddBtn = titleHeader.createEl("button", { 
       text: this.isTouchDevice() ? "➕" : "Quick Add", 
       cls: "geckotask-quick-add-btn" 
@@ -116,6 +117,16 @@ export class TasksPanel extends ItemView {
   private renderTabs(host: HTMLElement) {
     renderTabBar(host, this.currentTab, (tab) => {
       this.currentTab = tab;
+      if (tab === "inbox") {
+        // Inbox is a triage queue; reset filters that commonly hide items.
+        this.filters = {
+          ...this.filters,
+          space: "All",
+          project: "Any",
+          priority: "Any",
+          due: "any"
+        };
+      }
       this.rerender();
     });
   }
@@ -150,14 +161,42 @@ export class TasksPanel extends ItemView {
 
     // Discover all task files (project _tasks.md, area _tasks.md, inbox files)
     const sortedFiles = getSortedProjectFiles(this.app, this.settings);
+    const allTaskFiles: TFile[] = [...sortedFiles];
+    const seenPaths = new Set(sortedFiles.map(file => file.path));
 
-    // Load tasks from all discovered files
-    for (const file of sortedFiles) {
-      const fileTasks = await loadTasksFromFile(this.app, file, this.settings);
-      tasks.push(...fileTasks);
+    const inboxFolderPath = getInboxFolderPath(this.settings);
+    const inboxFolder = this.app.vault.getAbstractFileByPath(inboxFolderPath);
+    if (inboxFolder instanceof TFolder) {
+      const walk = (node: TAbstractFile) => {
+        if (node instanceof TFile) {
+          if (node.extension === "md" && !seenPaths.has(node.path)) {
+            seenPaths.add(node.path);
+            allTaskFiles.push(node);
+          }
+          return;
+        }
+
+        if (node instanceof TFolder) {
+          for (const child of node.children) {
+            walk(child);
+          }
+        }
+      };
+
+      walk(inboxFolder);
     }
 
-    this.projectPaths = sortedFiles.map(f => f.path);
+    // Load tasks from all discovered files
+    for (const file of allTaskFiles) {
+      try {
+        const fileTasks = await loadTasksFromFile(this.app, file, this.settings);
+        tasks.push(...fileTasks);
+      } catch (error) {
+        console.error(`GeckoTask: Failed to load tasks from ${file.path}`, error);
+      }
+    }
+
+    this.projectPaths = allTaskFiles.map(f => f.path);
     this.tasks = tasks;
     // re-render filters project dropdown
     const filtersHost = this.container.find(".geckotask-filters") as HTMLElement;
@@ -222,6 +261,16 @@ export class TasksPanel extends ItemView {
         await this.reindex();
         this.rerender();
       },
+      onDelete: async (task) => {
+        await deleteTask(this.app, this.settings, task);
+        await this.reindex();
+        this.rerender();
+      },
+      onMoveToSomedayMaybe: async (task) => {
+        await moveTaskToSomedayMaybe(this.app, this.settings, task);
+        await this.reindex();
+        this.rerender();
+      },
       onMove: async (task) => {
         await this.handleMoveTask(task);
       },
@@ -240,7 +289,11 @@ export class TasksPanel extends ItemView {
 
     // Render each task
     for (const task of rows) {
-      renderTaskItem(list, this.app, this.settings, task, callbacks);
+      try {
+        renderTaskItem(list, this.app, this.settings, task, callbacks);
+      } catch (error) {
+        console.error(`GeckoTask: Failed to render task at ${task.path}:${task.line}`, error);
+      }
     }
     
     // Update title with task count
@@ -255,8 +308,31 @@ export class TasksPanel extends ItemView {
    */
   private async handleMoveTask(task: IndexedTask) {
     try {
-      // FilePickerModal will automatically get and sort files
-      const modal = new FilePickerModal(this.app, [], this.settings);
+      const moveTargets = getSortedProjectFiles(this.app, this.settings);
+      const seenPaths = new Set(moveTargets.map(file => file.path));
+
+      for (const referencePath of this.settings.referenceListPaths) {
+        const normalizedPath = normalizePath(referencePath);
+        let abstractFile = this.app.vault.getAbstractFileByPath(normalizedPath);
+
+        if (!(abstractFile instanceof TFile)) {
+          const folderPath = normalizedPath.split("/").slice(0, -1).join("/");
+          if (folderPath) {
+            const folder = this.app.vault.getAbstractFileByPath(folderPath);
+            if (!folder) {
+              await this.app.vault.createFolder(folderPath);
+            }
+          }
+          abstractFile = await this.app.vault.create(normalizedPath, "");
+        }
+
+        if (abstractFile instanceof TFile && !seenPaths.has(abstractFile.path)) {
+          seenPaths.add(abstractFile.path);
+          moveTargets.push(abstractFile);
+        }
+      }
+
+      const modal = new FilePickerModal(this.app, moveTargets, this.settings);
       const target = await modal.openAndGet();
       if (!target) {
         // User cancelled - this is fine, just return
@@ -324,4 +400,3 @@ export class TasksPanel extends ItemView {
     return false;
   }
 }
-

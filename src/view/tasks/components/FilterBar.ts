@@ -181,10 +181,16 @@ export function renderFilterBar(
 
   const normalizedProjectPaths = buildProjectOptions(projectPaths);
   renderProjectSelectOptions(normalizedProjectPaths);
-  if (filters.project === "Any" || !normalizedProjectPaths.includes(filters.project)) {
+  if (filters.project === "Any") {
     projSelect.value = "Any";
-  } else {
+  } else if (normalizedProjectPaths.includes(filters.project)) {
     projSelect.value = filters.project;
+  } else {
+    projSelect.value = "Any";
+    onFilterChange({
+      ...filters,
+      project: "Any"
+    });
   }
 
   projSelect.addEventListener("change", (e) => {

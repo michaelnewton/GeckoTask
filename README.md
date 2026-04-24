@@ -104,7 +104,7 @@ GeckoTask uses a modified PARA model called **SPARA**:
 - **PARA inside each space**: `Projects`, `Areas`, and your supporting resources/archive structure
 
 - **Projects**: `{Space}/1Projects/{ProjectName}/`
-- **PARA Areas**: `{Space}/2Areas/`
+- **PARA Areas**: `{Space}/2Areas/` (root files and nested area subfolders are supported)
 - **Inbox**: dedicated folder for unprocessed items
 
 Example structure:
@@ -134,6 +134,9 @@ GeckoTask reads space/project context from these paths, so keep folder names sta
 ## Features Overview
 
 - Tasks side panel with tabs, filters, inline edits, and quick actions
+- Task card action menu (`⋯`) for move, Someday/Maybe, and delete actions
+- Configurable reference list targets that convert moved tasks into bullet items
+- Clickable task tags that open Obsidian Search with a tag query
 - Weekly Review panel with GTD-style review flow
 - Health Check panel for stale items, quick wins, and cleanup signals
 - Quick Add/Edit modal from command palette or hotkey
@@ -170,12 +173,16 @@ The Tasks panel is your daily command center.
 - Filter by space, project path, priority, due bucket, and text query
 - Click title to edit inline
 - Click field badges to edit `due`, `scheduled`, `priority`, or recurrence
-- Open task in note, move it to another file, or toggle completion
+- Click tags to open Search for that tag
+- Use the `⋯` menu to move tasks, send tasks to Someday/Maybe, or delete
+- Open task in note or toggle completion
 
 **Behavior**
 - Auto-refreshes on vault and metadata changes
 - Supports multi-line task descriptions
 - Can hide completed tasks based on settings
+- Can hide empty tasks (`- [ ]`) based on settings
+- Inbox tab ignores restrictive filters so triage stays comprehensive
 
 ### Weekly Review
 Weekly Review follows three GTD-style phases:
@@ -232,11 +239,13 @@ Open `Settings -> GeckoTask`.
 **Inbox and display**
 - Inbox folder name
 - Show completed tasks
+- Hide empty tasks
 
 **Task options**
 - Natural language date parsing
 - Allowed priorities
 - Due date ranges
+- Reference list paths
 
 **Weekly Review**
 - Custom collection points
@@ -331,7 +340,7 @@ These are starting points; tune them over 2-3 review cycles based on how noisy o
 ```
 Index only `- [ ]` / `- [x]` in:
 - `Inbox/**/*.md`
-- `{Space}/2Areas/_tasks.md|_SomedayMaybe.md`
+- `{Space}/2Areas/**/_tasks.md|_SomedayMaybe.md`
 - `{Space}/1Projects/{Project}/_tasks.md|_SomedayMaybe.md`
 (use user settings if different)
 
