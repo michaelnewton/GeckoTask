@@ -18,6 +18,11 @@ export function filterTasks(
   let rows = settings.showCompletedTasks
     ? [...tasks]
     : tasks.filter(t => !t.checked);
+
+  if (settings.hideEmptyTasks) {
+    rows = rows.filter(t => t.title.trim().length > 0);
+  }
+
   const today = formatISODate(new Date());
 
   // Apply tab-specific filtering
@@ -120,17 +125,28 @@ export function filterTasks(
   }
 
   // Apply other filters (common to all tabs)
-  // Space filter doesn't apply to inbox tab — inbox tasks have no space
-  if (filters.space !== "All" && currentTab !== "inbox") rows = rows.filter(t => (t.space || "") === filters.space);
-  if (filters.project !== "Any") {
-    if (isInInboxFolder(filters.project, settings)) {
-      rows = rows.filter(t => isInInboxFolder(t.path, settings));
-    } else {
-      rows = rows.filter(t => t.path === filters.project);
+  // Inbox is a triage queue; keep it broad and avoid hiding items via stale filters.
+  if (currentTab !== "inbox") {
+    if (filters.space !== "All") rows = rows.filter(t => (t.space || "") === filters.space);
+
+    if (filters.project !== "Any") {
+      if (isInInboxFolder(filters.project, settings)) {
+        rows = rows.filter(t => isInInboxFolder(t.path, settings));
+      } else if (isAreaTasksFile(filters.project, settings)) {
+        const lastSlashIdx = filters.project.lastIndexOf("/");
+        const selectedAreaFolder = lastSlashIdx >= 0 ? filters.project.slice(0, lastSlashIdx) : filters.project;
+        rows = rows.filter(t =>
+          isAreaTasksFile(t.path, settings) &&
+          (t.path === filters.project || t.path.startsWith(`${selectedAreaFolder}/`))
+        );
+      } else {
+        rows = rows.filter(t => t.path === filters.project);
+      }
     }
-  }
-  if (filters.priority !== "Any") {
-    rows = rows.filter(t => t.priority === filters.priority);
+
+    if (filters.priority !== "Any") {
+      rows = rows.filter(t => t.priority === filters.priority);
+    }
   }
   if (filters.query.trim()) {
     const q = filters.query.toLowerCase();

@@ -1,4 +1,4 @@
-import { App, Notice } from "obsidian";
+import { App, Menu, Notice } from "obsidian";
 import { GeckoTaskSettings } from "../../../settings";
 import { IndexedTask } from "../TasksPanelTypes";
 import { PromptModal } from "../../../ui/PromptModal";
@@ -15,10 +15,50 @@ export interface TaskItemCallbacks {
   onToggle: (task: IndexedTask, checked: boolean) => Promise<void>;
   onUpdateField: (task: IndexedTask, key: "due" | "scheduled" | "priority" | "recur", value?: string) => Promise<void>;
   onUpdateTitle: (task: IndexedTask, newTitle: string) => Promise<void>;
+  onDelete: (task: IndexedTask) => Promise<void>;
+  onMoveToSomedayMaybe: (task: IndexedTask) => Promise<void>;
   onMove: (task: IndexedTask) => Promise<void>;
   onOpen: (task: IndexedTask) => Promise<void>;
   onEdit: (task: IndexedTask) => Promise<void>;
   onRerender: () => void;
+}
+
+async function openTagSearch(app: App, tag: string): Promise<void> {
+  const normalizedTag = tag.trim().startsWith("#") ? tag.trim() : `#${tag.trim()}`;
+  const query = `tag:${normalizedTag}`;
+
+  if (app.workspace.getLeavesOfType("search").length === 0) {
+    await app.workspace.getRightLeaf(false)?.setViewState({ type: "search", active: true });
+  }
+
+  const searchLeaf = app.workspace.getLeavesOfType("search")[0];
+  if (!searchLeaf) {
+    new Notice("GeckoTask: Could not open search view.");
+    return;
+  }
+
+  await app.workspace.revealLeaf(searchLeaf);
+
+  const searchView = searchLeaf.view as unknown as {
+    setQuery?: (query: string) => void;
+    searchComponent?: {
+      setValue?: (query: string) => void;
+      onChanged?: () => void;
+    };
+  };
+
+  if (typeof searchView.setQuery === "function") {
+    searchView.setQuery(query);
+    return;
+  }
+
+  if (searchView.searchComponent?.setValue) {
+    searchView.searchComponent.setValue(query);
+    searchView.searchComponent.onChanged?.();
+    return;
+  }
+
+  new Notice(`GeckoTask: Search opened. Query: ${query}`);
 }
 
 /**
@@ -101,6 +141,35 @@ export function renderTaskItem(
   openIcon.addEventListener("click", async (e) => {
     e.stopPropagation();
     await callbacks.onOpen(task);
+  });
+
+  // More actions menu (move, someday/maybe, delete)
+  const menuIcon = actionIconsContainer.createEl("span", { cls: "task-action-icon task-action-icon-menu" });
+  menuIcon.setText("⋯");
+  menuIcon.title = "More actions";
+  menuIcon.addClass("geckotask-clickable");
+  menuIcon.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const menu = new Menu();
+    menu.addItem((item) => item
+      .setTitle("Move task")
+      .setIcon("folder")
+      .onClick(() => {
+        void callbacks.onMove(task);
+      }));
+    menu.addItem((item) => item
+      .setTitle("Move to Someday/Maybe")
+      .setIcon("moon")
+      .onClick(() => {
+        void callbacks.onMoveToSomedayMaybe(task);
+      }));
+    menu.addItem((item) => item
+      .setTitle("Delete task")
+      .setIcon("trash-2")
+      .onClick(() => {
+        void callbacks.onDelete(task);
+      }));
+    menu.showAtMouseEvent(e as MouseEvent);
   });
 
   // Bottom row: Scheduled date + Due date + Priority + Tags on left, Project on right
@@ -239,14 +308,20 @@ export function renderTaskItem(
     }
     await callbacks.onUpdateField(task, "priority", selectedPriority);
   });
-  
+
   // Tags/labels - extract from both tags and description
   const allLabels = extractLabels(task);
   if (allLabels.length > 0) {
     allLabels.forEach(label => {
       const tagContainer = leftSide.createEl("span", { cls: "task-tag-container" });
+      tagContainer.addClass("geckotask-clickable");
+      tagContainer.title = `Open search for ${label}`;
       const tagText = tagContainer.createEl("span", { cls: "task-tag-text" });
       tagText.textContent = label;
+      tagContainer.addEventListener("click", async (e) => {
+        e.stopPropagation();
+        await openTagSearch(app, label);
+      });
     });
   }
   
@@ -486,4 +561,3 @@ function startEditingTitle(titleEl: HTMLElement, task: IndexedTask, callbacks: T
     }
   });
 }
-

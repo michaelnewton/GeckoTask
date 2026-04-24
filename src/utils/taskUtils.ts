@@ -32,6 +32,13 @@ export async function loadTasksFromFile(
   for (let i = 0; i < lines.length; i++) {
     if (!lines[i].match(/^\s*-\s*\[[ x]\]\s+/i)) continue;
 
+    if (settings.hideEmptyTasks) {
+      const rawTaskContent = lines[i].replace(/^\s*-\s*\[[ x]\]\s*/i, "");
+      if (rawTaskContent.trim().length === 0) {
+        continue;
+      }
+    }
+
     // Parse task with description
     const { task: parsed, endLine } = parseTaskWithDescriptionFromVault(lines, i, settings);
     if (!parsed) continue;

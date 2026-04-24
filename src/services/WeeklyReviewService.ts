@@ -232,8 +232,10 @@ function isAreaTasksFileInMode(filePath: string, settings: GeckoTaskSettings, no
   if (!noSpacesMode) {
     return isAreaTasksFile(filePath, settings);
   }
-  const suffix = `/${settings.areaTasksSubfolder}/${settings.tasksFileName}.md`;
-  return filePath.endsWith(suffix) && filePath.length > suffix.length;
+  const marker = `/${settings.areaTasksSubfolder}/`;
+  const idx = filePath.indexOf(marker);
+  if (idx <= 0) return false;
+  return filePath.endsWith(`/${settings.tasksFileName}.md`);
 }
 
 /**

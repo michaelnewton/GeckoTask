@@ -92,6 +92,15 @@ If your plugin does not need CSS, delete this file.
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-height: 0;
+}
+
+.geckotask-list {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .geckotask-title {
@@ -229,6 +238,7 @@ If your plugin does not need CSS, delete this file.
   gap: 12px; /* Increased spacing for better visual separation */
   overflow-y: auto;
   flex: 1;
+  min-height: 0;
 }
 
 /* Empty state message */
@@ -438,6 +448,10 @@ If your plugin does not need CSS, delete this file.
 }
 
 .task-action-icon-open {
+  color: var(--text-muted);
+}
+
+.task-action-icon-menu {
   color: var(--text-muted);
 }
 
@@ -713,6 +727,10 @@ If your plugin does not need CSS, delete this file.
   white-space: nowrap;
   margin-left: 0;
   flex-shrink: 0; /* Keep each tag intact; container may clip overflow */
+}
+
+.task-tag-container:hover {
+  background: var(--background-modifier-border-hover);
 }
 
 .task-tag-icon {

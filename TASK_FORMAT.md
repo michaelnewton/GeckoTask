@@ -197,8 +197,8 @@ Fields can appear in any order on the task line. The plugin will normalize the o
 Paths use the defaults from **Settings -> GeckoTask** (`Space paths`, `inboxFolderName`, `projectsSubfolder`, `areaTasksSubfolder`, `tasksFileName`, `somedayMaybeFileName`). Out of the box:
 
 - **Inbox:** Any note under the inbox folder (default folder name: `Inbox` at the vault root, not a single fixed `Inbox.md`). Tasks here have no project; the UI treats them as inbox items.
-- **Area-level tasks:** The per-area task file: `{Space}/{areaTasksSubfolder}/{tasksFileName}.md` (defaults: `{Space}/2Areas/_tasks.md`). Same as inbox for **project**: none; the **area** name is shown where a project name would appear for project files.
-- **Area someday/maybe:** `{Space}/{areaTasksSubfolder}/{somedayMaybeFileName}.md` (default `_SomedayMaybe.md`) follows the same project rules as the area `_tasks` file.
+- **Area-level tasks:** Any task file under `{Space}/{areaTasksSubfolder}/**/{tasksFileName}.md` (includes the root file `{Space}/{areaTasksSubfolder}/{tasksFileName}.md`; defaults to `{Space}/2Areas/_tasks.md`). Same as inbox for **project**: none; the **area** context is shown where a project name would appear for project files.
+- **Area someday/maybe:** Any file under `{Space}/{areaTasksSubfolder}/**/{somedayMaybeFileName}.md` (default stem `_SomedayMaybe`) follows the same project rules as area `_tasks` files.
 
 Project tasks live at `{Space}/{projectsSubfolder}/{ProjectName}/{tasksFileName}.md` (default `{Space}/1Projects/{Project}/_tasks.md`).
 
@@ -265,4 +265,3 @@ GeckoTask infers space and project from the **path**, not from YAML frontmatter.
 - [ ] Call dentist #personal due:: 2026-04-25
 - [ ] Buy groceries #personal priority:: low
 ```
-
