@@ -1,7 +1,7 @@
 {
 	"id": "geckotask",
 	"name": "GeckoTask",
-	"version": "0.1.2",
+	"version": "0.1.4",
 	"minAppVersion": "1.5.0",
 	"description": "Markdown-first task manager with inline metadata and Dataview-friendly fields.",
 	"author": "Geckom",
